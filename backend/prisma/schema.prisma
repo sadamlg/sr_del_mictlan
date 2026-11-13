@@ -1,0 +1,19 @@
+generator client {
+  provider               = "prisma-client"
+  output                 = "../generated/prisma"
+  runtime                = "nodejs"
+  moduleFormat           = "esm"
+  generatedFileExtension = "mts"
+  importFileExtension    = "mts"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model WorkerHeartbeat {
+  id        Int      @id @default(1) @db.SmallInt
+  checkedAt DateTime @map("checked_at") @db.Timestamptz(3)
+
+  @@map("worker_heartbeats")
+}
