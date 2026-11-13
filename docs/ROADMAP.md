@@ -7,7 +7,7 @@ Las reglas duraderas del repositorio están en [AGENTS.md](../AGENTS.md). El alc
 | Fase | Resultado | Estado |
 |---|---|---|
 | 00 · Creación y configuración del repositorio | Repositorio GitHub, ramas y documentación inicial | Completada |
-| 01 · Entorno local y Docker | Stack reproducible en Compose, con acceso local y opción LAN | En verificación |
+| 01 · Entorno local y Docker | Stack reproducible en Compose, con acceso local y opción LAN | Completada |
 | 02 · Alcance y arquitectura | Alcance maestro y arquitectura transversal; los contratos de módulo se detallan en sus fases | Planeada |
 | 03 · Landing, catálogo y medios | Catálogo, presentación, medios y carga pública | Planeada |
 | 04 · Cuentas y perfil | Registro, confirmación, sesión, recuperación y perfil | Planeada |
@@ -23,7 +23,7 @@ Las reglas duraderas del repositorio están en [AGENTS.md](../AGENTS.md). El alc
 ```mermaid
 flowchart TB
     p00["✅ 00 · Creación y configuración del repositorio<br/>Completada"] --> p01
-    p01["🔎 01 · Entorno local y Docker<br/>En verificación"] --> p02["○ 02 · Alcance y arquitectura<br/>Planeada"]
+    p01["✅ 01 · Entorno local y Docker<br/>Completada"] --> p02["○ 02 · Alcance y arquitectura<br/>Planeada"]
     p02 --> p03["○ 03 · Landing, catálogo y medios<br/>Planeada"]
     p03 --> p04["○ 04 · Cuentas y perfil<br/>Planeada"]
     p04 --> p05["○ 05 · Carritos<br/>Planeada"]
@@ -37,8 +37,7 @@ flowchart TB
     classDef active fill:#fef3c7,stroke:#d97706,color:#78350f,stroke-width:2px;
     classDef planned fill:#f3f4f6,stroke:#9ca3af,color:#374151;
 
-    class p00 completed;
-    class p01 active;
+    class p00,p01 completed;
     class p02,p03,p04,p05,p06,p07,p08,p09,p10 planned;
 
     linkStyle default stroke:#94a3b8,stroke-width:2px;
@@ -62,17 +61,18 @@ flowchart TB
 
 La fase 02 aprueba el alcance maestro del MVP, la arquitectura transversal, las interfaces compartidas y la secuencia de dependencias. **No cierra por adelantado el comportamiento detallado de cada módulo.** Al iniciar cada fase funcional, se revisa y ajusta su contrato antes de implementar; el contrato guía su alcance y comprobaciones. Los documentos en <code>docs/contracts</code> describen el comportamiento previsto, no acreditan que ya esté implementado o validado. Las fases 03–07 enlazan el contrato correspondiente. Las fases de infraestructura, como Staging y Producción, actualizan las guías de proveedor que les corresponden.
 
-### 01. Entorno local y Docker — en verificación
+### 01. Entorno local y Docker — completada
 
 - **Objetivo:** permitir que una copia limpia del repositorio levante el stack de desarrollo y sus dependencias sin instalar Node.js en el equipo anfitrión.
 - **Dependencias:** fase 00 completada.
 - **Resultado:** Next.js con Tailwind CSS 4, API Express, PostgreSQL, Prisma, worker base y Mailpit en Docker Compose. El modo local enlaza puertos al loopback; el modo LAN es opcional y reversible y abre sólo frontend, API y la bandeja web de Mailpit. El worker registra un latido en PostgreSQL y tiene un comando SMTP de comprobación; el procesamiento de trabajos de correo corresponde a su fase.
-- **CI del proyecto:** `.github/workflows/ci.yml` ejecuta pruebas y ESLint en frontend y backend, construye Next.js y valida/genera Prisma. Tras un run satisfactorio en GitHub, comprobar los nombres reales de los checks. Las reglas actuales de `develop` y `main` no requieren checks; sólo podrán configurarse como obligatorios después de autorización explícita para cambiar GitHub. La fase 09 añade la validación integral en Staging y prepara `docs/quality/QUALITY-AND-RELEASE.md`.
+- **CI del proyecto:** `.github/workflows/ci.yml` ejecuta pruebas y ESLint en frontend y backend, construye Next.js y valida/genera Prisma. El PR #3 confirmó en GitHub los checks `Frontend checks` y `Backend checks`; ambos aprobaron. Las reglas actuales de `develop` y `main` no requieren checks y no se modificaron. La fase 09 añade la validación integral en Staging y prepara `docs/quality/QUALITY-AND-RELEASE.md`.
 - **Comprobaciones:** reconstruir y levantar Compose desde la guía; comprobar health checks, comunicación SSR frontend/backend, consulta de PostgreSQL, migración inicial en una base vacía, latido del worker, entrega SMTP a Mailpit, pruebas, lint y build. Para LAN, comprobar los enlaces desde la IPv4 anfitriona, restaurar el loopback y, si hay otro dispositivo disponible, confirmar acceso desde ese equipo. La guía distingue el entorno local de los Dockerfiles de producción que se preparan en la fase 08.
-- **Estado y evidencia — 12 de noviembre de 2026:** implementación local verificada en Linux x86_64 con Docker Engine 29.9.2 y Compose 5.6.1; Node.js 24.21.0 se ejecutó en contenedores. Construyeron las imágenes del backend y frontend. `docker compose up --detach --wait` dejó PostgreSQL 18.6, Mailpit 1.31.5, backend, worker y frontend saludables. `/health` devolvió HTTP 200 con PostgreSQL conectado; `/api/hello` respondió y la página SSR mostró la respuesta del backend. Prisma validó el esquema; `migrate status` informó el esquema al día. La migración `20261112090000_initial` se aplicó y verificó en una base temporal vacía. El worker escribió un latido reciente. El comando de correo del worker envió el mensaje `Prueba local de Mailpit`, confirmado por la API de Mailpit. Pasaron 4 pruebas backend, 3 frontend, ambos lint y `npm audit` informó cero vulnerabilidades en ambos paquetes. El primer build manual de Next.js falló durante el prerender porque Compose y el Dockerfile imponían `NODE_ENV=development` también a `next build`. Se retiró esa asignación del servicio y de la imagen frontend: `next dev` y `next build` seleccionan sus modos automáticamente. La compilación optimizada volvió a pasar desde Compose sin definir `NODE_ENV`. Con autorización para acceder al daemon local, se recreó después el servicio frontend; el contenedor quedó saludable, el entorno del contenedor dejó `NODE_ENV` sin definir y la página respondió HTTP 200 con el comando `next dev`. El workflow está definido en `.github/workflows/ci.yml`; su primera ejecución en GitHub queda pendiente.
+- **Estado y evidencia local — 12 de noviembre de 2026:** implementación verificada en Linux x86_64 con Docker Engine 29.9.2 y Compose 5.6.1; Node.js 24.21.0 se ejecutó en contenedores. Construyeron las imágenes del backend y frontend. `docker compose up --detach --wait` dejó PostgreSQL 18.6, Mailpit 1.31.5, backend, worker y frontend saludables. `/health` devolvió HTTP 200 con PostgreSQL conectado; `/api/hello` respondió y la página SSR mostró la respuesta del backend. Prisma validó el esquema; `migrate status` informó el esquema al día. La migración `20261112090000_initial` se aplicó y verificó en una base temporal vacía. El worker escribió un latido reciente. El comando de correo del worker envió el mensaje `Prueba local de Mailpit`, confirmado por la API de Mailpit. Pasaron 4 pruebas backend, 3 frontend, ambos lint y `npm audit` informó cero vulnerabilidades en ambos paquetes. El primer build manual de Next.js falló durante el prerender porque Compose y el Dockerfile imponían `NODE_ENV=development` también a `next build`. Se retiró esa asignación del servicio y de la imagen frontend: `next dev` y `next build` seleccionan sus modos automáticamente. La compilación optimizada volvió a pasar desde Compose sin definir `NODE_ENV`. Con autorización para acceder al daemon local, se recreó después el servicio frontend; el contenedor quedó saludable, el entorno del contenedor dejó `NODE_ENV` sin definir y la página respondió HTTP 200 con el comando `next dev`.
+- **CI de GitHub — 13 de noviembre de 2026:** el PR #3 (`feat: establish phase 01 development infrastructure`) se fusionó en `develop` con el merge commit `e304693ca5aa215fe44b6594639e7af78d7c3a7b`. Los checks `Frontend checks` y `Backend checks` aprobaron. El primero ejecutó pruebas, ESLint y build de Next.js; el segundo ejecutó pruebas, ESLint, validación del esquema y generación de Prisma Client.
 - **LAN — evidencia:** `scripts/dev-lan.sh up 192.168.100.2` publicó frontend, API y Mailpit en `0.0.0.0`; respondieron desde la IPv4 del anfitrión. El 12 de noviembre de 2026, el responsable confirmó que también verificó el acceso desde un segundo dispositivo y que funcionó. `scripts/dev-lan.sh off` restauró `127.0.0.1` y retiró `.env.dev-lan`.
-- **GitHub y ramas — 12 de noviembre de 2026:** `main` permanece en `015a0cd`; `develop` avanzó a `3c02a76` cuando el usuario fusionó PR #2 de fase 00 durante esta tarea. Este trabajo no modificó PR #2. Las reglas de ambas ramas requieren pull request, aplican a administradores y bloquean force-push y eliminación; no requieren aprobación ni checks de estado. El workflow de fase 01 aún no se ha ejecutado en GitHub, por lo que los nombres reales de checks siguen pendientes.
-- **Estado de fase:** verificación local completada; pendiente la primera ejecución del workflow en GitHub y confirmar los nombres reales de checks. La autorización explícita para cambiar las reglas sigue pendiente. No se creó commit ni push. La rama de trabajo local parte de `015a0cd`; antes de abrir un PR hacia el `develop` actual hay que actualizar la base y comprobar que el diff sólo contenga fase 01. La sección de fase 00 de este archivo aún refleja el baseline local porque su documentación se mantuvo separada de esta rama.
+- **GitHub y ramas — 12 y 13 de noviembre de 2026:** el 12 de noviembre, `develop` avanzó a `3c02a76` al fusionarse el PR #2 de fase 00. El 13 de noviembre, el PR #3 se fusionó en `develop` como `e304693ca5aa215fe44b6594639e7af78d7c3a7b`; GitHub eliminó la rama `feature/phase-01-infrastructure`. Las reglas de `main` y `develop` requieren pull request, aplican a administradores y bloquean force-push y eliminación; no requieren aprobación ni checks de estado. No se modificaron esas reglas.
+- **Estado de fase:** completada. La implementación y las comprobaciones locales se registran con fecha 12 de noviembre de 2026; la ejecución satisfactoria de los dos checks y la fusión en `develop` se registran con fecha 13 de noviembre de 2026 y el commit `e304693ca5aa215fe44b6594639e7af78d7c3a7b`.
 
 ### 02. Alcance y arquitectura — planeada
 
