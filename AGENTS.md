@@ -61,4 +61,4 @@ Mantén cada hecho en su fuente principal. El README describe el producto y sus 
 
 - Al informar el estado del proyecto, revisa los pull requests abiertos y señala cuáles están pendientes o desactualizados. Si no puedes consultar GitHub, indícalo; no cierres ni fusiones un pull request por tu cuenta al hacer esa revisión.
 - Mantén los cambios limitados a la solicitud. No agregues Redis ni BullMQ: PostgreSQL persiste los trabajos asíncronos y un worker los procesa.
-- Completa la parte de frontend de cada módulo antes de avanzar al siguiente. Mantén una fase del roadmap por chat salvo indicación del usuario.
+- Completa la parte de frontend de cada módulo antes de avanzar al siguiente. Mantén una fase del roadmap por chat. Al concluir una fase, crea un chat nuevo en el contexto del proyecto para trabajar en la siguiente y nómbralo según esa fase, salvo indicación explícita del usuario.

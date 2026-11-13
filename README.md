@@ -141,6 +141,8 @@ cp .env.example .env
 
 `.env.example` contiene valores de desarrollo locales. `.env` está excluido de Git; conserva allí sólo credenciales de desarrollo y nunca agregues secretos reales al repositorio.
 
+La [guía de infraestructura Docker Compose](docs/architecture/docker/COMPOSE.md) explica el stack local, su comprobación, los servicios y el acceso LAN.
+
 ### Iniciar el entorno
 
 Valida la configuración y construye e inicia los servicios en segundo plano:
@@ -153,17 +155,32 @@ docker compose ps
 
 La opción `--build` reconstruye las imágenes antes de iniciar los contenedores.
 
-Docker Compose construye las imágenes del frontend y backend, y levanta frontend, API, PostgreSQL, worker de correos y Mailpit. `--wait` espera los health checks de los servicios. Los procesos de desarrollo se ejecutan dentro de sus contenedores: el frontend con `npm run dev`, el backend genera Prisma Client y arranca Node con observación de cambios, y el worker con `npm run worker:dev`. No hace falta instalar Node.js en el anfitrión ni iniciar esos procesos manualmente.
+Docker Compose construye las imágenes del frontend y backend, y levanta frontend, API, PostgreSQL, worker y Mailpit. `--wait` espera los health checks. El frontend ejecuta `npm run dev`; el backend genera Prisma Client, aplica las migraciones y ejecuta Express; el worker registra un latido en PostgreSQL. `docker compose exec worker npm run worker:mail-smoke` comprueba la entrega SMTP a Mailpit. No hace falta instalar Node.js en el anfitrión.
 
 | Servicio o endpoint | Dirección local |
 |---|---|
-| Tienda frontend | [http://localhost:3000](http://localhost:3000) |
+| Frontend Next.js | [http://localhost:3000](http://localhost:3000) |
 | API; comprobar salud | [http://localhost:4000/health](http://localhost:4000/health) |
-| API; catálogo público | [http://localhost:4000/api/catalog/products](http://localhost:4000/api/catalog/products) |
-| API; contador de visitas | [http://localhost:4000/api/visits](http://localhost:4000/api/visits) |
-| Webhook de Stripe (Stripe CLI) | `POST http://localhost:4000/api/webhooks/stripe` |
+| API; prueba de comunicación | [http://localhost:4000/api/hello](http://localhost:4000/api/hello) |
 | Mailpit; bandeja de correo de desarrollo | [http://localhost:8025](http://localhost:8025) |
+| Worker | Sin puerto publicado; escribe su latido en PostgreSQL dentro de Compose |
 | PostgreSQL | `localhost:5432` |
+
+#### Acceso desde la LAN
+
+Con `.env` creado, publica temporalmente frontend, API y la bandeja web de Mailpit en la red local. Sustituye `192.168.100.2` por la IPv4 actual de este equipo si cambia:
+
+```bash
+scripts/dev-lan.sh up 192.168.100.2
+```
+
+Desde otro dispositivo de la misma red abre `http://192.168.100.2:3000` (frontend), `http://192.168.100.2:4000/health` (API) o `http://192.168.100.2:8025` (Mailpit). Para volver al acceso local:
+
+```bash
+scripts/dev-lan.sh off
+```
+
+PostgreSQL permanece enlazado a localhost y el SMTP de Mailpit no se publica fuera de Compose. El script restaura los enlaces originales al desactivar LAN.
 
 ### Reiniciar, recrear o reconstruir frontend y API
 
