@@ -6,7 +6,7 @@ Las reglas duraderas del repositorio están en [AGENTS.md](../AGENTS.md). El alc
 
 | Fase | Resultado | Estado |
 |---|---|---|
-| 00 · Creación y configuración del repositorio | Repositorio GitHub, ramas y documentación inicial | En curso |
+| 00 · Creación y configuración del repositorio | Repositorio GitHub, ramas y documentación inicial | Completada |
 | 01 · Entorno local y Docker | Stack reproducible en Compose, con acceso local y opción LAN | Planeada |
 | 02 · Alcance y arquitectura | Alcance maestro y arquitectura transversal; los contratos de módulo se detallan en sus fases | Planeada |
 | 03 · Landing, catálogo y medios | Catálogo, presentación, medios y carga pública | Planeada |
@@ -22,7 +22,7 @@ Las reglas duraderas del repositorio están en [AGENTS.md](../AGENTS.md). El alc
 
 ```mermaid
 flowchart TB
-    p00["▫️ 00 · Creación y configuración del repositorio<br/>En curso"] --> p01
+    p00["▫️ 00 · Creación y configuración del repositorio<br/>Completada"] --> p01
     p01["▫️ 01 · Entorno local y Docker<br/>Planeada"] --> p02["▫️ 02 · Alcance y arquitectura<br/>Planeada"]
     p02 --> p03["▫️ 03 · Landing, catálogo y medios<br/>Planeada"]
     p03 --> p04["▫️ 04 · Cuentas y perfil<br/>Planeada"]
@@ -36,15 +36,15 @@ flowchart TB
 
 ## Plan por fases
 
-### 00. Creación y configuración del repositorio — en curso
+### 00. Creación y configuración del repositorio — completada
 
 - **Objetivo:** crear `sadamlg/sr_del_mictlan` en GitHub y su copia local, con documentación y configuración inicial del proyecto.
 - **Dependencias:** acceso autorizado a la cuenta `sadamlg`; comprobar que el nombre esté disponible y revisar los ajustes actuales antes de reproducirlos. La visibilidad, permisos y opciones deben comprobarse en GitHub, no suponerse.
 - **Resultado:** repositorio GitHub público, ramas `develop` y `main`, `develop` como predeterminada, eliminación automática de ramas fusionadas y documentación inicial aprobada. El `.gitignore` excluye secretos, datos personales y artefactos.
 - **Medios y licencias:** `docs/architecture/ARCHITECTURE.png` es el diagrama de arquitectura incluido (PNG, 1536 × 1024; SHA-256 `88f174853e52fcebbd0c39c971480632fb20b3f5fecab0ab0e2f8867cfd24520`). No se incluyen fuentes ni código de aplicación. No se agregó archivo de licencia ni se eligió una licencia.
-- **Comprobaciones:** confirmar propietario, nombre, visibilidad, acceso, ramas, rama predeterminada, eliminación automática y reglas de protección. Ambas ramas requieren pull request; las reglas aplican a administradores y prohíben force-push y eliminación. Registrar aquí la configuración observada y las limitaciones. El CI mínimo se implementa y verifica en la fase 01, cuando existan frontend, backend y sus lockfiles.
-- **Estado de CI y checks:** el baseline local no contiene un workflow de GitHub Actions y no hay checks obligatorios configurados. El destino remoto aún no existe. Registrar los nombres de los checks que se creen y cuáles se marquen obligatorios después de verificar el workflow.
-- **Estado y evidencia:** en curso. El 12 de noviembre de 2026, la copia local tiene un único commit raíz compartido por `main` y `develop`; no se hizo push ni se abrió un pull request. El formulario de GitHub muestra disponible el nombre `sadamlg/sr_del_mictlan`; el repositorio no se ha creado. Visibilidad, rama predeterminada, eliminación automática y protecciones quedan pendientes de creación y verificación. Registrar el hash de la copia local junto con la configuración comprobada al publicar el baseline.
+- **Comprobaciones:** el 12 de noviembre de 2026 se comprobó en GitHub el propietario y nombre `sadamlg/sr_del_mictlan`, la visibilidad pública, el acceso (sin colaboradores; sólo el propietario puede contribuir), las ramas `main` y `develop`, `develop` como rama predeterminada y la eliminación automática de ramas fusionadas. Cada rama tiene una regla de protección que requiere pull request, aplica a administradores y bloquea force-push y eliminación. No se requieren aprobaciones ni checks de estado.
+- **Estado de CI y checks:** `main` y `develop` contienen el baseline `015a0cd`; no existe un workflow de GitHub Actions y no hay checks obligatorios configurados. La fase 01 implementará y verificará el CI mínimo y configurará como obligatorios únicamente los checks comprobados.
+- **Estado y evidencia:** completada. Verificación de la configuración en GitHub web el 12 de noviembre de 2026. El commit raíz `015a0cd` (`docs: establish repository baseline`) está publicado en `main` y `develop`. El PR #1 se cerró sin fusionar y su rama se eliminó; por tanto, no cambió el baseline de `develop`. La documentación de este cierre se propone en un PR nuevo hacia `develop`.
 
 ### Cuándo se definen los contratos
 
