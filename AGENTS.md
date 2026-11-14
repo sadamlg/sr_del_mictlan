@@ -43,7 +43,8 @@ Mantén cada hecho en su fuente principal. El README describe el producto y sus 
 ## Alcance y frontend
 
 - No amplíes el MVP al agregar o cambiar medios en una superficie aprobada; revisa el contrato del módulo cuando exista si cambia una página, flujo o capacidad de usuario.
-- Usa Tailwind CSS 4 como opción predeterminada. Agrupa componentes por responsabilidades claras y evita un archivo por elemento visual.
+- Usa Tailwind CSS 4 como opción predeterminada.
+- Agrupa los componentes por módulo o responsabilidad. Da una carpeta propia a los componentes compuestos y coloca junto a ellos sus piezas y comportamiento específico. Extrae componentes cuando tengan una responsabilidad clara, comportamiento propio o reutilización; evita crear un archivo o carpeta por cada elemento visual. Ubica las piezas compartidas entre módulos donde su responsabilidad sea evidente, sin duplicarlas. Guarda las pruebas del frontend en `frontend/tests/`.
 - Sigue el sistema visual aprobado en la fase 02 (`docs/DESIGN.md`, previsto para esa fase) cuando se incorpore; no inventes ni presentes sus tokens como ya aprobados.
 - Usa Lucide React para iconos. Valida en navegador los cambios de interfaz, estados relevantes, accesibilidad, responsividad y consola.
 - Antes de implementar una sección de la landing, revisa su estructura, recursos, estilos, interacciones y tamaños definidos. Conserva el comportamiento aprobado y señala ambigüedades antes de cambiarlo.
