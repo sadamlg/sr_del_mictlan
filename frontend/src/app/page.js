@@ -4,6 +4,7 @@ import SiteHeader from '../components/header/header';
 import AgeGate from '../components/age-gate/age-gate';
 import LandingHero from '../components/landing/landing-hero';
 import MezcalShowcase from '../components/landing/mezcal-showcase/mezcal-showcase';
+import LandingWhatsAppCta from '../components/landing/landing-whatsapp-cta';
 import LandingRitual from '../components/landing/landing-ritual';
 import LandingFaq from '../components/landing/faq/landing-faq';
 import LandingVisitorCounter from '../components/landing/landing-visitor-counter';
@@ -44,6 +45,7 @@ export default function Home() {
         <main>
           <LandingHero mediaBaseUrl={mediaBaseUrl} />
           <Suspense fallback={<section className="bg-mictlan-night px-6 py-24 text-center text-mictlan-bone" role="status">Cargando la colección…</section>}><CatalogContent mediaBaseUrl={mediaBaseUrl} /></Suspense>
+          <LandingWhatsAppCta />
           <LandingRitual />
           <LandingFaq mediaBaseUrl={mediaBaseUrl} />
           <LandingVisitorCounter />
