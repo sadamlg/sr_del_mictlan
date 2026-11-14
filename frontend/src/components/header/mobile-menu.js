@@ -1,6 +1,7 @@
 import { Menu, UserRound, X } from 'lucide-react';
 import Link from 'next/link';
 import FacebookLink from '../social/facebook-link';
+import { navigationItems } from './navigation';
 import { getMenuToggleProps, getMobileNavigationProps } from './behavior';
 
 export function MobileMenuToggle({ isOpen, onToggle }) {
@@ -21,7 +22,7 @@ export function MobileMenuToggle({ isOpen, onToggle }) {
   );
 }
 
-export default function MobileMenu({ isOpen, onClose }) {
+export default function MobileMenu({ isOpen, onClose, onNavigationSelect, activeNavigationItemId }) {
   return (
     <aside
       id="mobile-navigation"
@@ -32,9 +33,25 @@ export default function MobileMenu({ isOpen, onClose }) {
         <div className="flex h-auto flex-col gap-0 text-xl font-medium">
           <nav className="pl-0 pt-4 font-display uppercase tracking-[0.025em] text-mictlan-sage" aria-label="Navegación móvil">
             <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
-              <li className="h-[47.5px]"><Link className="flex h-full w-full items-center px-[30px] text-inherit no-underline transition-colors duration-150 ease-out hover:text-mictlan-teal focus-visible:text-mictlan-teal" href="/#coleccion" onClick={onClose}>Mezcales</Link></li>
-              <li className="h-[47.5px]"><Link className="flex h-full w-full items-center px-[30px] text-inherit no-underline transition-colors duration-150 ease-out hover:text-mictlan-teal focus-visible:text-mictlan-teal" href="/#origen" onClick={onClose}>Nosotros</Link></li>
-              <li className="h-[47.5px]"><Link className="flex h-full w-full items-center px-[30px] text-inherit no-underline transition-colors duration-150 ease-out hover:text-mictlan-teal focus-visible:text-mictlan-teal" href="/#coleccion" onClick={onClose}>Promociones</Link></li>
+              {navigationItems.map(({ href, id, label }) => {
+                const isCurrent = activeNavigationItemId === id;
+                return (
+                  <li className="h-[47.5px]" key={id}>
+                    <Link
+                      className={`flex h-full w-full items-center border-l-2 border-transparent pl-[28px] pr-[30px] text-inherit no-underline transition-[color,border-color] duration-150 ease-out hover:text-mictlan-teal focus-visible:text-mictlan-teal${isCurrent ? ' border-l-mictlan-teal text-mictlan-teal' : ''}`}
+                      href={href}
+                      data-navigation-item={id}
+                      onClick={(event) => {
+                        onNavigationSelect(id, event);
+                        onClose();
+                      }}
+                      aria-current={isCurrent ? 'location' : undefined}
+                    >
+                      {label}
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           </nav>
           <div className="mt-[75px]">
