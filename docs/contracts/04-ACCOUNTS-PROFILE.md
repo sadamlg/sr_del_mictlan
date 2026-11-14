@@ -14,6 +14,7 @@ La fase incluye la entrega de correo de cuenta desde el worker local a Mailpit, 
 - Nombres, apellidos y campos de domicilio se recortan y normalizan como texto, son obligatorios y tienen máximo de 120 caracteres. El correo se recorta, normaliza a minúsculas, valida y limita a 254 caracteres. Se rechazan campos adicionales.
 - La fecha usa formato `YYYY-MM-DD`, debe ser una fecha de calendario real, no futura y acreditar 18 años cumplidos en la fecha actual. Se vuelve a validar al editarla.
 - El código postal es una cadena de exactamente cinco dígitos. No se consulta un servicio externo de direcciones.
+- La captura visual de fecha usa `DD/MM/AAAA` para el formato mexicano y la interfaz la convierte a `YYYY-MM-DD` antes de llamar al API.
 - La contraseña admite de 12 a 128 caracteres. Nunca se almacena ni responde en claro; se usa scrypt con sal aleatoria. El API y los logs nunca devuelven ni registran contraseñas o hashes.
 - La cuenta queda pendiente y sin sesión hasta consumir la confirmación. Un correo pendiente no puede iniciar sesión ni acceder al perfil.
 - Cambiar el correo exige la contraseña actual. El correo vigente no cambia hasta confirmar el nuevo destino; se reserva el correo pendiente para impedir duplicados.
@@ -61,6 +62,7 @@ Las rutas devuelven JSON con `Cache-Control: no-store`; los errores usan `{ "err
 | `GET /api/auth/session` | Cookie opcional | Devuelve cuenta pública o `401`. |
 | `POST /api/auth/logout` | Cookie opcional | Revoca sesión actual y borra cookie; operación repetible. |
 | `POST /api/auth/password-reset-requests` | Público | Encola recuperación cuando aplica y responde con texto genérico `202`. |
+| `POST /api/auth/password-reset-validations` | Token | Devuelve sólo `{ "valid": true/false }` para indicar si el enlace de recuperación sigue vigente y sin consumir. |
 | `POST /api/auth/password-resets` | Token | Consume el token y cambia contraseña, revocando sesiones. |
 | `POST /api/auth/email-confirmations` | Token | Confirma alta o cambio de correo; en alta devuelve cookie de sesión. |
 | `GET /api/profile`, `PATCH /api/profile` | Privado | Lee o actualiza datos del titular; cambio de correo requiere contraseña. |

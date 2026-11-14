@@ -2,6 +2,7 @@ import '@fontsource/cinzel-decorative/400.css';
 import '@fontsource-variable/open-sans/wght.css';
 import '@fontsource-variable/montserrat/wght.css';
 import './globals.css';
+import { AccountSessionProvider } from '../components/account/account-session.js';
 
 export const metadata = {
   title: 'Señor del Mictlán | Destilados para compartir',
@@ -11,7 +12,9 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="es" className="h-full antialiased" data-scroll-behavior="smooth">
-      <body className="min-h-full font-sans">{children}</body>
+      <body className="min-h-full font-sans">
+        <AccountSessionProvider>{children}</AccountSessionProvider>
+      </body>
     </html>
   );
 }

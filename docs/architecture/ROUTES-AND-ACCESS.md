@@ -62,7 +62,7 @@ Aunque algunas páginas de cuenta se pueden abrir sin sesión, los datos privado
 | `POST /api/auth/register`, `POST /api/auth/login` | Registro pendiente e inicio de sesión de cuentas confirmadas. |
 | `GET /api/auth/session` | Comprobar la sesión actual; responde `401` si no existe o venció. |
 | `POST /api/auth/logout` | Cerrar la sesión actual si existe. |
-| `POST /api/auth/password-reset-requests`, `POST /api/auth/password-resets` | Solicitar y consumir la recuperación de contraseña. |
+| `POST /api/auth/password-reset-requests`, `POST /api/auth/password-reset-validations`, `POST /api/auth/password-resets` | Solicitar, validar y consumir la recuperación de contraseña. |
 | `POST /api/auth/email-confirmations` | Consumir un token de confirmación de cuenta o correo. |
 | `GET /api/visits`, `POST /api/visits` | Consultar y registrar el contador de sesiones de la landing. |
 | `POST /api/webhooks/stripe` | Recibir eventos con firma Stripe válida; no se autentica con cookie. |
