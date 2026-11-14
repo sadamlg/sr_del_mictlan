@@ -28,6 +28,8 @@ En producción, Cloudflare publica la tienda, el endpoint de la API para webhook
 
 El diagrama muestra las conexiones entre el navegador, Cloudflare, Railway y los servicios externos.
 
+Para consultar las rutas públicas y privadas, revisa [Rutas y acceso](docs/architecture/ROUTES-AND-ACCESS.md). El [alcance del MVP](docs/MVP_SCOPE.md) reúne sus límites.
+
 ```mermaid
 flowchart TB
     browser["Cliente / navegador"]
