@@ -1,14 +1,14 @@
 # Roadmap
 
-Este roadmap fija la secuencia, dependencias, resultados y comprobaciones de cada fase. El alcance maestro del MVP se revisará y aprobará en la fase 02 (`docs/MVP_SCOPE.md`). Las guías operativas de arquitectura y proveedores se preparan en las fases que las necesitan; su presencia futura no acredita que un servicio esté configurado.
+Este roadmap fija la secuencia, dependencias, resultados y comprobaciones de cada fase. El alcance maestro del MVP está en [MVP_SCOPE.md](MVP_SCOPE.md). Las guías operativas de arquitectura y proveedores se preparan en las fases que las necesitan; su presencia futura no acredita que un servicio esté configurado.
 
-Las reglas duraderas del repositorio están en [AGENTS.md](../AGENTS.md). El alcance maestro (`docs/MVP_SCOPE.md`) y las decisiones transversales se preparan en la fase 02; cada contrato de módulo se revisa al iniciar su fase funcional. El CI mínimo se prepara en la fase 01 y la guía de validación integral (`docs/quality/QUALITY-AND-RELEASE.md`) en la fase 09. Este documento organiza ese trabajo por fase.
+Las reglas duraderas del repositorio están en [AGENTS.md](../AGENTS.md). El alcance maestro y las decisiones transversales se recogen en la fase 02; cada contrato de módulo se revisa al iniciar su fase funcional. El CI mínimo se prepara en la fase 01 y la guía de validación integral (`docs/quality/QUALITY-AND-RELEASE.md`) en la fase 09. Este documento organiza ese trabajo por fase.
 
 | Fase | Resultado | Estado |
 |---|---|---|
 | 00 · Creación y configuración del repositorio | Repositorio GitHub, ramas y documentación inicial | Completada |
 | 01 · Entorno local y Docker | Stack reproducible en Compose, con acceso local y opción LAN | Completada |
-| 02 · Alcance y arquitectura | Alcance maestro y arquitectura transversal; los contratos de módulo se detallan en sus fases | Planeada |
+| 02 · Alcance y arquitectura | Alcance maestro y arquitectura transversal; los contratos de módulo se detallan en sus fases | En curso |
 | 03 · Landing, catálogo y medios | Catálogo, presentación, medios y carga pública | Planeada |
 | 04 · Cuentas y perfil | Registro, confirmación, sesión, recuperación y perfil | Planeada |
 | 05 · Carritos | Carrito de invitado, cuenta y transferencia | Planeada |
@@ -23,7 +23,7 @@ Las reglas duraderas del repositorio están en [AGENTS.md](../AGENTS.md). El alc
 ```mermaid
 flowchart TB
     p00["✅ 00 · Creación y configuración del repositorio<br/>Completada"] --> p01
-    p01["✅ 01 · Entorno local y Docker<br/>Completada"] --> p02["○ 02 · Alcance y arquitectura<br/>Planeada"]
+    p01["✅ 01 · Entorno local y Docker<br/>Completada"] --> p02["🟠 02 · Alcance y arquitectura<br/>En curso"]
     p02 --> p03["○ 03 · Landing, catálogo y medios<br/>Planeada"]
     p03 --> p04["○ 04 · Cuentas y perfil<br/>Planeada"]
     p04 --> p05["○ 05 · Carritos<br/>Planeada"]
@@ -38,7 +38,8 @@ flowchart TB
     classDef planned fill:#f3f4f6,stroke:#9ca3af,color:#374151;
 
     class p00,p01 completed;
-    class p02,p03,p04,p05,p06,p07,p08,p09,p10 planned;
+    class p02 active;
+    class p03,p04,p05,p06,p07,p08,p09,p10 planned;
 
     linkStyle default stroke:#94a3b8,stroke-width:2px;
 ```
@@ -74,14 +75,16 @@ La fase 02 aprueba el alcance maestro del MVP, la arquitectura transversal, las 
 - **GitHub y ramas — 12 y 13 de noviembre de 2026:** el 12 de noviembre, `develop` avanzó a `3c02a76` al fusionarse el PR #2 de fase 00. El 13 de noviembre, el PR #3 se fusionó en `develop` como `e304693ca5aa215fe44b6594639e7af78d7c3a7b`; GitHub eliminó la rama `feature/phase-01-infrastructure`. Las reglas de `main` y `develop` requieren pull request, aplican a administradores y bloquean force-push y eliminación; no requieren aprobación ni checks de estado. No se modificaron esas reglas.
 - **Estado de fase:** completada. La implementación y las comprobaciones locales se registran con fecha 12 de noviembre de 2026; la ejecución satisfactoria de los dos checks y la fusión en `develop` se registran con fecha 13 de noviembre de 2026 y el commit `e304693ca5aa215fe44b6594639e7af78d7c3a7b`.
 
-### 02. Alcance y arquitectura — planeada
+### 02. Alcance y arquitectura — en curso
 
 - **Objetivo:** validar el alcance maestro del MVP y definir la arquitectura transversal: cómo se comunican navegador, frontend, API y servicios externos antes de construir los módulos.
 - **Dependencias:** fase 01.
-- **Resultado:** alcance maestro en `docs/MVP_SCOPE.md`, reglas duraderas en [AGENTS.md](../AGENTS.md), decisiones transversales de arquitectura y secuencia de dependencias. La arquitectura aprobada definirá cómo se comunican navegador, frontend, API y servicios externos en cada entorno. El comportamiento detallado de cada módulo se define o ajusta en su fase, antes de implementar ese módulo.
+- **Resultado:** alcance maestro en `docs/MVP_SCOPE.md`, reglas duraderas en [AGENTS.md](../AGENTS.md), decisiones transversales de arquitectura y secuencia de dependencias. En desarrollo, el navegador accede a la API por el puerto local publicado. En Staging y Producción usa el proxy del frontend (`/api/backend/*`), que reenvía a Express por la red privada; Stripe usa el endpoint público del webhook. El comportamiento detallado de cada módulo se define o ajusta en su fase, antes de implementar ese módulo.
 - **Motivo y momento de validación:** definir y comprobar las rutas públicas, el proxy del frontend y la sesión antes de implementar cuentas; validar la integración desplegada en la fase 08.
-- **Comprobaciones:** `docs/MVP_SCOPE.md`, los diagramas y el README describen la arquitectura aprobada; las guías separan las rutas locales y de producción; la API privada del navegador no se presenta como pública; cada fase funcional revisa su contrato antes de implementar.
-- **Estado y evidencia:** planeada; registrar pruebas, entorno, fecha y commit al completar la fase.
+- **Base de la fase:** `docs/MVP_SCOPE.md`, `docs/architecture/ROUTES-AND-ACCESS.md` y `docs/DESIGN.md` recogen el alcance, las rutas y el sistema visual adoptados para el proyecto; no acreditan capacidades implementadas. La explicación por entorno se integra en la sección de arquitectura existente del README. `docs/architecture/ARCHITECTURE.png` permanece intacto; el README distingue el hostname público de API para webhooks de la ruta de aplicación que usa el proxy del frontend.
+- **Decisión confirmada por el responsable — 13 de noviembre de 2026:** la ruta prevista para medios de Producción es Cloudflare/R2. La fase 10 configura y verifica los hostnames y la entrega pública; esta decisión no afirma que existan ya un bucket, DNS o un proxy configurados.
+- **Comprobaciones:** los diagramas, README y roadmap deben describir la misma arquitectura; las guías separarán las rutas locales y de producción; la API privada del navegador no se presentará como pública; cada fase funcional revisará su contrato antes de implementar. La integración desplegada se validará en la fase 08.
+- **Estado y evidencia:** en curso. El alcance y las decisiones transversales se toman como base; las capacidades funcionales de las fases 03–07 aún no están implementadas. Registrar pruebas, entorno, fecha y commit al completar la fase.
 
 ### 03. Landing, catálogo y medios — planeada
 
@@ -91,7 +94,7 @@ La fase 02 aprueba el alcance maestro del MVP, la arquitectura transversal, las 
 - **Resultado:** landing, tres fichas locales de catálogo, contador de visitas, aviso de edad e imágenes con claves estables. Desarrollo puede servir los archivos localmente o desde R2; staging usa medios no productivos; producción tendrá bucket y hostname propios. `r2.dev` se reserva para desarrollo/staging y no requiere cambiar DNS. La carga del MVP es manual; la aplicación no recibe credenciales de escritura. Cada entorno necesita sus migraciones; el catálogo de demostración se carga manualmente con `backend/prisma/dev-showcase.sql`.
 - **Entrega y optimización de imágenes:** definir y comprobar qué superficies usarán el optimizador de Next.js y cuáles entregarán los originales. R2 no se considera un servicio de conversión de imágenes. Evaluar formatos, tamaños y transformaciones según el comportamiento que se implemente.
 - **Precios del catálogo:** usar datos de prueba claramente separados de los precios comerciales. El responsable debe aprobar los precios finales antes de habilitar ventas reales.
-- **R2 y entrega pública:** decidir el origen de medios de cada entorno y revisar cuotas antes de cargar archivos. La entrega pública, el dominio personalizado y cualquier servicio de optimización se comprueban por separado.
+- **R2 y entrega pública:** decidir si el desarrollo usa archivos locales o R2 y preparar un bucket separado no productivo para Staging; revisar cuotas antes de cargar archivos. Para Producción, Cloudflare/R2 es la arquitectura prevista; la fase 10 configura y verifica el hostname y la entrega pública. Cualquier servicio de optimización de imágenes se evalúa por separado.
 
 - **Presentación y entrega:** las animaciones de interfaz se resuelven con CSS donde corresponde y respetan `prefers-reduced-motion`; no se depende de archivos animados pesados si una animación CSS cubre el caso. El catálogo público tendrá una estrategia de renderizado, caché y metadatos; las rutas privadas no deben servirse desde caché pública. Stripe necesita imágenes públicas HTTPS al crear Checkout, mediante `STRIPE_MEDIA_BASE_URL` del entorno.
 - **Comprobaciones:** la landing y los productos activos se muestran; las claves y metadatos resuelven el medio correcto en cada entorno; se comprueba el tratamiento de imágenes de cada superficie; el aviso de edad funciona; la interfaz respeta movimiento reducido; se comprueba que el proveedor de pago pueda obtener las imágenes cuando se usa Checkout remoto.
@@ -104,6 +107,7 @@ La fase 02 aprueba el alcance maestro del MVP, la arquitectura transversal, las 
 - **Contrato del módulo:** revisar y cerrar `docs/contracts/04-ACCOUNTS-PROFILE.md` antes de implementar registro, sesión y perfil.
 - **Resultado:** registro con validación de mayoría de edad y dirección; confirmación de correo; inicio, cierre y restauración de sesión; recuperación de contraseña; edición de nombre(s), apellidos, correo, fecha de nacimiento y dirección; perfil y Mis pedidos, conectado a órdenes reales en la fase 06. Los datos de cuenta se guardan en PostgreSQL. Las cuentas nuevas permanecen pendientes hasta consumir el enlace; un cambio de correo sólo se aplica tras confirmar el nuevo destino. Confirmar puede iniciar sesión y, si la persona venía de comprar, retomar el carrito y el resumen de compra.
 - **Correo local:** probar mensajes de cuenta con el worker y Mailpit en Compose. El envío desde un dominio real se prepara en la fase 07; no se requiere Resend para desarrollar las cuentas localmente.
+- **Turnstile por entorno:** usar claves de prueba para desarrollo local; la fase 08 configura y verifica un widget y claves de Staging, y la fase 10 prepara un widget y claves separados para Producción antes de abrir el sitio. La API valida los tokens en todos los entornos; no se expone la clave secreta al frontend.
 - **Sesión y estados de interfaz:** producción usa el proxy del frontend definido en fase 02 para conservar la cookie bajo el origen de la tienda. Comprobar confirmación e inicio desde otro dispositivo; no asumir que confirmar correo en un dispositivo inicia sesión en otro. Si se abandona la vista de revisión de correo y se vuelve al login, la interfaz debe reflejar el estado real de la cuenta y permitir iniciar sesión después de confirmarla, sin conservar un mensaje de registro obsoleto.
 - **Comprobaciones:** registro pendiente y confirmado, login, restauración, recuperación, cambio de correo confirmado, validaciones del backend, estados de carga/error/sesión vencida y privacidad de contraseñas y tokens. En Compose verificar los mensajes en Mailpit.
 - **Estado y evidencia:** planeada; registrar pruebas, entorno, fecha y commit al completar la fase.
@@ -164,9 +168,9 @@ La fase 02 aprueba el alcance maestro del MVP, la arquitectura transversal, las 
 ### 10. Producción — planeada
 
 - **Objetivo:** preparar el entorno real, su dominio público, operación y costos antes de autorizar la salida.
-- **Dependencias:** aceptación de staging y cierre de la fase 09 en el proyecto, cuenta y recursos de producción, dominio disponible y preparación por el responsable del proyecto de credenciales distintas para Stripe, Resend, Railway y R2.
-- **10.1 · Preparar Railway y medios:** crear servicios y PostgreSQL separados de staging, aplicar migraciones, verificar catálogo, configurar Worker/Resend, claves de Stripe live y bucket de producción. Obtener aprobación de los precios comerciales antes de habilitar cobros reales. La URL de medios debe ser pública y HTTPS para Stripe; no usar <code>r2.dev</code> en producción.
-- **10.2 · Decidir la capa pública de Cloudflare:** decidir si Cloudflare administrará DNS, proxy/CDN y el hostname personalizado de medios. R2 y la zona DNS son recursos distintos: usar R2 en desarrollo o staging no requiere cambiar nameservers. Si se migra la zona, inventariar y conservar antes los registros web, MX, SPF, DKIM, DMARC y verificaciones; cambiar la delegación afecta toda la zona. Probar TLS, tienda, webhook, imágenes y políticas de caché antes de habilitar el tráfico. Preparar las guías de proveedor correspondientes.
+- **Dependencias:** aceptación de staging y cierre de la fase 09 en el proyecto, cuenta y recursos de producción, dominio disponible y preparación por el responsable del proyecto de credenciales distintas para Stripe, Resend, Railway, R2 y Turnstile.
+- **10.1 · Preparar Railway y medios:** crear servicios y PostgreSQL separados de staging, aplicar migraciones, verificar catálogo, configurar Worker/Resend, claves de Stripe live y bucket de producción. Preparar un widget Turnstile de Producción con su hostname y claves independientes de Staging; el secreto pertenece sólo a la API. Obtener aprobación de los precios comerciales antes de habilitar cobros reales. La URL de medios debe ser pública y HTTPS para Stripe; no usar <code>r2.dev</code> en producción.
+- **10.2 · Configurar y verificar la entrega pública de medios Cloudflare/R2:** preparar el hostname de medios de Producción y comprobar HTTPS y entrega de imágenes de producto antes de crear sesiones de Stripe. R2 y la zona DNS son recursos distintos: usar R2 en desarrollo o Staging no requiere cambiar nameservers. Verificar DNS y proxy/CDN de la tienda y la API al preparar la capa pública. Si se migra una zona, inventariar y conservar antes los registros web, MX, SPF, DKIM, DMARC y verificaciones; cambiar la delegación afecta toda la zona. Probar TLS, tienda, webhook, imágenes y políticas de caché antes de habilitar el tráfico. Preparar las guías de proveedor correspondientes.
 - **10.3 · Revisar cuotas, límites y costos antes de habilitar tráfico:**
   - **R2 y Cloudflare Images:** verificar cuotas, precios, facturación y alcance de alertas en las cuentas. R2, CDN y transformaciones de imágenes son opciones separadas; incluir sólo las seleccionadas y presupuestadas.
   - **Railway:** revisar alcance, límites de consumo y efecto de cada control sobre los workloads del workspace. Seleccionar umbrales sólo con presupuesto aprobado.
