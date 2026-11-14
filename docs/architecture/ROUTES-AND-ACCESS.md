@@ -1,5 +1,7 @@
 # Rutas y acceso
 
+Este inventario define las rutas previstas del MVP. Su presencia aquí no indica que ya estén implementadas; cada contrato de módulo se revisa al iniciar su fase.
+
 Esta guía diferencia las páginas que muestra el navegador de las operaciones de la API. Las primeras presentan la interfaz; las segundas leen o cambian datos en el backend.
 
 ## Primero: ¿qué es una ruta?
@@ -29,6 +31,10 @@ En las rutas de API, la palabra al principio indica qué se quiere hacer:
 | Firma de Stripe | El webhook no usa sesión de cliente; requiere una firma válida de Stripe. |
 
 En la API, `GET` consulta, `POST` solicita una acción, `PATCH` actualiza campos, `PUT` establece el estado de un elemento y `DELETE` lo elimina.
+
+## Sesión
+
+La sesión prevista usa un identificador aleatorio y opaco en una cookie `HttpOnly`, `SameSite=Lax` y `Path=/`, con duración de siete días y `Secure` bajo HTTPS. PostgreSQL conserva el hash del identificador; el backend obtiene la identidad de la sesión. En Staging y Producción, el proxy del frontend transporta la cookie entre el navegador y la API. El contrato de cuentas se revisa en la fase 04 antes de implementar esta interfaz.
 
 ## Páginas
 
@@ -88,6 +94,6 @@ Estas operaciones requieren sesión válida. El backend deriva la cuenta de la c
 ## Dónde verificar el contrato
 
 - Páginas: `frontend/src/app/`.
-- API: registro de rutas en `backend/src/server.js` y handlers de cada módulo bajo `backend/src/`.
-- El contador también tiene un endpoint Next.js en `frontend/src/app/api/visits/route.js`, que reenvía la solicitud a la API.
+- API: la aplicación Express se crea en `backend/src/app.js`; los handlers de los módulos se incorporan bajo `backend/src/` en sus fases.
+- El contador prevé un endpoint Next.js en `frontend/src/app/api/visits/route.js`, que reenviará la solicitud a la API en la fase 03.
 - En desarrollo local, la [guía Docker](docker/COMPOSE.md#red-interna-de-compose-y-puertos) explica cómo se comunican SSR, el navegador y la API, y cómo abrirlos desde la LAN.

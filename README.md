@@ -26,6 +26,8 @@ El [roadmap](docs/ROADMAP.md) registra el estado de implementación y validació
 
 En producción, Cloudflare publica la tienda, el endpoint de la API para webhooks de Stripe y los medios. El navegador envía las solicitudes de la aplicación al mismo origen del frontend, bajo `/api/backend/*`; Next.js las reenvía a Express por la red privada de Railway. El renderizado del servidor también consulta Express por esa red. Stripe entrega sus webhooks al endpoint público de la API. El navegador carga las imágenes y los medios desde Cloudflare R2.
 
+La estrategia prevista de renderizado y los criterios SEO están en [Renderizado y SEO](docs/architecture/RENDERING-AND-SEO.md).
+
 El diagrama muestra las conexiones entre el navegador, Cloudflare, Railway y los servicios externos.
 
 Para consultar las rutas públicas y privadas, revisa [Rutas y acceso](docs/architecture/ROUTES-AND-ACCESS.md). El [alcance del MVP](docs/MVP_SCOPE.md) reúne sus límites.
