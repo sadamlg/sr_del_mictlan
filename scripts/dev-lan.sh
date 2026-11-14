@@ -80,6 +80,7 @@ up_lan() {
     printf 'BACKEND_BIND_ADDRESS=0.0.0.0\n'
     printf 'MAILPIT_BIND_ADDRESS=0.0.0.0\n'
     printf 'NEXT_ALLOWED_DEV_ORIGIN=%s\n' "$lan_ip"
+    printf 'MEDIA_BASE_URL=http://%s:%s\n' "$lan_ip" "$frontend_port"
   } > "$temp_env"
   mv "$temp_env" "$lan_env"
   trap - EXIT

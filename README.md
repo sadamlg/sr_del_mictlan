@@ -178,6 +178,8 @@ Con `.env` creado, publica temporalmente frontend, API y la bandeja web de Mailp
 scripts/dev-lan.sh up 192.168.100.2
 ```
 
+El modo LAN también configura `MEDIA_BASE_URL` con la IPv4 del anfitrión y el puerto del frontend. Así, la API entrega las imágenes del catálogo con una dirección accesible desde el otro dispositivo; `localhost` allí apuntaría al propio teléfono o equipo cliente.
+
 Desde otro dispositivo de la misma red abre `http://192.168.100.2:3000` (frontend), `http://192.168.100.2:4000/health` (API) o `http://192.168.100.2:8025` (Mailpit). Para volver al acceso local:
 
 ```bash

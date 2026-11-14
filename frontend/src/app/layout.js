@@ -1,14 +1,17 @@
+import '@fontsource/cinzel-decorative/400.css';
+import '@fontsource-variable/open-sans/wght.css';
+import '@fontsource-variable/montserrat/wght.css';
 import './globals.css';
 
 export const metadata = {
-  title: 'Señor del Mictlán | Desarrollo local',
-  description: 'Entorno local de desarrollo de Señor del Mictlán.',
+  title: 'Señor del Mictlán | Destilados para compartir',
+  description: 'Un espacio para descubrir la colección de Señor del Mictlán.',
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="es">
-      <body>{children}</body>
+    <html lang="es" className="h-full antialiased" data-scroll-behavior="smooth">
+      <body className="min-h-full font-sans">{children}</body>
     </html>
   );
 }

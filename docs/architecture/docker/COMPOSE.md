@@ -188,7 +188,7 @@ Sustituye la dirección si cambia la IPv4 del equipo. Con los puertos predetermi
 
 El modo LAN publica frontend, API y la bandeja web de Mailpit en todas las interfaces del anfitrión (`0.0.0.0`). PostgreSQL conserva el enlace definido en `.env` —localhost por defecto— y el SMTP sigue privado dentro de Compose. El firewall del equipo y las reglas de la red deben permitir el tráfico a los puertos publicados.
 
-El script escribe los enlaces temporales en `.env.dev-lan` y pasa ese archivo a Compose después de `.env`, de modo que sólo sustituye los valores necesarios para LAN. No modifica `.env` ni elimina el volumen de PostgreSQL. Si cambia la IPv4 o alguno de los puertos configurados, ejecuta `up` con la dirección actual y usa las URL que imprime el script.
+El script escribe los enlaces temporales, `NEXT_ALLOWED_DEV_ORIGIN` y `MEDIA_BASE_URL` en `.env.dev-lan` y pasa ese archivo a Compose después de `.env`, de modo que sólo sustituye los valores necesarios para LAN. `MEDIA_BASE_URL` usa la IPv4 indicada y el puerto publicado del frontend para que las URL de las imágenes del catálogo se puedan abrir desde el dispositivo cliente. No modifica `.env` ni elimina el volumen de PostgreSQL. Si cambia la IPv4 o alguno de los puertos configurados, ejecuta `up` con la dirección actual y usa las URL que imprime el script.
 
 Desactiva el modo LAN y restaura los enlaces de `.env`:
 

@@ -2,11 +2,283 @@
 
 :root {
   color-scheme: dark;
-  background: #09090b;
-  color: #f4f4f5;
-  font-family: Arial, Helvetica, sans-serif;
+  --mictlan-background: #100e0b;
+  --mictlan-night: #0a0b0a;
+  --mictlan-night-green: #0a0c0b;
+  --mictlan-dark-forest: #0d0f0e;
+  --mictlan-red-black: #0f0b0c;
+  --mictlan-blood-shadow: #4d0f16;
+  --mictlan-carbon: #050505;
+  --mictlan-ink: #060707;
+  --mictlan-brown-ink: #17120b;
+  --mictlan-ivory: #f1e7d6;
+  --mictlan-cream: #f4ede3;
+  --mictlan-bone: #e2e3e0;
+  --mictlan-sage: #c6d1ca;
+  --mictlan-sage-muted: #bfc9c3;
+  --mictlan-muted: #d0c5af;
+  --mictlan-sand: #e0cdb8;
+  --mictlan-earth: #4d4635;
+  --mictlan-earth-muted: #99907c;
+  --mictlan-gold: #e9bd82;
+  --mictlan-red: #a84652;
+  --mictlan-burgundy: #711d28;
+  --mictlan-red-hover: #bd5965;
+  --mictlan-burgundy-deep: #7d1f2a;
+  --mictlan-error-text: #f0a0a2;
+  --mictlan-error-text-muted: #f0b7b9;
+  --mictlan-teal: #97d2c6;
+  --mictlan-teal-bright: #2dd4bf;
+  --mictlan-teal-deep: #0f5047;
+  --mictlan-teal-hover: #15695d;
+  --mictlan-stripe-purple: #5145e5;
+  --mictlan-stripe-purple-hover: #4338ca;
+  --mictlan-mint: #d1fae5;
+  --mictlan-petrol: #0e7490;
+  --background: var(--mictlan-background);
+  --foreground: var(--mictlan-ivory);
+  --mictlan-font-display: "Cinzel Decorative", Georgia, "Times New Roman", serif;
+  --mictlan-font-body: "Open Sans Variable", "Open Sans", Arial, sans-serif;
+  --mictlan-font-ui: "Montserrat Variable", Montserrat, sans-serif;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-mictlan-background: var(--mictlan-background);
+  --color-mictlan-night: var(--mictlan-night);
+  --color-mictlan-night-green: var(--mictlan-night-green);
+  --color-mictlan-dark-forest: var(--mictlan-dark-forest);
+  --color-mictlan-red-black: var(--mictlan-red-black);
+  --color-mictlan-blood-shadow: var(--mictlan-blood-shadow);
+  --color-mictlan-carbon: var(--mictlan-carbon);
+  --color-mictlan-ink: var(--mictlan-ink);
+  --color-mictlan-brown-ink: var(--mictlan-brown-ink);
+  --color-mictlan-ivory: var(--mictlan-ivory);
+  --color-mictlan-cream: var(--mictlan-cream);
+  --color-mictlan-bone: var(--mictlan-bone);
+  --color-mictlan-sage: var(--mictlan-sage);
+  --color-mictlan-sage-muted: var(--mictlan-sage-muted);
+  --color-mictlan-muted: var(--mictlan-muted);
+  --color-mictlan-sand: var(--mictlan-sand);
+  --color-mictlan-earth: var(--mictlan-earth);
+  --color-mictlan-earth-muted: var(--mictlan-earth-muted);
+  --color-mictlan-gold: var(--mictlan-gold);
+  --color-mictlan-red: var(--mictlan-red);
+  --color-mictlan-burgundy: var(--mictlan-burgundy);
+  --color-mictlan-red-hover: var(--mictlan-red-hover);
+  --color-mictlan-burgundy-deep: var(--mictlan-burgundy-deep);
+  --color-mictlan-error-text: var(--mictlan-error-text);
+  --color-mictlan-error-text-muted: var(--mictlan-error-text-muted);
+  --color-mictlan-teal: var(--mictlan-teal);
+  --color-mictlan-teal-bright: var(--mictlan-teal-bright);
+  --color-mictlan-teal-deep: var(--mictlan-teal-deep);
+  --color-mictlan-teal-hover: var(--mictlan-teal-hover);
+  --color-mictlan-stripe-purple: var(--mictlan-stripe-purple);
+  --color-mictlan-stripe-purple-hover: var(--mictlan-stripe-purple-hover);
+  --color-mictlan-mint: var(--mictlan-mint);
+  --color-mictlan-petrol: var(--mictlan-petrol);
+  --font-display: var(--mictlan-font-display);
+  --font-sans: var(--mictlan-font-body);
+  --font-ui: var(--mictlan-font-ui);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@supports selector(::-webkit-scrollbar) {
+  html::-webkit-scrollbar {
+    width: 12px;
+  }
+
+  html::-webkit-scrollbar-track:vertical {
+    background: linear-gradient(180deg, var(--mictlan-background) 0%, var(--mictlan-background) 70%, #240b10 88%, var(--mictlan-blood-shadow) 100%);
+  }
+
+  html::-webkit-scrollbar-thumb:vertical {
+    min-height: 48px;
+    border: 2px solid var(--mictlan-background);
+    border-radius: 999px;
+    background: linear-gradient(180deg, var(--mictlan-red) 0%, var(--mictlan-burgundy) 100%);
+  }
+
+  html::-webkit-scrollbar-thumb:vertical:hover {
+    background: var(--mictlan-red-hover);
+  }
+
+  html::-webkit-scrollbar-button:vertical:single-button {
+    display: block;
+    height: 14px;
+    background-color: #14090b;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 8px 8px;
+  }
+
+  html::-webkit-scrollbar-button:vertical:decrement {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='m2 7.5 4-4 4 4' fill='none' stroke='%23a84652' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5'/%3E%3C/svg%3E");
+  }
+
+  html::-webkit-scrollbar-button:vertical:increment {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='m2 4.5 4 4 4-4' fill='none' stroke='%23a84652' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5'/%3E%3C/svg%3E");
+  }
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  html {
+    scrollbar-color: var(--mictlan-red) #16090d;
+    scrollbar-width: thin;
+  }
 }
 
 body {
-  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--mictlan-font-body);
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--mictlan-teal);
+  color: var(--mictlan-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--mictlan-teal);
+  outline-offset: 3px;
+}
+
+.age-gate-overlay ::selection {
+  background: var(--mictlan-bone);
+  color: var(--mictlan-ink);
+}
+
+.age-gate-overlay :focus-visible {
+  outline-color: var(--mictlan-bone);
+}
+
+.age-gate-overlay .age-gate-primary:focus-visible {
+  outline-color: var(--mictlan-teal);
+}
+
+@keyframes age-gate-enter {
+  from {
+    opacity: 0;
+    filter: blur(16px);
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: scale(1);
+  }
+}
+
+@keyframes age-gate-overlay-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes age-gate-content-enter {
+  from {
+    opacity: 0;
+    filter: blur(9px);
+    transform: translateY(0.45rem);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+@keyframes age-gate-emblem-enter {
+  from {
+    opacity: 0;
+    filter: blur(14px) grayscale(1) contrast(1.25);
+    transform: translateY(1%) scale(1.02);
+  }
+}
+
+@keyframes blurredFadeIn {
+  from {
+    opacity: 0;
+    filter: blur(12px);
+  }
+
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.age-gate-overlay {
+  animation: age-gate-overlay-enter 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.age-gate-dialog {
+  animation: age-gate-enter 680ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.age-gate-emblem {
+  animation: age-gate-emblem-enter 820ms 80ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.age-gate-brand,
+.age-gate-divider,
+.age-gate-question,
+.age-gate-actions {
+  animation: age-gate-content-enter 560ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.age-gate-brand { animation-delay: 120ms; }
+.age-gate-divider { animation-delay: 190ms; }
+.age-gate-question { animation-delay: 250ms; }
+.age-gate-actions { animation-delay: 320ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  #preguntas .faq-disclosure::details-content {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@supports (interpolate-size: allow-keywords) and (transition-behavior: allow-discrete) and selector(details::details-content) {
+  #preguntas .faq-disclosure::details-content {
+    block-size: 0;
+    overflow: hidden;
+    interpolate-size: allow-keywords;
+    transition:
+      block-size 300ms cubic-bezier(0.25, 0.1, 0.25, 1),
+      content-visibility 300ms allow-discrete;
+  }
+
+  #preguntas .faq-disclosure[open]::details-content {
+    block-size: auto;
+  }
 }
