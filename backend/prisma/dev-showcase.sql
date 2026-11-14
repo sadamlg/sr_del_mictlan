@@ -14,7 +14,7 @@ INSERT INTO products (
     36, 42, 750, 1, true, now()
   ),
   (
-    gen_random_uuid(), 'mezcal-joven', 'Mezcal joven · Una destilación',
+    gen_random_uuid(), 'mezcal-joven', 'Mezcal joven · Doble destilación',
     'Elaborado con cupreata silvestre, de notas herbales y ahumadas.', 35000,
     'images/catalog/mezcal-joven-product.png', 'Botella de mezcal joven Señor del Mictlán',
     'images/catalog/mezcal-joven-lifestyle.png', 'Cupreata silvestre', 'Herbal y ahumado',
