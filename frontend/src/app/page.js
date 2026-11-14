@@ -1,31 +1,55 @@
-import { getBackendStatus } from '../lib/backend-status.js';
+import { Suspense } from 'react';
+import { cacheLife, io } from 'next/cache';
+import SiteHeader from '../components/header/header';
+import AgeGate from '../components/age-gate/age-gate';
+import LandingHero from '../components/landing/landing-hero';
+import MezcalShowcase from '../components/landing/mezcal-showcase/mezcal-showcase';
+import LandingRitual from '../components/landing/landing-ritual';
+import LandingFaq from '../components/landing/faq/landing-faq';
+import LandingVisitorCounter from '../components/landing/landing-visitor-counter';
+import LandingFooter from '../components/landing/landing-footer';
 
-export const dynamic = 'force-dynamic';
+async function getCachedCatalog(apiUrl) {
+  'use cache';
+  if (!apiUrl) { cacheLife('seconds'); return null; }
+  try {
+    const response = await fetch(`${apiUrl.replace(/\/$/, '')}/api/catalog/products`, { signal: AbortSignal.timeout(5000) });
+    if (!response.ok) { cacheLife('seconds'); return null; }
+    const body = await response.json();
+    if (!Array.isArray(body.products)) { cacheLife('seconds'); return null; }
+    cacheLife('days');
+    return body.products;
+  } catch (error) {
+    console.error('[catalog] failed to load', error instanceof Error ? error.name : 'UnknownError');
+    cacheLife('seconds');
+    return null;
+  }
+}
 
-export default async function Home() {
-  const backend = await getBackendStatus();
+async function CatalogContent({ mediaBaseUrl }) {
+  return <MezcalShowcase products={await getCachedCatalog(process.env.INTERNAL_API_URL)} mediaBaseUrl={mediaBaseUrl} />;
+}
 
+async function CurrentYear() {
+  await io();
+  return new Date().getFullYear();
+}
+
+export default function Home() {
+  const mediaBaseUrl = process.env.MEDIA_BASE_URL || '';
   return (
-    <main className="flex min-h-screen items-center justify-center bg-zinc-950 px-6 py-16 text-zinc-100">
-      <section className="w-full max-w-xl rounded-2xl border border-zinc-800 bg-zinc-900 p-8 shadow-xl sm:p-10">
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-amber-300">
-          Señor del Mictlán
-        </p>
-        <h1 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">
-          Entorno local de desarrollo
-        </h1>
-        <p className="mt-3 text-zinc-300">
-          Frontend Next.js conectado a la API Express por la red de Compose.
-        </p>
-        <p
-          className="mt-8 rounded-lg border border-zinc-700 bg-zinc-950 px-4 py-3 text-sm"
-          role="status"
-        >
-          {backend.connected
-            ? `Backend conectado: ${backend.message}`
-            : 'Backend sin conexión. Revisa el estado de los servicios.'}
-        </p>
-      </section>
-    </main>
+    <AgeGate mediaBaseUrl={mediaBaseUrl}>
+      <div className="bg-mictlan-background text-mictlan-ivory">
+        <SiteHeader mediaBaseUrl={mediaBaseUrl} />
+        <main>
+          <LandingHero mediaBaseUrl={mediaBaseUrl} />
+          <Suspense fallback={<section className="bg-mictlan-night px-6 py-24 text-center text-mictlan-bone" role="status">Cargando la colección…</section>}><CatalogContent mediaBaseUrl={mediaBaseUrl} /></Suspense>
+          <LandingRitual />
+          <LandingFaq mediaBaseUrl={mediaBaseUrl} />
+          <LandingVisitorCounter />
+        </main>
+        <LandingFooter mediaBaseUrl={mediaBaseUrl} year={<Suspense fallback="…"><CurrentYear /></Suspense>} />
+      </div>
+    </AgeGate>
   );
 }
