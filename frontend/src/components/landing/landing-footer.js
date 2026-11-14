@@ -7,8 +7,8 @@ const footerLinks = [
   { href: '#coleccion', label: 'Mezcales' },
   { href: '#preguntas', label: 'Preguntas frecuentes' },
   {
-    href: 'https://github.com/sadamlg/sr_del_mictlan_mezcal',
-    label: 'Créditos',
+    href: 'https://github.com/sadamlg/sr_del_mictlan',
+    label: 'GitHub',
     external: true,
   },
 ];
@@ -47,13 +47,13 @@ export default function LandingFooter({ mediaBaseUrl, year }) {
               {footerLinks.map(({ href, label, external }, index) => (
                 <li className="flex items-center gap-6 lg:gap-3" key={label}>
                   <a
-                    className="font-ui text-[10px] font-medium uppercase tracking-[0.16em] text-mictlan-muted no-underline transition-colors duration-200 hover:text-mictlan-teal focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-mictlan-teal sm:text-[11px] lg:text-[10px] xl:text-[11px]"
+                    className="font-ui text-[11px] font-medium uppercase tracking-[0.16em] text-mictlan-muted no-underline transition-colors duration-200 hover:text-mictlan-teal focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-mictlan-teal sm:text-[12px] lg:text-[11px] xl:text-[12px]"
                     href={href}
                     {...(external
                       ? {
                           target: '_blank',
                           rel: 'noopener noreferrer',
-                          'aria-label': `${label}, abre GitHub en una pestaña nueva`,
+                          'aria-label': `${label}, abre en una pestaña nueva`,
                         }
                       : {})}
                   >
@@ -73,8 +73,8 @@ export default function LandingFooter({ mediaBaseUrl, year }) {
         <div className="flex flex-col items-center justify-between gap-6 border-t border-mictlan-earth/20 pt-6 font-ui text-center md:flex-row md:text-left">
           <div className="order-2 flex flex-col items-center gap-1.5 text-[9px] font-medium uppercase tracking-[0.13em] text-mictlan-muted/80 sm:text-[10px] md:order-1 md:items-start">
             <p className="m-0">© {year} Señor del Mictlán. Todos los derechos reservados.</p>
-            <p className="m-0 text-mictlan-earth-muted normal-case tracking-[0.08em]">
-              Hecho con <span className="text-mictlan-burgundy-deep" aria-label="amor">♥</span> por sadamlg
+            <p className="m-0 text-mictlan-earth-muted normal-case tracking-[0.08em] md:text-[11px] lg:text-xs">
+              Hecho con <span className="text-[1.2em] text-mictlan-burgundy-deep" aria-label="amor">♥</span> por sadamlg
             </p>
           </div>
           <div

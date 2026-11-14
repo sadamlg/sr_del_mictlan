@@ -14,7 +14,7 @@ const contentPath = path.join(__dirname, '../src/components/landing/faq/landing-
 test('FAQ preserves the approved origin, agave, and provisional-price information', () => {
   const questions = require(contentPath).default;
 
-  assert.equal(questions.length, 3);
+  assert.equal(questions.length, 4);
   assert.equal(new Set(questions.map(({ id }) => id)).size, questions.length);
   assert.equal(questions[0].id, 'origen');
   assert.match(questions[0].answer, /Etúcuaro, Michoacán/);

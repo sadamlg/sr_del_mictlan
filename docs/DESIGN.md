@@ -98,9 +98,9 @@ La paleta se organiza por función: verde agua para interacción, neutrales cál
 
 ### Principales
 
-- **Verde agua (`mictlan-teal`):** iconos, enlaces, foco visible, bordes activos y subrayado de 2 px en la barra de navegación.
+- **Verde agua (`mictlan-teal`):** iconos, enlaces, foco visible, bordes activos y subrayado de 2 px en la barra de navegación. En el FAQ distingue las preguntas al pasar el cursor o al abrirlas, junto con su icono, enlaces y borde activo.
 - **Verde agua profundo (`mictlan-teal-deep`):** fondo de las acciones principales de cuenta, aviso de edad y hero.
-- **Verde agua de interacción (`mictlan-teal-hover`):** estado hover de las acciones principales. `mictlan-teal-bright` destaca títulos y estados activos de FAQ y escaparate.
+- **Verde agua de interacción (`mictlan-teal-hover`):** estado hover de las acciones principales. `mictlan-teal-bright` destaca el título del escaparate y el hover de su acción de reintento.
 - **Morado Stripe (`mictlan-stripe-purple`):** fondo de la acción para abrir Stripe desde el resumen; el hover usa `mictlan-stripe-purple-hover`. Es una excepción local al verde agua de las acciones principales.
 - **Menta (`mictlan-mint`):** texto de navegación al pasar el cursor.
 
@@ -204,6 +204,10 @@ Los campos y controles de cuenta tienen esquinas discretas y bordes finos; las t
 - **Cuenta:** superficie basada en el fondo general, borde verde agua tenue, sombra oscura contenida y relleno adaptable.
 - **Ritual y FAQ:** fondos y bordes pertenecen a la escena; conserva las excepciones locales enumeradas arriba.
 - **Detalles del producto:** el panel dorado es una excepción localizada del escaparate.
+
+### Acordeón de FAQ
+
+Las preguntas cerradas usan texto hueso. Al pasar el cursor o abrir una respuesta, la pregunta y el icono cambian a `mictlan-teal`, con un borde superior más visible. El verde agua diferencia el estado activo sin usar el turquesa brillante; los enlaces del FAQ siguen el mismo acento.
 
 ### Campos
 
