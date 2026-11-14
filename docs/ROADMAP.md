@@ -8,7 +8,7 @@ Las reglas duraderas del repositorio están en [AGENTS.md](../AGENTS.md). El alc
 |---|---|---|
 | 00 · Creación y configuración del repositorio | Repositorio GitHub, ramas y documentación inicial | Completada |
 | 01 · Entorno local y Docker | Stack reproducible en Compose, con acceso local y opción LAN | Completada |
-| 02 · Alcance y arquitectura | Alcance maestro y arquitectura transversal; los contratos de módulo se detallan en sus fases | En curso |
+| 02 · Alcance y arquitectura | Alcance maestro y arquitectura transversal; los contratos de módulo se detallan en sus fases | Completada |
 | 03 · Landing, catálogo y medios | Catálogo, presentación, medios y carga pública | Planeada |
 | 04 · Cuentas y perfil | Registro, confirmación, sesión, recuperación y perfil | Planeada |
 | 05 · Carritos | Carrito de invitado, cuenta y transferencia | Planeada |
@@ -23,7 +23,7 @@ Las reglas duraderas del repositorio están en [AGENTS.md](../AGENTS.md). El alc
 ```mermaid
 flowchart TB
     p00["✅ 00 · Creación y configuración del repositorio<br/>Completada"] --> p01
-    p01["✅ 01 · Entorno local y Docker<br/>Completada"] --> p02["🟠 02 · Alcance y arquitectura<br/>En curso"]
+    p01["✅ 01 · Entorno local y Docker<br/>Completada"] --> p02["✅ 02 · Alcance y arquitectura<br/>Completada"]
     p02 --> p03["○ 03 · Landing, catálogo y medios<br/>Planeada"]
     p03 --> p04["○ 04 · Cuentas y perfil<br/>Planeada"]
     p04 --> p05["○ 05 · Carritos<br/>Planeada"]
@@ -37,8 +37,7 @@ flowchart TB
     classDef active fill:#fef3c7,stroke:#d97706,color:#78350f,stroke-width:2px;
     classDef planned fill:#f3f4f6,stroke:#9ca3af,color:#374151;
 
-    class p00,p01 completed;
-    class p02 active;
+    class p00,p01,p02 completed;
     class p03,p04,p05,p06,p07,p08,p09,p10 planned;
 
     linkStyle default stroke:#94a3b8,stroke-width:2px;
@@ -75,22 +74,23 @@ La fase 02 aprueba el alcance maestro del MVP, la arquitectura transversal, las 
 - **GitHub y ramas — 12 y 13 de noviembre de 2026:** el 12 de noviembre, `develop` avanzó a `3c02a76` al fusionarse el PR #2 de fase 00. El 13 de noviembre, el PR #3 se fusionó en `develop` como `e304693ca5aa215fe44b6594639e7af78d7c3a7b`; GitHub eliminó la rama `feature/phase-01-infrastructure`. Las reglas de `main` y `develop` requieren pull request, aplican a administradores y bloquean force-push y eliminación; no requieren aprobación ni checks de estado. No se modificaron esas reglas.
 - **Estado de fase:** completada. La implementación y las comprobaciones locales se registran con fecha 12 de noviembre de 2026; la ejecución satisfactoria de los dos checks y la fusión en `develop` se registran con fecha 13 de noviembre de 2026 y el commit `e304693ca5aa215fe44b6594639e7af78d7c3a7b`.
 
-### 02. Alcance y arquitectura — en curso
+### 02. Alcance y arquitectura — completada
 
 - **Objetivo:** validar el alcance maestro del MVP y definir la arquitectura transversal: cómo se comunican navegador, frontend, API y servicios externos antes de construir los módulos.
 - **Dependencias:** fase 01.
 - **Resultado:** alcance maestro en `docs/MVP_SCOPE.md`, reglas duraderas en [AGENTS.md](../AGENTS.md), decisiones transversales de arquitectura y secuencia de dependencias. En desarrollo, el navegador accede a la API por el puerto local publicado. En Staging y Producción usa el proxy del frontend (`/api/backend/*`), que reenvía a Express por la red privada; Stripe usa el endpoint público del webhook. El comportamiento detallado de cada módulo se define o ajusta en su fase, antes de implementar ese módulo.
 - **Motivo y momento de validación:** definir y comprobar las rutas públicas, el proxy del frontend y la sesión antes de implementar cuentas; validar la integración desplegada en la fase 08.
-- **Base de la fase:** `docs/MVP_SCOPE.md`, `docs/architecture/ROUTES-AND-ACCESS.md` y `docs/DESIGN.md` recogen el alcance, las rutas y el sistema visual adoptados para el proyecto; no acreditan capacidades implementadas. La explicación por entorno se integra en la sección de arquitectura existente del README. `docs/architecture/ARCHITECTURE.png` permanece intacto; el README distingue el hostname público de API para webhooks de la ruta de aplicación que usa el proxy del frontend.
+- **Base de la fase:** `docs/MVP_SCOPE.md`, `docs/architecture/ROUTES-AND-ACCESS.md`, `docs/architecture/RENDERING-AND-SEO.md` y `docs/DESIGN.md` recogen el alcance, las rutas, el renderizado y el sistema visual adoptados para el proyecto; no acreditan capacidades implementadas. La explicación por entorno se integra en la sección de arquitectura existente del README. `docs/architecture/ARCHITECTURE.png` permanece intacto; el README distingue el hostname público de API para webhooks de la ruta de aplicación que usa el proxy del frontend.
 - **Decisión confirmada por el responsable — 13 de noviembre de 2026:** la ruta prevista para medios de Producción es Cloudflare/R2. La fase 10 configura y verifica los hostnames y la entrega pública; esta decisión no afirma que existan ya un bucket, DNS o un proxy configurados.
 - **Comprobaciones:** los diagramas, README y roadmap deben describir la misma arquitectura; las guías separarán las rutas locales y de producción; la API privada del navegador no se presentará como pública; cada fase funcional revisará su contrato antes de implementar. La integración desplegada se validará en la fase 08.
-- **Estado y evidencia:** en curso. El alcance y las decisiones transversales se toman como base; las capacidades funcionales de las fases 03–07 aún no están implementadas. Registrar pruebas, entorno, fecha y commit al completar la fase.
+- **Estado y evidencia — 13 de noviembre de 2026:** completada como definición documental. El alcance, las rutas y el diseño se incorporaron en el commit `6bd3c13` y el PR #5 se fusionó en `develop` como `8c14d29f04cd19d32b76a62ddf08faf192b445e3`. La revisión de cierre comparó estos documentos con la referencia del proyecto y añadió la estrategia de renderizado y la interfaz de sesión. Se verificaron los enlaces locales y el diff documental; no se ejecutaron pruebas de funcionalidades futuras. Las capacidades de las fases 03–07, los proveedores y la integración desplegada siguen pendientes de implementación y verificación en sus fases.
 
 ### 03. Landing, catálogo y medios — planeada
 
 - **Objetivo:** implementar la landing, el catálogo y los medios dentro del alcance aprobado.
 - **Dependencias:** fases 01 y 02. Antes de cargar medios reales, el responsable del proyecto prepara la cuenta y el bucket no productivo de Cloudflare R2.
 - **Contrato del módulo:** revisar y cerrar `docs/contracts/03-LANDING.md`, que reúne catálogo y contador de visitas, antes de implementar esas capacidades.
+- **Preparación de fase:** el contrato de landing y los recursos visuales de la aplicación aún no están incorporados en este repositorio. Al iniciar la fase 03, recuperar y revisar el contrato y los recursos necesarios, incluida su autorización de uso, antes de construir la interfaz; el bucket no productivo se prepara antes de cargar medios reales.
 - **Resultado:** landing, tres fichas locales de catálogo, contador de visitas, aviso de edad e imágenes con claves estables. Desarrollo puede servir los archivos localmente o desde R2; staging usa medios no productivos; producción tendrá bucket y hostname propios. `r2.dev` se reserva para desarrollo/staging y no requiere cambiar DNS. La carga del MVP es manual; la aplicación no recibe credenciales de escritura. Cada entorno necesita sus migraciones; el catálogo de demostración se carga manualmente con `backend/prisma/dev-showcase.sql`.
 - **Entrega y optimización de imágenes:** definir y comprobar qué superficies usarán el optimizador de Next.js y cuáles entregarán los originales. R2 no se considera un servicio de conversión de imágenes. Evaluar formatos, tamaños y transformaciones según el comportamiento que se implemente.
 - **Precios del catálogo:** usar datos de prueba claramente separados de los precios comerciales. El responsable debe aprobar los precios finales antes de habilitar ventas reales.
