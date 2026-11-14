@@ -53,6 +53,14 @@ export default function SiteHeader({ mediaBaseUrl }) {
       : null;
     selectedNavigationItemRef.current = selectedItemId;
     setSelectedNavigationItemId(selectedItemId);
+    const destination = new URL(event.currentTarget.href, window.location.href);
+    if (destination.pathname === window.location.pathname && destination.hash && destination.hash === window.location.hash) {
+      const target = document.getElementById(decodeURIComponent(destination.hash.slice(1)));
+      if (target) {
+        event.preventDefault();
+        target.scrollIntoView({ behavior: 'auto', block: 'start' });
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -312,11 +320,11 @@ export default function SiteHeader({ mediaBaseUrl }) {
                 const isCurrent = activeNavigationItemId === id;
                 return (
                   <li
-                    className={`border-b-2 transition-[color,border-color] duration-150 ease-out ${isCurrent ? 'border-b-mictlan-teal text-mictlan-mint' : 'border-b-transparent'}`}
+                    className={`border-b-2 transition-[color,border-color] duration-150 ease-out hover:border-b-mictlan-teal hover:text-mictlan-mint has-[:focus-visible]:border-b-mictlan-teal has-[:focus-visible]:text-mictlan-mint ${isCurrent ? 'border-b-mictlan-teal text-mictlan-mint' : 'border-b-transparent'}`}
                     key={id}
                   >
                     <Link
-                      className="text-inherit no-underline transition-colors duration-150 ease-out hover:text-mictlan-teal focus-visible:text-mictlan-mint focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-mictlan-teal"
+                      className="text-inherit no-underline transition-colors duration-150 ease-out focus-visible:text-mictlan-mint focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-mictlan-teal"
                       href={href}
                       data-navigation-item={id}
                       onClick={(event) => selectNavigationItem(id, event)}

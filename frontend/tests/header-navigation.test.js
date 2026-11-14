@@ -44,5 +44,7 @@ test('Nosotros se activa al cruzar las FAQ, y el ritual no activa ninguna opció
 test('el catálogo activa Mezcales por scroll y Promociones sólo al pulsarlo', () => {
   assert.equal(getActiveNavigationItemId('coleccion'), 'mezcales');
   assert.equal(getActiveNavigationItemId('coleccion', 'promociones'), 'promociones');
+  assert.equal(getActiveNavigationItemId('preguntas', 'mezcales'), 'mezcales');
+  assert.equal(getActiveNavigationItemId('coleccion', 'mezcales'), 'mezcales');
   assert.equal(getActiveNavigationItemId(null), null);
 });

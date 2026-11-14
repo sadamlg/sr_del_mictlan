@@ -1,5 +1,5 @@
 export const navigationItems = [
-  { id: 'mezcales', label: 'Mezcales', href: '/#coleccion', sectionId: 'coleccion' },
+  { id: 'mezcales', label: 'Mezcales', href: '/#coleccion', sectionId: 'coleccion', activeOnClick: true },
   { id: 'nosotros', label: 'Nosotros', href: '/#preguntas', sectionId: 'preguntas', activeOnClick: true },
   { id: 'promociones', label: 'Promociones', href: '/#coleccion', sectionId: 'coleccion', activeOnClick: true },
 ];
