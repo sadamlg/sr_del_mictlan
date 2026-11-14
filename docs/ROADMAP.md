@@ -10,8 +10,8 @@ Las reglas duraderas del repositorio están en [AGENTS.md](../AGENTS.md). El alc
 | 01 · Entorno local y Docker | Stack reproducible en Compose, con acceso local y opción LAN | Completada |
 | 02 · Alcance y arquitectura | Alcance maestro y arquitectura transversal; los contratos de módulo se detallan en sus fases | Completada |
 | 03 · Landing, catálogo y medios | Catálogo, presentación, medios y carga pública | Completada |
-| 04 · Cuentas y perfil | Registro, confirmación, sesión, recuperación y perfil | Planeada |
-| 05 · Carritos | Carrito de invitado, cuenta y transferencia | Planeada |
+| 04 · Cuentas y perfil | Registro, confirmación, sesión, recuperación y perfil | Completada |
+| 05 · Carritos | Carrito de invitado, cuenta y transferencia | Reinicio pendiente |
 | 06 · Stripe Checkout y pedidos | Compra, webhook firmado, pedidos e idempotencia | Planeada |
 | 07 · Correo transaccional y PDF | Resend, mensajes de compra y detalle de pedido | Planeada |
 | 08 · Staging | Railway, integraciones aisladas y aceptación de recorridos | Planeada |
@@ -25,8 +25,8 @@ flowchart TB
     p00["✅ 00 · Creación y configuración del repositorio<br/>Completada"] --> p01
     p01["✅ 01 · Entorno local y Docker<br/>Completada"] --> p02["✅ 02 · Alcance y arquitectura<br/>Completada"]
     p02 --> p03["✅ 03 · Landing, catálogo y medios<br/>Completada"]
-    p03 --> p04["○ 04 · Cuentas y perfil<br/>Planeada"]
-    p04 --> p05["○ 05 · Carritos<br/>Planeada"]
+    p03 --> p04["✅ 04 · Cuentas y perfil<br/>Completada"]
+    p04 --> p05["↻ 05 · Carritos<br/>Reinicio pendiente"]
     p05 --> p06["○ 06 · Stripe Checkout y pedidos<br/>Planeada"]
     p06 --> p07["○ 07 · Correo transaccional y PDF<br/>Planeada"]
     p07 --> p08["○ 08 · Staging<br/>Planeada"]
@@ -35,15 +35,17 @@ flowchart TB
 
     classDef completed fill:#dcfce7,stroke:#16a34a,color:#14532d,stroke-width:2px;
     classDef active fill:#fef3c7,stroke:#d97706,color:#78350f,stroke-width:2px;
+    classDef restart fill:#ede9fe,stroke:#7c3aed,color:#4c1d95,stroke-width:2px;
     classDef planned fill:#f3f4f6,stroke:#9ca3af,color:#374151;
 
-    class p00,p01,p02,p03 completed;
-    class p04,p05,p06,p07,p08,p09,p10 planned;
+    class p00,p01,p02,p03,p04 completed;
+    class p05 restart;
+    class p06,p07,p08,p09,p10 planned;
 
     linkStyle default stroke:#94a3b8,stroke-width:2px;
 ```
 
-**Estados:** ✅ Completada · 🟠 En curso o verificación · ○ Planeada. Las fases activas tienen fondo ámbar y las planeadas, fondo gris; al completar una fase, se marca con ✅ y fondo verde.
+**Estados:** ✅ Completada · 🟠 En curso o verificación · ↻ Reinicio pendiente · ○ Planeada. Las fases activas tienen fondo ámbar, las que requieren reinicio fondo violeta y las planeadas fondo gris; al completar una fase, se marca con ✅ y fondo verde.
 
 ## Plan por fases
 
@@ -105,27 +107,33 @@ La fase 02 aprueba el alcance maestro del MVP, la arquitectura transversal, las 
 - **R2 y autorización de recursos — 14 de noviembre de 2026:** el responsable confirmó la autoría de las imágenes creadas con ChatGPT y su entrega al cliente con permiso para publicarlas y alojarlas en R2. Confirmó que el bucket no productivo `sr-del-mictlan` está creado y compartió su URL pública de desarrollo; el valor se configuró en `MEDIA_BASE_URL` del `.env` local, ignorado por Git, y Compose resolvió ese valor tanto para backend como frontend. Las doce rutas directas abrieron en navegador: hero (1672 × 941 px), fondos de escritorio y móvil, tres pares de imágenes de catálogo (1122 × 1402 px), marca (1774 × 887 px), calavera (1254 × 1254 px) y etiqueta de agave (2172 × 724 px). Se recrearon frontend y backend; la API del catálogo respondió HTTP 200 con las seis URL de producto bajo R2, el optimizador de Next.js respondió HTTP 200 para Calios y la landing local presentó las tres fichas.
 - **Cierre de fase — 14 de noviembre de 2026:** el PR #7 se fusionó en `develop` como `0ea24b9`; los checks de backend y frontend aprobaron. Quedan para fases posteriores el despliegue de staging (fase 08) y la validación de imágenes al crear Checkout remoto (fase 06).
 
-### 04. Cuentas y perfil — planeada
+### 04. Cuentas y perfil — completada
 
 - **Objetivo:** ofrecer registro, autenticación, recuperación y administración del perfil.
 - **Dependencias:** fases 01 y 02; las pantallas se integran con las superficies definidas en fase 03.
 - **Contrato del módulo:** revisar y cerrar `docs/contracts/04-ACCOUNTS-PROFILE.md` antes de implementar registro, sesión y perfil.
-- **Resultado:** registro con validación de mayoría de edad y dirección; confirmación de correo; inicio, cierre y restauración de sesión; recuperación de contraseña; edición de nombre(s), apellidos, correo, fecha de nacimiento y dirección; perfil y Mis pedidos, conectado a órdenes reales en la fase 06. Los datos de cuenta se guardan en PostgreSQL. Las cuentas nuevas permanecen pendientes hasta consumir el enlace; un cambio de correo sólo se aplica tras confirmar el nuevo destino. Confirmar puede iniciar sesión y, si la persona venía de comprar, retomar el carrito y el resumen de compra.
+- **Resultado:** registro con validación de mayoría de edad y dirección; confirmación de correo; inicio, cierre y restauración de sesión; recuperación y cambio de contraseña; edición de nombre, apellidos, correo, fecha de nacimiento y dirección; perfil y Mis pedidos conectado a órdenes reales en la fase 06. Los datos de cuenta se guardan en PostgreSQL. Las cuentas nuevas permanecen pendientes hasta consumir el enlace; un cambio de correo sólo se aplica tras confirmar el nuevo destino. Si el registro viene de una intención de checkout, el correo conserva sólo una bandera booleana y el enlace dirige a una ruta local de continuación; la conexión al carrito y al checkout se realizará en las fases posteriores.
 - **Correo local:** probar mensajes de cuenta con el worker y Mailpit en Compose. El envío desde un dominio real se prepara en la fase 07; no se requiere Resend para desarrollar las cuentas localmente.
 - **Turnstile por entorno:** usar claves de prueba para desarrollo local; la fase 08 configura y verifica un widget y claves de Staging, y la fase 10 prepara un widget y claves separados para Producción antes de abrir el sitio. La API valida los tokens en todos los entornos; no se expone la clave secreta al frontend.
 - **Sesión y estados de interfaz:** producción usa el proxy del frontend definido en fase 02 para conservar la cookie bajo el origen de la tienda. Comprobar confirmación e inicio desde otro dispositivo; no asumir que confirmar correo en un dispositivo inicia sesión en otro. Si se abandona la vista de revisión de correo y se vuelve al login, la interfaz debe reflejar el estado real de la cuenta y permitir iniciar sesión después de confirmarla, sin conservar un mensaje de registro obsoleto.
 - **Comprobaciones:** registro pendiente y confirmado, login, restauración, recuperación, cambio de correo confirmado, validaciones del backend, estados de carga/error/sesión vencida y privacidad de contraseñas y tokens. En Compose verificar los mensajes en Mailpit.
-- **Estado y evidencia:** planeada; registrar pruebas, entorno, fecha y commit al completar la fase.
+- **Estado y evidencia — 14 de noviembre de 2026:** completada localmente en `feat/phase-04-accounts-profile`; pendiente publicar la rama y abrir PR. El contrato se definió en `5215e48`; el commit final de implementación `1645421` reúne los cambios de cuentas, restauración fiel de pantallas/correos y limpieza de estado. En la verificación Compose inicial pasaron 81 pruebas backend y 43 frontend, ambos lint, build de producción de Next.js, `prisma validate` y `prisma migrate status` (cuatro migraciones, esquema al día; incluye `20261114160000_accounts_profile`). Tras los ajustes de estado de esta revisión pasaron 57 pruebas backend de cuentas/correo, 15 pruebas frontend de API/formularios/sesión/navegación, lint de ambos paquetes y build de producción. PostgreSQL, API, worker, frontend y Mailpit quedaron saludables durante la verificación Compose.
+- **Comandos de verificación final:** en Compose, backend: `node --test src/accounts/*.test.js src/email/account-email.test.js` (57 pasaron); frontend: `node --test tests/account-api.test.js tests/account-form.test.js tests/account-session.test.js tests/account-navigation-state.test.js` (15 pasaron, con `NEXT_PUBLIC_API_URL=http://localhost:4000` para aislar la configuración LAN); `npm run lint` pasó en frontend y backend. El build final pasó con `docker compose -f compose.yaml -f /tmp/p04-no-bind.yaml run --build --rm frontend npm run build`. El override temporal omite los bind mounts que estaban vacíos en el daemon de este entorno; no modifica Compose versionado ni los datos persistidos.
+- **Compose local y correo:** el daemon de este entorno presentó vacíos los bind mounts de código de Compose. Para verificar el código actual se usó temporalmente `/tmp/p04-no-bind.yaml`, que omite esos mounts y ejecuta imágenes recién construidas desde el workspace; no se cambió la configuración versionada ni los volúmenes de datos. `worker:mail-smoke` entregó su mensaje a Mailpit. Además, una cuenta sintética y un trabajo de confirmación insertados para la prueba del worker produjeron un correo visible en Mailpit; se comprobó el destino local fijo y la bandera `continuar=checkout`, la base sólo guardó el hash del token y la cuenta sintética se eliminó. Las pruebas del API cubren que el alta crea cuenta pendiente y trabajo sin sesión.
+- **Navegador y API:** el navegador revisó registro en escritorio y móvil, formato visible `DD/MM/AAAA`, enlace ficticio vencido sin campos de contraseña y **Mis pedidos** sin sesión, que pide acceso en vez de mostrar datos inventados. Al solicitar 390 px, el navegador conservó un viewport de 433 CSS px; midió 422 px de ancho de documento, sin desbordamiento horizontal en ese viewport. El test key oficial local de Turnstile se completó automáticamente y habilitó el botón; no se envió el formulario ni se creó una cuenta real en el navegador. La consola no registró errores; conserva una advertencia de cleanup de Turnstile anterior al ajuste de renovación, sin avisos nuevos después del ajuste. El endpoint público de validación de contraseña devolvió `{"valid":false}` con `Cache-Control: no-store` para un token ficticio.
+- **Estados de vistas y sesión — 14 de noviembre de 2026:** en navegador local se reprodujo login fallido, se cambió a recuperación y se volvió con historial; el login apareció limpio. También se comprobó que recuperación reinicia sus campos al salir; las ediciones sin guardar y errores de validación del perfil se descartan al cambiar de sección; el cierre de sesión tanto desde el menú del encabezado como desde el perfil lleva a `/` y el encabezado queda en estado invitado. Al corregir un formulario dentro de la misma vista, el error persiste hasta que se edita el campo y el correo de login se conserva tras un intento fallido para poder corregirlo.
+- **Límites de esta fase:** no se configuraron Resend, Staging ni Producción. No se implementó carrito/Checkout y no se añadieron pedidos ficticios; la intención local `continuar=checkout` queda como bandera para las fases posteriores. El cierre no incluye publicación remota ni PR.
 
-### 05. Carritos — planeada
+### 05. Carritos — reinicio pendiente
 
 - **Objetivo:** permitir preparar una compra como invitado o con cuenta y fusionar ambos carritos al iniciar sesión.
 - **Dependencias:** fases 03 y 04.
-- **Contrato del módulo:** revisar y cerrar `docs/contracts/05-CARTS.md` antes de implementar el carrito persistente y la fusión de carritos. La integración del pago con Stripe se especifica en el contrato de la fase 06.
+- **Contrato del módulo:** revisar y cerrar `docs/contracts/05-CARTS.md` antes de repetir la implementación del carrito persistente y la fusión. El borrador del contrato quedó en el archivo de referencia del prototipo archivado y debe contrastarse con este alcance antes de aceptarlo. Checkout se especifica en la fase 06.
 - **Resultado:** carrito de invitado persistido en el navegador por 30 días y carrito de cuenta en PostgreSQL. La transferencia suma cantidades de forma idempotente; el backend calcula precios actuales. Los productos inactivos se pueden quitar, pero no comprar. No se reservan ni verifican existencias.
 - **Sincronización con Checkout:** al confirmar un pago, el webhook elimina sólo las líneas que coinciden con la instantánea comprada. Si la persona cambia el carrito mientras Stripe Checkout está abierto, esos cambios se conservan. Esta dependencia se implementa y valida junto al flujo de pago de la fase 06.
 - **Comprobaciones:** reintentar la fusión no duplica cantidades, un error conserva el carrito local, se muestra un único carrito y Checkout rechaza productos inactivos o precios inválidos.
-- **Estado y evidencia:** planeada; registrar pruebas, entorno, fecha y commit al completar la fase.
+- **Estado y evidencia — 14 de noviembre de 2026:** reinicio pendiente. El prototipo local se revisó y no se acepta porque su presentación no conserva con suficiente fidelidad el código y el frontend del legado. El código y el borrador de contrato se conservaron, sin incorporarlos a Fase 04, en el stash local `archive phase 05 cart prototype before phase 04 baseline`. La nueva implementación debe partir del commit de cuentas `1645421`, volver a revisar el legado vista por vista y mantener su presentación completa en el sistema actual antes de solicitar aceptación.
+- **Evidencia histórica del prototipo no aceptado:** en Compose pasaron 93 pruebas backend, 51 frontend, ambos lint, `prisma validate`, `prisma migrate deploy`/`status` (cinco migraciones, esquema al día) y build optimizado; un smoke test verificó cotización, escritura de cuenta, fusión idempotente, límite de 99 y retiro de producto inactivo, eliminando al final la cuenta y producto temporales. Para usar imágenes actuales se empleó `/tmp/p05-no-bind.yaml`, sin cambiar Compose versionado ni desplegar. En navegador se revisó únicamente la vista vacía en escritorio `1422 × 800` y viewport estrecho medido de `307 × 750` CSS px, sin desbordamiento horizontal ni errores de consola; vistas con artículos, errores y presentación fiel quedaron pendientes. Estos resultados describen el prototipo archivado y no constituyen aceptación de Fase 05.
 
 ### 06. Stripe Checkout y pedidos — planeada
 

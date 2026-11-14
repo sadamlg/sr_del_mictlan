@@ -76,6 +76,7 @@ Las escrituras de cuenta limitan solicitudes por IP y ruta a 30 por 15 minutos p
 - Se conserva la dirección visual de [DESIGN.md](../DESIGN.md): fondo oscuro editorial, encabezados Cinzel Decorative, texto Open Sans/Montserrat, acento verde agua, estados rojos y componentes de cuenta existentes en el sistema visual. Tailwind CSS 4 y Lucide React son la base; los formularios se agrupan por responsabilidad.
 - Los campos tienen etiqueta visible, `autocomplete` apropiado, foco perceptible, errores asociados al campo y un resumen de error anunciable. Las validaciones del navegador no sustituyen las del servidor; los formularios personalizados no muestran avisos nativos inconsistentes.
 - Contraseña de alta y nueva contraseña permiten mostrar/ocultar mediante botón accesible. Los formularios presentan estado ocupado, éxito, validación por campo, error recuperable y bloqueo cuando Turnstile no está listo. La fecha puede capturarse con teclado y mostrar formato local comprensible.
+- Al cambiar entre vistas de cuenta o volver con el historial del navegador, se limpian los errores y avisos transitorios, los tokens de Turnstile y los datos no guardados; el perfil vuelve a los últimos datos guardados. Tras un intento al servidor se descartan las contraseñas. Un login fallido conserva el correo para facilitar la corrección, pero no la contraseña; los errores locales permanecen mientras se corrige el formulario y se quitan al editar el campo correspondiente.
 - El perfil sólo habilita guardar cuando hay cambios. El aviso de éxito tras guardar desaparece temporalmente; el aviso del cambio de correo pendiente persiste hasta confirmar. La expiración de sesión devuelve a una pantalla de acceso comprensible y conserva sólo el destino local permitido.
 - **Mis pedidos** tiene estados de carga, error, sesión vencida y vacío. El vacío no fabrica datos, importes, fechas ni productos.
 - Las vistas se validan a 320, 768, 1024 y 1440 px, en teclado y con lector de pantalla; el cierre no se condiciona a emular movimiento reducido.
@@ -96,6 +97,7 @@ Las escrituras de cuenta limitan solicitudes por IP y ruta a 30 por 15 minutos p
 | AC-10 | **Mis pedidos** muestra vacío con cero pedidos, y los enlaces de cuenta funcionan en encabezado de escritorio y menú móvil. |
 | AC-11 | Pruebas `node:test`, lint, build, validación/generación/migraciones Prisma y recorridos disponibles de Compose pasan; el navegador no presenta errores de consola, foco perdido ni desbordamiento móvil. |
 | AC-12 | La evidencia de cierre anota fecha, entorno, commit, comandos y resultados comprobados; cualquier verificación bloqueada se marca pendiente con causa concreta. |
+| AC-13 | Al salir de una vista de cuenta y regresar por navegación o historial no reaparecen errores ni datos transitorios obsoletos. Los secretos se limpian tras cada intento al servidor, el perfil descarta ediciones no guardadas al salir y los errores de campo se conservan sólo hasta corregirlos. |
 
 ## Plan de equivalencia práctica
 
