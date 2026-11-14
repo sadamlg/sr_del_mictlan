@@ -10,7 +10,7 @@ export default function LandingWhatsAppCta() {
     >
       <div className="mx-auto flex w-full max-w-[1440px] flex-col items-start gap-4 px-6 py-5 sm:gap-5 sm:px-10 sm:py-8 md:flex-row md:items-center md:justify-between md:gap-8 lg:px-14">
         <div className="max-w-3xl">
-          <h2 id="rapid-purchase-title" className="font-display text-lg font-normal leading-tight text-mictlan-gold sm:text-xl lg:text-2xl">
+          <h2 id="rapid-purchase-title" className="font-display text-lg font-normal leading-tight text-mictlan-red-hover sm:text-xl lg:text-2xl">
             ¿Necesitas una compra rápida o urgente?
           </h2>
           <p className="mt-2 max-w-[60ch] text-base leading-6 text-mictlan-sage sm:text-lg">
