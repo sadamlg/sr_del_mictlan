@@ -79,6 +79,8 @@ up_lan() {
     printf 'FRONTEND_BIND_ADDRESS=0.0.0.0\n'
     printf 'BACKEND_BIND_ADDRESS=0.0.0.0\n'
     printf 'MAILPIT_BIND_ADDRESS=0.0.0.0\n'
+    printf 'FRONTEND_ORIGIN=http://%s:%s\n' "$lan_ip" "$frontend_port"
+    printf 'NEXT_PUBLIC_API_URL=http://%s:%s\n' "$lan_ip" "$backend_port"
     printf 'NEXT_ALLOWED_DEV_ORIGIN=%s\n' "$lan_ip"
     printf 'MEDIA_BASE_URL=http://%s:%s\n' "$lan_ip" "$frontend_port"
   } > "$temp_env"
