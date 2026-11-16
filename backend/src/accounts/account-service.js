@@ -1,0 +1,286 @@
+import { createOpaqueToken, hashPassword, hashToken, verifyPassword } from './crypto.js';
+import {
+  normalizeEmail,
+  validatePasswordChangeInput,
+  validateProfileInput,
+  validateRegistrationInput,
+} from './validation.js';
+
+const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
+const TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
+const PASSWORD_PATTERN = /^.{12,128}$/s;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const DUMMY_PASSWORD_HASH = ['scrypt', '16384', '8', '1', '0'.repeat(32), '0'.repeat(128)].join('$');
+const ADDRESS_FIELDS = ['street', 'number', 'neighborhood', 'locality', 'state', 'postalCode'];
+
+export class AccountError extends Error {
+  constructor(status, code, message, fields) {
+    super(message);
+    this.name = 'AccountError';
+    this.status = status;
+    this.code = code;
+    if (fields) this.fields = fields;
+  }
+}
+
+function dateOnly(value) {
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  return value;
+}
+
+function toPublicAccount(account) {
+  return {
+    id: account.id,
+    firstName: account.firstName,
+    lastName: account.lastName,
+    email: account.email,
+    pendingEmail: account.pendingEmail ?? null,
+    emailVerified: Boolean(account.emailVerifiedAt),
+    dateOfBirth: dateOnly(account.dateOfBirth),
+    address: Object.fromEntries(ADDRESS_FIELDS.map((field) => [field, account[field]])),
+  };
+}
+
+function ensureInput(condition, fields, message = 'Revisa los datos e inténtalo de nuevo.') {
+  if (!condition) throw new AccountError(422, 'VALIDATION_ERROR', message, fields);
+}
+
+function ensureSessionToken(value) {
+  if (typeof value !== 'string' || !TOKEN_PATTERN.test(value)) {
+    throw new AccountError(401, 'AUTHENTICATION_REQUIRED', 'Inicia sesión para continuar.');
+  }
+}
+
+function checkObjectInput(input, allowedKeys, message) {
+  return Boolean(input) && typeof input === 'object' && !Array.isArray(input)
+    && Object.keys(input).every((key) => allowedKeys.includes(key)) && message;
+}
+
+export function createAccountService({
+  repository,
+  now = () => new Date(),
+  tokenFactory = createOpaqueToken,
+  hashTokenValue = hashToken,
+  hashPasswordValue = hashPassword,
+  verifyPasswordValue = verifyPassword,
+  sessionDurationMs = SESSION_DURATION_MS,
+}) {
+  async function createSession(accountId) {
+    const sessionToken = tokenFactory();
+    const expiresAt = new Date(now().getTime() + sessionDurationMs);
+    await repository.createSession({ accountId, tokenHash: hashTokenValue(sessionToken), expiresAt });
+    return { sessionToken, expiresAt };
+  }
+
+  return {
+    async register(input) {
+      const validated = validateRegistrationInput(input, now());
+      ensureInput(validated.success, validated.errors);
+      const { password, dateOfBirth, address, continueToCheckout, ...accountData } = validated.data;
+      try {
+        const created = await repository.createAccount({
+          account: {
+            ...accountData,
+            ...address,
+            dateOfBirth: new Date(`${dateOfBirth}T00:00:00.000Z`),
+          },
+          passwordHash: await hashPasswordValue(password),
+          emailJobType: 'ACCOUNT_CONFIRMATION',
+          continueToCheckout,
+        });
+        return {
+          message: 'Revisa tu correo para activar la cuenta. Confirma la dirección antes de iniciar sesión.',
+          email: created.email,
+        };
+      } catch (error) {
+        if (error?.code === 'P2002' || error?.code === 'EMAIL_IN_USE') {
+          throw new AccountError(409, 'EMAIL_IN_USE', 'Ese correo ya está registrado.');
+        }
+        throw error;
+      }
+    },
+
+    async login(input) {
+      const validShape = checkObjectInput(input, ['email', 'password'], true);
+      if (!validShape) throw new AccountError(422, 'VALIDATION_ERROR', 'Escribe un correo y una contraseña válidos.');
+      const email = normalizeEmail(input.email);
+      const password = typeof input.password === 'string' ? input.password : '';
+      if (!EMAIL_PATTERN.test(email) || email.length > 254 || password.length === 0 || password.length > 128) {
+        throw new AccountError(422, 'VALIDATION_ERROR', 'Escribe un correo y una contraseña válidos.');
+      }
+
+      const found = await repository.findAccountByEmail(email);
+      const validPassword = await verifyPasswordValue(password, found?.passwordHash ?? DUMMY_PASSWORD_HASH);
+      if (!found || !validPassword) {
+        throw new AccountError(401, 'INVALID_CREDENTIALS', 'El correo o la contraseña no son correctos.');
+      }
+      if (!found.emailVerifiedAt) {
+        throw new AccountError(403, 'EMAIL_NOT_VERIFIED', 'Confirma tu correo antes de iniciar sesión. Usa el enlace que te enviamos al registrarte.');
+      }
+      return { account: toPublicAccount(found), ...(await createSession(found.id)) };
+    },
+
+    async logout(sessionToken) {
+      if (typeof sessionToken === 'string' && TOKEN_PATTERN.test(sessionToken)) {
+        await repository.revokeSession(hashTokenValue(sessionToken), now());
+      }
+    },
+
+    async getSession(sessionToken) {
+      ensureSessionToken(sessionToken);
+      const tokenHash = hashTokenValue(sessionToken);
+      const timestamp = now();
+      const session = await repository.findSessionByTokenHash(tokenHash, timestamp);
+      if (!session) throw new AccountError(401, 'AUTHENTICATION_REQUIRED', 'Inicia sesión para continuar.');
+      if (!session.account?.emailVerifiedAt) {
+        await repository.revokeSession(tokenHash, timestamp);
+        throw new AccountError(401, 'AUTHENTICATION_REQUIRED', 'Confirma tu correo para activar la cuenta; después inicia sesión.');
+      }
+      return toPublicAccount(session.account);
+    },
+
+    async getProfile(accountId) {
+      const account = await repository.findAccountById(accountId);
+      if (!account) throw new AccountError(401, 'AUTHENTICATION_REQUIRED', 'Inicia sesión para continuar.');
+      return toPublicAccount(account);
+    },
+
+    async requestPasswordReset(input) {
+      if (!checkObjectInput(input, ['email'], true)) {
+        throw new AccountError(422, 'VALIDATION_ERROR', 'Escribe un correo electrónico válido.');
+      }
+      const email = normalizeEmail(input.email);
+      if (email.length > 254 || !EMAIL_PATTERN.test(email)) {
+        throw new AccountError(422, 'VALIDATION_ERROR', 'Escribe un correo electrónico válido.');
+      }
+      await repository.enqueuePasswordReset(email);
+      return { message: 'Si el correo tiene una cuenta, recibirás instrucciones para cambiar la contraseña.' };
+    },
+
+    async validatePasswordResetToken(input) {
+      const token = input?.token;
+      if (!checkObjectInput(input, ['token'], true) || typeof token !== 'string' || !TOKEN_PATTERN.test(token)) {
+        return { valid: false };
+      }
+      return { valid: await repository.isPasswordResetTokenValid(hashTokenValue(token), now()) };
+    },
+
+    async resetPassword(input) {
+      if (!checkObjectInput(input, ['token', 'password'], true)) {
+        throw new AccountError(422, 'VALIDATION_ERROR', 'El enlace o la nueva contraseña no son válidos.');
+      }
+      const { token, password } = input;
+      if (typeof token !== 'string' || !TOKEN_PATTERN.test(token) || typeof password !== 'string' || !PASSWORD_PATTERN.test(password)) {
+        throw new AccountError(422, 'VALIDATION_ERROR', 'El enlace o la nueva contraseña no son válidos.', {
+          password: 'La contraseña debe tener entre 12 y 128 caracteres.',
+        });
+      }
+      const updated = await repository.resetPassword({
+        tokenHash: hashTokenValue(token), passwordHash: await hashPasswordValue(password), now: now(),
+      });
+      if (!updated) throw new AccountError(400, 'RESET_LINK_INVALID', 'El enlace venció o ya se utilizó. Solicita uno nuevo.');
+      return { message: 'Tu contraseña se actualizó. Ya puedes iniciar sesión.' };
+    },
+
+    async changePassword(accountId, input) {
+      const validated = validatePasswordChangeInput(input);
+      ensureInput(validated.success, validated.errors);
+      const current = await repository.findAccountById(accountId);
+      if (!current) throw new AccountError(401, 'AUTHENTICATION_REQUIRED', 'Inicia sesión para continuar.');
+      if (!(await verifyPasswordValue(validated.data.currentPassword, current.passwordHash))) {
+        throw new AccountError(401, 'INVALID_CREDENTIALS', 'La contraseña actual no es correcta.', {
+          currentPassword: 'La contraseña actual no es correcta.',
+        });
+      }
+      if (await verifyPasswordValue(validated.data.newPassword, current.passwordHash)) {
+        throw new AccountError(422, 'PASSWORD_UNCHANGED', 'Elige una contraseña distinta a la actual.', {
+          newPassword: 'Elige una contraseña distinta a la actual.',
+        });
+      }
+
+      const timestamp = now();
+      const sessionToken = tokenFactory();
+      const expiresAt = new Date(timestamp.getTime() + sessionDurationMs);
+      await repository.changePassword({
+        accountId,
+        passwordHash: await hashPasswordValue(validated.data.newPassword),
+        tokenHash: hashTokenValue(sessionToken),
+        expiresAt,
+        now: timestamp,
+      });
+      return { message: 'Actualizamos tu contraseña y cerramos las demás sesiones.', sessionToken, expiresAt };
+    },
+
+    async confirmEmail(input) {
+      const token = input?.token;
+      if (!checkObjectInput(input, ['token'], true) || typeof token !== 'string' || !TOKEN_PATTERN.test(token)) {
+        throw new AccountError(400, 'EMAIL_CONFIRMATION_INVALID', 'El enlace de confirmación no es válido.');
+      }
+      let confirmation;
+      try {
+        confirmation = await repository.confirmEmail(hashTokenValue(token), now());
+      } catch (error) {
+        if (error?.code === 'P2002') throw new AccountError(409, 'EMAIL_IN_USE', 'Ese correo ya pertenece a otra cuenta.');
+        throw error;
+      }
+      if (!confirmation) throw new AccountError(400, 'EMAIL_CONFIRMATION_INVALID', 'El enlace venció o ya se utilizó.');
+      const accountActivated = confirmation.purpose === 'ACCOUNT_CONFIRMATION';
+      return {
+        message: accountActivated ? 'Tu cuenta está activa.' : 'Tu correo quedó actualizado.',
+        accountActivated,
+        ...(accountActivated ? await createSession(confirmation.accountId) : {}),
+      };
+    },
+
+    async updateProfile(accountId, input) {
+      const validated = validateProfileInput(input, now());
+      ensureInput(validated.success, validated.errors);
+      const current = await repository.findAccountById(accountId);
+      if (!current) throw new AccountError(401, 'AUTHENTICATION_REQUIRED', 'Inicia sesión para continuar.');
+
+      const updates = { ...validated.data };
+      const currentPassword = updates.currentPassword;
+      delete updates.currentPassword;
+      let pendingEmail;
+      let emailJobType;
+
+      if (updates.email === current.email) delete updates.email;
+      else if (updates.email) {
+        if (!currentPassword) {
+          throw new AccountError(422, 'VALIDATION_ERROR', 'Confirma tu contraseña para cambiar el correo.', {
+            currentPassword: 'Escribe tu contraseña actual.',
+          });
+        }
+        if (!(await verifyPasswordValue(currentPassword, current.passwordHash))) {
+          throw new AccountError(401, 'INVALID_CREDENTIALS', 'La contraseña actual no es correcta.', {
+            currentPassword: 'La contraseña actual no es correcta.',
+          });
+        }
+        const existing = await repository.findAccountByEmailForUpdate(updates.email);
+        if (existing && existing.id !== accountId) throw new AccountError(409, 'EMAIL_IN_USE', 'Ese correo ya está registrado.');
+        pendingEmail = updates.email;
+        emailJobType = 'EMAIL_CHANGE_CONFIRMATION';
+        delete updates.email;
+      }
+
+      if (updates.dateOfBirth) updates.dateOfBirth = new Date(`${updates.dateOfBirth}T00:00:00.000Z`);
+      if (updates.address) {
+        Object.assign(updates, updates.address);
+        delete updates.address;
+      }
+      if (Object.keys(updates).length === 0 && pendingEmail === undefined) return toPublicAccount(current);
+
+      try {
+        const changed = await repository.updateProfile({ accountId, updates, pendingEmail, emailJobType, now: now() });
+        return toPublicAccount(changed);
+      } catch (error) {
+        if (error?.code === 'P2002') throw new AccountError(409, 'EMAIL_IN_USE', 'Ese correo ya está registrado.');
+        throw error;
+      }
+    },
+
+    async listOrders() {
+      return [];
+    },
+  };
+}

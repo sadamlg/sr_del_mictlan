@@ -2,7 +2,7 @@ import FacebookMark from './facebook-mark';
 
 const FACEBOOK_URL = 'https://www.facebook.com/people/Se%C3%B1or-del-Mictl%C3%A1n/61568382681761/';
 
-export default function FacebookLink({ className = '' }) {
+export default function FacebookLink({ className = '', children }) {
   return (
     <a
       href={FACEBOOK_URL}
@@ -12,7 +12,8 @@ export default function FacebookLink({ className = '' }) {
       title="Facebook"
       className={className}
     >
-      <FacebookMark />
+      <FacebookMark className="size-6 shrink-0" />
+      {children}
     </a>
   );
 }

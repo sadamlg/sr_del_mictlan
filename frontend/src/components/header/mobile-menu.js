@@ -1,8 +1,9 @@
-import { Menu, UserRound, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import Link from 'next/link';
-import FacebookLink from '../social/facebook-link';
 import { navigationItems } from './navigation';
 import { getMenuToggleProps, getMobileNavigationProps } from './behavior';
+import AccountMenu from '../account/account-menu.js';
+import FacebookLink from '../social/facebook-link';
 
 export function MobileMenuToggle({ isOpen, onToggle }) {
   return (
@@ -56,14 +57,10 @@ export default function MobileMenu({ isOpen, onClose, onNavigationSelect, active
           </nav>
           <div className="mt-[75px]">
             <div className="flex flex-col">
-              <div className="flex items-center gap-3 pl-[30px]">
-                <button disabled type="button" aria-label="Iniciar sesión, disponible próximamente" className="group flex h-[48.45px] items-center gap-2 font-display uppercase tracking-[0.025em] text-mictlan-sage">
-                  <UserRound className="h-6 w-6 text-mictlan-sage/80" aria-hidden="true" /> Iniciar sesión
-                </button>
-                <FacebookLink className="inline-flex size-11 items-center justify-center rounded-sm text-mictlan-sage transition-colors hover:text-mictlan-teal focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-mictlan-teal" />
-              </div>
+              <AccountMenu mobile onNavigate={onClose} />
             </div>
-            <div className="mb-[60px] mt-[10px] border-t border-mictlan-bone/30" />
+            <div className="mt-[10px] border-t border-mictlan-bone/30" />
+            <FacebookLink className="mb-[60px] mt-4 flex h-[48.45px] items-center gap-2 pl-[30px] font-display uppercase tracking-[0.025em] text-mictlan-sage no-underline transition-colors duration-150 ease-out hover:text-mictlan-teal focus-visible:text-mictlan-teal">Facebook</FacebookLink>
           </div>
         </div>
       </div>
