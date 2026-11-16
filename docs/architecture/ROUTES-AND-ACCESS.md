@@ -82,6 +82,7 @@ Estas operaciones requieren sesión válida. El backend deriva la cuenta de la c
 | `POST /api/checkout/sessions` | Crear una sesión de Stripe a partir de los datos vigentes del servidor. |
 | `GET /api/checkout/return-status?session_id=…` | Consultar el estado del Checkout asociado a la cuenta autenticada; el webhook determina la confirmación del pago. |
 | `GET /api/orders` | Consultar sólo pedidos pagados del titular de la sesión. |
+| `POST /api/orders/:orderId/reorder` | Volver a agregar productos disponibles de un pedido propio pagado; requiere una clave UUID idempotente. |
 
 ## Flujo de cuenta nueva durante la compra
 

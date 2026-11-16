@@ -7,7 +7,8 @@
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
     "lint": "eslint .",
-    "test": "node --test src/*.test.js src/catalog/*.test.js src/visits/*.test.js src/accounts/*.test.js src/carts/*.test.js src/email/account-email.test.js",
+    "test": "node --test src/*.test.js src/catalog/*.test.js src/visits/*.test.js src/accounts/*.test.js src/carts/*.test.js src/checkout/*.test.js src/email/account-email.test.js",
+    "test:db": "node --test src/carts/cart-repository.database.test.js src/checkout/checkout-server.database.test.js",
     "worker:dev": "node --watch src/worker.js",
     "worker:mail-smoke": "node src/send-test-email.js",
     "prisma:generate": "prisma generate",
@@ -21,7 +22,8 @@
     "@prisma/client": "7.10.1",
     "express": "5.3.0",
     "nodemailer": "10.2.1",
-    "pg": "8.23.1"
+    "pg": "8.23.1",
+    "stripe": "23.0.0"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

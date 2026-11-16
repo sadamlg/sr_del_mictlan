@@ -59,6 +59,7 @@ export function CartProvider({ children, mediaBaseUrl = '' }) {
   const [accountCart, setAccountCart] = useState(null);
   const [accountCartAccountId, setAccountCartAccountId] = useState(null);
   const [activePanel, setActivePanel] = useState(null);
+  const [checkoutNotice, setCheckoutNotice] = useState('');
   const [error, setError] = useState('');
   const [mergeFailed, setMergeFailed] = useState(false);
   const [unavailableSlugs, setUnavailableSlugs] = useState([]);
@@ -251,6 +252,26 @@ export function CartProvider({ children, mediaBaseUrl = '' }) {
     setRetryKey((key) => key + 1);
   }, [session]);
 
+  const reorderPaidOrder = useCallback(async (orderId, transferId) => {
+    if (!accountReady || mergeFailed || pending) throw new Error('Espera a que termine de cargar tu carrito.');
+    if (typeof transferId !== 'string') throw new Error('No pudimos preparar el reintento de forma segura.');
+    setPending(true);
+    setError('');
+    try {
+      const result = await accountRequest(`orders/${encodeURIComponent(orderId)}/reorder`, {
+        method: 'POST',
+        body: { transferId },
+      });
+      setAccountCart(await fetchAccountCart());
+      return { unavailableSlugs: Array.isArray(result?.unavailableSlugs) ? result.unavailableSlugs : [] };
+    } catch (reorderError) {
+      setError(apiMessage(reorderError));
+      throw reorderError;
+    } finally {
+      setPending(false);
+    }
+  }, [accountReady, fetchAccountCart, mergeFailed, pending]);
+
   const isRestoring = !localReady || ['loading', 'refreshing'].includes(session.status)
     || (session.status === 'account' && !accountReady && !mergeFailed);
   const sourceItems = session.status === 'account' && accountReady && !mergeFailed
@@ -287,6 +308,7 @@ export function CartProvider({ children, mediaBaseUrl = '' }) {
   const value = {
     activePanel, openCart, closeCart, toggleCart, toggleMenu, closeMenu,
     addProduct, registerProduct, setQuantity, removeItem, retry,
+    checkoutNotice, setCheckoutNotice, reorderPaidOrder,
     items, totalCount, subtotal, error: displayError, pending, isRestoring,
     isAccount: session.status === 'account',
     isAccountLoading: session.status === 'account' && !accountReady && !mergeFailed,

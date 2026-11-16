@@ -45,7 +45,7 @@ function CartLine({ item, disabled, onChange, onRemove }) {
           </div>
           <div className="col-start-2 row-start-1 flex items-start justify-self-end gap-1 sm:gap-2">
             {item.available && (
-              <p className="whitespace-nowrap font-ui text-[clamp(0.875rem,2.6vw,1rem)] font-medium leading-[1.15] tabular-nums text-mictlan-gold">
+              <p className="money-line whitespace-nowrap">
                 {money.format(item.lineTotal.amount / 100)}
               </p>
             )}
@@ -241,11 +241,14 @@ export default function CartDrawer() {
             {items.length > 0 ? (
               <>
                 {unavailableCount > 0 && isAccount && <p className="mb-3 text-sm leading-5 text-mictlan-error-text">Quita los productos no disponibles para continuar.</p>}
-                <div className="flex items-center justify-between gap-4"><span className="font-ui text-xs font-semibold uppercase tracking-[0.14em] text-mictlan-sage">Subtotal</span><strong className="font-ui text-lg font-medium tabular-nums text-mictlan-gold">MXN {money.format(subtotal.amount / 100)}</strong></div>
+                <div className="flex items-center justify-between gap-4"><span className="money-summary-label">Subtotal</span><strong className="money-summary-value">MXN {money.format(subtotal.amount / 100)}</strong></div>
                 {isAccount ? (
-                  <Link href="/#coleccion" onClick={closeAndRestoreFocus} className="mt-5 flex min-h-12 w-full items-center justify-center rounded-full border border-mictlan-teal/70 bg-mictlan-teal-deep/80 px-5 text-center font-ui text-xs font-semibold uppercase tracking-[0.13em] text-mictlan-bone no-underline transition-colors hover:bg-mictlan-teal-hover focus-visible:outline-2 focus-visible:outline-mictlan-teal">Seguir comprando</Link>
+                  <>
+                    <Link href="/cuenta/checkout" onClick={closeAndRestoreFocus} className="mt-5 flex min-h-12 w-full items-center justify-center rounded-full border border-mictlan-teal/70 bg-mictlan-teal-deep/80 px-5 text-center font-ui text-xs font-semibold uppercase tracking-[0.13em] text-mictlan-bone no-underline transition-colors hover:bg-mictlan-teal-hover focus-visible:outline-2 focus-visible:outline-mictlan-teal">Ir al resumen de compra</Link>
+                    <Link href="/#coleccion" onClick={closeAndRestoreFocus} className="mt-2 flex min-h-10 w-full items-center justify-center px-5 text-center text-sm text-mictlan-teal underline underline-offset-4 hover:text-mictlan-bone">Seguir comprando</Link>
+                  </>
                 ) : (
-                <Link href="/cuenta/iniciar-sesion" onClick={closeAndRestoreFocus} className="mt-5 flex min-h-12 w-full items-center justify-center rounded-full border border-mictlan-teal/70 bg-mictlan-teal-deep/80 px-5 text-center font-ui text-xs font-semibold uppercase tracking-[0.13em] text-mictlan-bone no-underline transition-colors hover:bg-mictlan-teal-hover focus-visible:outline-2 focus-visible:outline-mictlan-teal">Inicia sesión para pagar</Link>
+                <Link href="/cuenta/iniciar-sesion?continuar=checkout" onClick={closeAndRestoreFocus} className="mt-5 flex min-h-12 w-full items-center justify-center rounded-full border border-mictlan-teal/70 bg-mictlan-teal-deep/80 px-5 text-center font-ui text-xs font-semibold uppercase tracking-[0.13em] text-mictlan-bone no-underline transition-colors hover:bg-mictlan-teal-hover focus-visible:outline-2 focus-visible:outline-mictlan-teal">Inicia sesión para pagar</Link>
                 )}
               </>
             ) : (

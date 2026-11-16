@@ -173,6 +173,16 @@ Reserva la serif decorativa para títulos; no la uses en párrafos, mensajes de 
 - **Texto:** descripciones, avisos y contenido de cuenta en Open Sans.
 - **Etiquetas:** campos, precios y controles en Montserrat; las breves suelen ir en mayúsculas y con espaciado amplio entre letras.
 
+### Importes del flujo de compra
+
+El carrito, Checkout y Mis pedidos comparten los mismos estilos de importe definidos en `frontend/src/app/globals.css`:
+
+- **Importe de producto o partida:** Montserrat, 14 px, peso medio, cifras tabulares y dorado (`.money-line`).
+- **Subtotal o total:** etiqueta Montserrat, 14 px, peso medio y salvia; importe Montserrat, 16 px, seminegrita, cifras tabulares y dorado (`.money-summary-label` y `.money-summary-value`).
+- **Precio por pieza y cantidad:** Montserrat, 14 px y cifras tabulares (`.money-detail`); conserva el color semántico de disponibilidad.
+
+Aplica estos roles igual en el carrito, el resumen de Checkout y el historial de pedidos. El precio destacado del escaparate puede conservar su escala mayor porque cumple una función de promoción y descubrimiento.
+
 ## Composición
 
 La landing alterna escenas de ancho amplio con secciones de lectura contenidas. El hero aprovecha la fotografía en pantalla completa en escritorio y reorganiza el contenido sobre la imagen en móvil. Las superficies de cuenta mantienen un ancho de lectura limitado y se apilan en pantallas estrechas.

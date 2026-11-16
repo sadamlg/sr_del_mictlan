@@ -1,17 +1,33 @@
-const ALLOWED_ROUTES = new Set([
-  'auth/register', 'auth/login', 'auth/logout', 'auth/session',
-  'auth/password-reset-requests', 'auth/password-resets', 'auth/email-confirmations',
-  'auth/password-reset-validations',
-  'profile', 'profile/password', 'orders',
-  'cart/account', 'cart/account/items', 'cart/account/merge',
+const ALLOWED_ROUTES = new Map([
+  ['auth/register', new Set(['POST'])],
+  ['auth/login', new Set(['POST'])],
+  ['auth/logout', new Set(['POST'])],
+  ['auth/session', new Set(['GET'])],
+  ['auth/password-reset-requests', new Set(['POST'])],
+  ['auth/password-resets', new Set(['POST'])],
+  ['auth/email-confirmations', new Set(['POST'])],
+  ['auth/password-reset-validations', new Set(['POST'])],
+  ['profile', new Set(['GET', 'PATCH'])],
+  ['profile/password', new Set(['PATCH'])],
+  ['orders', new Set(['GET'])],
+  ['checkout/payment-methods', new Set(['GET'])],
+  ['checkout/return-status', new Set(['GET'])],
+  ['checkout/sessions', new Set(['POST'])],
+  ['catalog/products', new Set(['GET'])],
+  ['cart/account', new Set(['GET'])],
+  ['cart/account/items', new Set(['PUT'])],
+  ['cart/account/merge', new Set(['POST'])],
 ]);
-const ALLOWED_METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
 
 async function proxyAccountRequest(request, context) {
   const { path = [] } = await context.params;
   const route = path.map((part) => decodeURIComponent(part)).join('/');
   const removableCartItem = /^cart\/account\/items\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(route);
-  if ((!ALLOWED_ROUTES.has(route) && !(request.method === 'DELETE' && removableCartItem)) || !ALLOWED_METHODS.has(request.method)) {
+  const reorderPaidOrder = /^orders\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/reorder$/i.test(route);
+  const methodAllowed = ALLOWED_ROUTES.get(route)?.has(request.method)
+    || (request.method === 'DELETE' && removableCartItem)
+    || (request.method === 'POST' && reorderPaidOrder);
+  if (!methodAllowed) {
     return Response.json({ error: { code: 'ROUTE_NOT_FOUND', message: 'No encontramos esta ruta.' } }, { status: 404 });
   }
 
@@ -24,6 +40,7 @@ async function proxyAccountRequest(request, context) {
     const base = new URL(apiBase);
     if (!['http:', 'https:'].includes(base.protocol) || base.username || base.password) throw new Error('invalid base');
     target = new URL(`/api/${route}`, base);
+    target.search = new URL(request.url).search;
   } catch {
     return Response.json({ error: { code: 'ACCOUNT_UNAVAILABLE', message: 'La cuenta no está disponible. Inténtalo de nuevo.' } }, { status: 503, headers: { 'Cache-Control': 'no-store' } });
   }
