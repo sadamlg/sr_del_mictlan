@@ -19,11 +19,13 @@ import {
   shouldHideHeaderOnScroll,
 } from './behavior';
 import { useDesktopViewport } from '../../hooks/use-desktop-viewport';
+import { useCart } from '../cart/cart-provider.js';
 
 export default function SiteHeader({ mediaBaseUrl }) {
   const pathname = usePathname();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const closeMenu = useCallback(() => setMenuOpen(false), []);
+  const { activePanel, closeMenu, toggleMenu: toggleMenuPanel } = useCart();
+  const menuOpen = activePanel === 'menu';
+  const cartOpen = activePanel === 'cart';
   const isDesktop = useDesktopViewport(closeMenu);
   const [visibility, setVisibility] = useState({ pathname, visible: true });
   const [activeSectionId, setActiveSectionId] = useState(null);
@@ -35,13 +37,13 @@ export default function SiteHeader({ mediaBaseUrl }) {
   const lastScrollY = useRef(0);
   const navigationScroll = useRef(true);
   const headerVisible = visibility.pathname !== pathname || visibility.visible;
-  const headerShouldDisplay = shouldDisplayHeader(headerVisible, menuOpen);
+  const headerShouldDisplay = shouldDisplayHeader(headerVisible, menuOpen || cartOpen);
   const activeNavigationItemId = pathname === '/'
     ? getActiveNavigationItemId(activeSectionId, selectedNavigationItemId)
     : null;
   const toggleMenu = () => {
     setVisibility({ pathname, visible: true });
-    setMenuOpen((open) => !open);
+    toggleMenuPanel();
   };
   const selectNavigationItem = useCallback((itemId, event) => {
     if (

@@ -1,8 +1,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { ShoppingBasket } from 'lucide-react';
 import ProductInsights from './product-insights';
 import { mediaObjectUrl } from '../../../lib/media-url';
+import AddToCartButton from '../../cart/add-to-cart-button.js';
 
 const priceFormatter = new Intl.NumberFormat('es-MX', {
   style: 'currency',
@@ -50,9 +50,7 @@ function MezcalCard({ product, className = '' }) {
         <p className="mt-1 font-serif text-lg font-medium italic leading-7 text-mictlan-cream">{product.labels[1]}</p>
         <ProductInsights product={product} />
         <p className="mt-4 font-ui text-lg font-medium tabular-nums text-mictlan-gold lg:mt-2">MXN {priceFormatter.format(product.price.amount / 100)}</p>
-        <button type="button" disabled title="Carrito disponible próximamente" aria-label={`Agregar al carrito: ${product.name}, disponible próximamente`} className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-mictlan-teal/70 bg-mictlan-teal-deep/90 px-6 font-ui text-xs font-semibold uppercase tracking-[0.14em] text-mictlan-bone opacity-60 lg:mt-2">
-          <ShoppingBasket className="size-4" aria-hidden="true" /> Agregar al carrito
-        </button>
+        <AddToCartButton product={product} />
       </div>
     </article>
   );
