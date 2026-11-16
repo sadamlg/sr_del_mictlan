@@ -1,7 +1,8 @@
 # Contrato 06: Stripe Checkout y pedidos
 
-**Estado:** en implementación — 16 de noviembre de 2026.
-**Base integrada:** `9df14c28899f4dc1a320b01ddb7df00e249bab89`, ancestro del merge `3bc2b0813c376b6458c204c6c54782d3c0d312fc` del PR #13 en `develop`.
+**Estado:** completada — 16 de noviembre de 2026.
+**Base de implementación:** `9df14c28899f4dc1a320b01ddb7df00e249bab89`, ancestro del merge `3bc2b0813c376b6458c204c6c54782d3c0d312fc` del PR #13 en `develop`.
+**Integración aceptada:** el commit `23eba2027f3a02dd5c3b101d9c0338cd35784d08` se fusionó mediante el PR #14; merge commit `47e8b5ae33a3567845469b57a479781c1f9a9360` en `develop`. Evidencia de aceptación C06-12 y límites de configuración externa: [roadmap de Fase 06](../ROADMAP.md).
 
 ## Objetivo y recorrido
 

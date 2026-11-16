@@ -12,7 +12,7 @@ Las reglas duraderas del repositorio están en [AGENTS.md](../AGENTS.md). El alc
 | 03 · Landing, catálogo y medios | Catálogo, presentación, medios y carga pública | Completada |
 | 04 · Cuentas y perfil | Registro, confirmación, sesión, recuperación y perfil | Completada |
 | 05 · Carritos | Carrito de invitado, cuenta y transferencia | Completada |
-| 06 · Stripe Checkout y pedidos | Compra, webhook firmado, pedidos e idempotencia | En curso |
+| 06 · Stripe Checkout y pedidos | Compra, webhook firmado, pedidos e idempotencia | Completada |
 | 07 · Correo transaccional y PDF | Resend, mensajes de compra y detalle de pedido | Planeada |
 | 08 · Staging | Railway, integraciones aisladas y aceptación de recorridos | Planeada |
 | 09 · Validación previa a Producción | CI, recorridos de navegador, accesibilidad, rendimiento, seguridad y operación | Planeada |
@@ -27,7 +27,7 @@ flowchart TB
     p02 --> p03["✅ 03 · Landing, catálogo y medios<br/>Completada"]
     p03 --> p04["✅ 04 · Cuentas y perfil<br/>Completada"]
     p04 --> p05["✅ 05 · Carritos<br/>Completada"]
-    p05 --> p06["🟠 06 · Stripe Checkout y pedidos<br/>En curso"]
+    p05 --> p06["✅ 06 · Stripe Checkout y pedidos<br/>Completada"]
     p06 --> p07["○ 07 · Correo transaccional y PDF<br/>Planeada"]
     p07 --> p08["○ 08 · Staging<br/>Planeada"]
     p08 --> p09["○ 09 · Validación previa a Producción<br/>Planeada"]
@@ -38,8 +38,7 @@ flowchart TB
     classDef restart fill:#ede9fe,stroke:#7c3aed,color:#4c1d95,stroke-width:2px;
     classDef planned fill:#f3f4f6,stroke:#9ca3af,color:#374151;
 
-    class p00,p01,p02,p03,p04,p05 completed;
-    class p06 active;
+    class p00,p01,p02,p03,p04,p05,p06 completed;
     class p07,p08,p09,p10 planned;
 
     linkStyle default stroke:#94a3b8,stroke-width:2px;
@@ -139,7 +138,7 @@ La fase 02 aprueba el alcance maestro del MVP, la arquitectura transversal, las 
 - **Estado y evidencia — 14 de noviembre de 2026:** reinicio pendiente. El prototipo local se revisó y no se acepta porque su presentación no conserva con suficiente fidelidad el código y el frontend del legado. El código y el borrador de contrato se conservaron, sin incorporarlos a Fase 04, en el stash local `archive phase 05 cart prototype before phase 04 baseline`. La nueva implementación debe partir de `develop` con la fase 04 integrada por el PR #9 (merge commit `2ceb844`), volver a revisar el legado vista por vista y mantener su presentación completa en el sistema actual antes de solicitar aceptación.
 - **Evidencia histórica del prototipo no aceptado:** en Compose pasaron 93 pruebas backend, 51 frontend, ambos lint, `prisma validate`, `prisma migrate deploy`/`status` (cinco migraciones, esquema al día) y build optimizado; un smoke test verificó cotización, escritura de cuenta, fusión idempotente, límite de 99 y retiro de producto inactivo, eliminando al final la cuenta y producto temporales. Para usar imágenes actuales se empleó `/tmp/p05-no-bind.yaml`, sin cambiar Compose versionado ni desplegar. En navegador se revisó únicamente la vista vacía en escritorio `1422 × 800` y viewport estrecho medido de `307 × 750` CSS px, sin desbordamiento horizontal ni errores de consola; vistas con artículos, errores y presentación fiel quedaron pendientes. Estos resultados describen el prototipo archivado y no constituyen aceptación de Fase 05.
 
-### 06. Stripe Checkout y pedidos — en curso
+### 06. Stripe Checkout y pedidos — completada
 
 - **Objetivo:** aceptar pagos alojados por Stripe y confirmar las compras sólo mediante webhooks firmados.
 - **Dependencias:** fases 03, 04 y 05.
@@ -160,8 +159,13 @@ La fase 02 aprueba el alcance maestro del MVP, la arquitectura transversal, las 
 - **Cursor y recuperación — 16 de noviembre de 2026:** los botones activos ahora muestran cursor de clic y los deshabilitados indican que no están disponibles; en navegador se comprobó el `pointer` del escaparate y los botones de carrito/checkout, y el `not-allowed` del pago deshabilitado. Un `401` en carrito, Checkout o pedidos actualiza la sesión compartida para mostrar acceso de cuenta; el retorno de Stripe vuelve a consultar hasta 20 veces con espera creciente y reintenta fallos temporales. Pasaron 61 pruebas frontend, ESLint y el build optimizado aislado; la consola del navegador no registró errores ni advertencias.
 - **Jerarquía del total y regreso de “Volver a pedir” — 16 de noviembre de 2026:** el total de cada pedido usa 16 px, igual que el total del resumen de Checkout. Se comprobó el recorrido en navegador local: repetir abrió Checkout, volver a Mis pedidos dejó el botón habilitado y el carrito se restauró a cero. La acción ahora limpia el estado ocupado antes de navegar; el reinicio de vistas de cuenta también cubre historial y restauración desde BFCache. Pasaron 63 pruebas frontend y ESLint; no hubo errores ni advertencias en consola.
 - **Jerarquía monetaria compartida — 16 de noviembre de 2026:** carrito, Checkout y Mis pedidos usan Montserrat y cifras tabulares; los precios por partida comparten 14 px medio y los subtotales/totales 16 px seminegrita. Se documentaron los roles en `docs/DESIGN.md` y se centralizaron como clases en `globals.css`.
+- **Lectura de los registros de implementación:** las comprobaciones anteriores conservan resultados de iteraciones sucesivas. Para aceptación, prevalecen las cifras y resultados del commit integrado que se detallan a continuación.
 - **Staging:** no configurado. El webhook HTTPS público, las claves de prueba de staging y su secreto independiente corresponden a la Fase 08 y están descritos en [la guía de Stripe](architecture/services/STRIPE.md).
-- **Estado y evidencia:** recorrido local de prueba completado y verificado. La implementación permanece en el árbol de trabajo sin commit; falta la revisión final y la integración al flujo de la rama para registrar el commit en C06-12. Stripe está conectado en modo de prueba local, no en staging ni producción; el webhook público de staging pertenece a la Fase 08.
+- **Cierre e integración — 16 de noviembre de 2026:** el [PR #14](https://github.com/sadamlg/sr_del_mictlan/pull/14) se fusionó a `develop` con el merge commit `47e8b5ae33a3567845469b57a479781c1f9a9360`; contiene el commit de implementación `23eba2027f3a02dd5c3b101d9c0338cd35784d08`. Los checks obligatorios **Frontend checks** y **Backend checks** pasaron en GitHub y el PR quedó sin conflictos. La rama de implementación se eliminó automáticamente al fusionar.
+- **Comprobaciones del commit integrado — 16 de noviembre de 2026:** backend: 131 pruebas aprobadas, 0 fallidas; las dos pruebas PostgreSQL optativas se omitieron en esa ejecución y ambas habían pasado por separado con `npm run test:db` contra PostgreSQL temporal aislado. Frontend: 63 pruebas aprobadas. Pasaron ESLint en ambos paquetes, `prisma validate`, `prisma generate`, `git diff --check` y el build optimizado de Next.js, ejecutado en un contenedor aislado sin las URL locales HTTP de API y medios. La migración se validó contra una base temporal vacía en la comprobación de integración.
+- **Revisión funcional y visual — 16 de noviembre de 2026:** el usuario completó un Checkout de prueba en Stripe sandbox; la tienda recibió el retorno confirmado, mostró el pedido pagado en “Mis pedidos” y dejó el carrito vacío. Se verificaron el webhook firmado local, los reintentos/idempotencia y el pedido asociado en la base. En navegador se revisó la interfaz a 320, 768, 1024 y 1440 px, sin desbordamiento horizontal; el acordeón responde a Espacio y Enter. También se comprobaron punteros de botones y el estado deshabilitado, y no se observaron errores ni advertencias de consola en la revisión registrada arriba.
+- **Configuración externa y límites:** Stripe está configurado sólo en modo de prueba local; `STRIPE_SECRET_KEY` y el secreto emitido por Stripe CLI permanecen en el `.env` ignorado por Git. El endpoint público HTTPS y las claves/secreto independientes de Stripe para Staging no están configurados; se preparan y verifican en la Fase 08. No se habilitó modo live ni hubo cargos reales. Correo de compra y PDF pertenecen a la Fase 07.
+- **Estado y evidencia — C06-12:** completada e integrada en `develop`. El código, las comprobaciones locales, los checks del PR y el recorrido de prueba quedan asociados a los commits indicados; el estado de proveedores externos se registra por separado arriba y en el contrato. La fase 07 queda habilitada para iniciar.
 
 ### 07. Correo transaccional y PDF — planeada
 
