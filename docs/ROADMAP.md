@@ -11,7 +11,7 @@ Las reglas duraderas del repositorio están en [AGENTS.md](../AGENTS.md). El alc
 | 02 · Alcance y arquitectura | Alcance maestro y arquitectura transversal; los contratos de módulo se detallan en sus fases | Completada |
 | 03 · Landing, catálogo y medios | Catálogo, presentación, medios y carga pública | Completada |
 | 04 · Cuentas y perfil | Registro, confirmación, sesión, recuperación y perfil | Completada |
-| 05 · Carritos | Carrito de invitado, cuenta y transferencia | En verificación |
+| 05 · Carritos | Carrito de invitado, cuenta y transferencia | Completada |
 | 06 · Stripe Checkout y pedidos | Compra, webhook firmado, pedidos e idempotencia | Planeada |
 | 07 · Correo transaccional y PDF | Resend, mensajes de compra y detalle de pedido | Planeada |
 | 08 · Staging | Railway, integraciones aisladas y aceptación de recorridos | Planeada |
@@ -26,7 +26,7 @@ flowchart TB
     p01["✅ 01 · Entorno local y Docker<br/>Completada"] --> p02["✅ 02 · Alcance y arquitectura<br/>Completada"]
     p02 --> p03["✅ 03 · Landing, catálogo y medios<br/>Completada"]
     p03 --> p04["✅ 04 · Cuentas y perfil<br/>Completada"]
-    p04 --> p05["🟠 05 · Carritos<br/>En verificación"]
+    p04 --> p05["✅ 05 · Carritos<br/>Completada"]
     p05 --> p06["○ 06 · Stripe Checkout y pedidos<br/>Planeada"]
     p06 --> p07["○ 07 · Correo transaccional y PDF<br/>Planeada"]
     p07 --> p08["○ 08 · Staging<br/>Planeada"]
@@ -38,8 +38,7 @@ flowchart TB
     classDef restart fill:#ede9fe,stroke:#7c3aed,color:#4c1d95,stroke-width:2px;
     classDef planned fill:#f3f4f6,stroke:#9ca3af,color:#374151;
 
-    class p00,p01,p02,p03,p04 completed;
-    class p05 restart;
+    class p00,p01,p02,p03,p04,p05 completed;
     class p06,p07,p08,p09,p10 planned;
 
     linkStyle default stroke:#94a3b8,stroke-width:2px;
@@ -124,17 +123,18 @@ La fase 02 aprueba el alcance maestro del MVP, la arquitectura transversal, las 
 - **Estados de vistas y sesión — 14 de noviembre de 2026:** en navegador local se reprodujo login fallido, se cambió a recuperación y se volvió con historial; el login apareció limpio. También se comprobó que recuperación reinicia sus campos al salir; las ediciones sin guardar y errores de validación del perfil se descartan al cambiar de sección; el cierre de sesión tanto desde el menú del encabezado como desde el perfil lleva a `/` y el encabezado queda en estado invitado. Al corregir un formulario dentro de la misma vista, el error persiste hasta que se edita el campo y el correo de login se conserva tras un intento fallido para poder corregirlo.
 - **Límites de esta fase:** esta evidencia no certifica el recorrido integral de Staging/Producción ni la entrega con Resend; esas validaciones corresponden a las fases posteriores. No se implementó carrito/Checkout y no se añadieron pedidos ficticios; la intención local `continuar=checkout` queda como bandera para las fases posteriores.
 
-### 05. Carritos — en verificación
+### 05. Carritos — completada
 
 - **Objetivo:** permitir preparar una compra como invitado o con cuenta y fusionar ambos carritos al iniciar sesión.
 - **Dependencias:** fases 03 y 04.
-- **Contrato del módulo:** revisar y cerrar `docs/contracts/05-CARTS.md` antes de repetir la implementación del carrito persistente y la fusión. El borrador del contrato quedó en el archivo de referencia del prototipo archivado y debe contrastarse con este alcance antes de aceptarlo. Checkout se especifica en la fase 06.
+- **Contrato del módulo:** [Carritos](contracts/05-CARTS.md). El prototipo archivado y su borrador se conservan como referencia histórica; Checkout se especifica en la fase 06.
 - **Resultado:** carrito de invitado persistido en el navegador por 30 días y carrito de cuenta en PostgreSQL. La transferencia suma cantidades de forma idempotente; el backend calcula precios actuales. Los productos inactivos se pueden quitar, pero no comprar. No se reservan ni verifican existencias.
 - **Sincronización con Checkout:** al confirmar un pago, el webhook elimina sólo las líneas que coinciden con la instantánea comprada. Si la persona cambia el carrito mientras Stripe Checkout está abierto, esos cambios se conservan. Esta dependencia se implementa y valida junto al flujo de pago de la fase 06.
 - **Comprobaciones:** reintentar la fusión no duplica cantidades, un error conserva el carrito local, se muestra un único carrito y Checkout rechaza productos inactivos o precios inválidos.
 - **Estado y evidencia local — 16 de noviembre de 2026:** nueva implementación en el árbol de trabajo sin commit, sobre `60b0e14`. En Compose pasaron 50 pruebas de frontend, 81 de backend y 12 específicas del carrito, ambos lint y `prisma validate`. La suite frontend se ejecutó con la URL local esperada; con la URL LAN falló una expectativa fija de localhost. Las cinco migraciones se aplicaron y verificaron en una base temporal vacía, que después se eliminó. El build optimizado pasó sin la URL HTTP de medios de LAN; con ella falló la validación de medios de producción. En navegador LAN se revisó el carrito con una línea en móvil y escritorio: el panel móvil inicia a 120 px, el cierre con puntero no deja foco visible en la canasta y Escape devuelve el foco visible. Pendiente completar la revisión visual de vacío, carga, errores y producto no disponible, así como la verificación integral de transferencia y persistencia con sesión y el cierre del diff; estas pruebas no certifican una fase terminada.
 - **Ampliación de evidencia local — 16 de noviembre de 2026:** en PostgreSQL aislado con las cinco migraciones pasaron la prueba de persistencia, aislamiento entre cuentas, precio actualizado, retiro de producto inactivo y solicitudes HTTP de consulta, escritura, eliminación y dos fusiones concurrentes con el mismo identificador. La base temporal se eliminó. En navegador LAN se observaron vacío y una línea en móvil y escritorio; la cantidad de Calios pasó de 1 a 2, persistió tras recargar y se restauró a 1. La consola revisada no mostró errores ni advertencias. Sigue pendiente comprobar en navegador carga, error y producto no disponible, y el recorrido completo de transferencia tras iniciar sesión o confirmar registro.
 - **Validación adicional — 16 de noviembre de 2026:** en una instancia local aislada con cuentas y productos sintéticos se verificaron las transferencias tras inicio de sesión y confirmación de correo (una línea y un registro de transferencia en cada cuenta), producto inactivo, retirada y conflicto de fusión. Al interrumpir la API se mostró el error y el reintento recuperó la sesión al restaurarla. Se corrigieron el estado vacío mostrado durante errores y la identificación del producto inactivo en conflictos. La prueba de PostgreSQL confirmó que repetir una transferencia aplicada no vuelve a sumar aun si el producto se desactiva. La ejecución final obtuvo 50 pruebas frontend y 94 backend aprobadas; la prueba de base, omitida en la suite normal, pasó por separado sobre PostgreSQL aislado. Pasaron ambos lint y la compilación optimizada sin URL HTTP de LAN. Se eliminaron los servicios, bases y datos sintéticos. La evidencia corresponde al árbol sin commit sobre `60b0e14`; integración y revisión del cambio siguen pendientes.
+- **Cierre propuesto — 16 de noviembre de 2026:** la implementación `98d580c` se integró mediante el [PR #12](https://github.com/sadamlg/sr_del_mictlan/pull/12), merge `d98a4afea97b484863451c615438b4bf148cc400`. El check de frontend pasó y el de backend falló porque la prueba opcional de PostgreSQL importaba el cliente Prisma antes de comprobar si debía ejecutarse. Este PR de cierre corrige la carga; en un contenedor sin cliente generado pasaron 94 pruebas y se omitió correctamente la integración opcional. La integración sí pasó por separado contra PostgreSQL y migraciones en una base temporal. La aceptación de este cierre depende de que los checks del PR de cierre aprueben. Checkout, órdenes y su sincronización siguen para la fase 06.
 - **Estado y evidencia — 14 de noviembre de 2026:** reinicio pendiente. El prototipo local se revisó y no se acepta porque su presentación no conserva con suficiente fidelidad el código y el frontend del legado. El código y el borrador de contrato se conservaron, sin incorporarlos a Fase 04, en el stash local `archive phase 05 cart prototype before phase 04 baseline`. La nueva implementación debe partir de `develop` con la fase 04 integrada por el PR #9 (merge commit `2ceb844`), volver a revisar el legado vista por vista y mantener su presentación completa en el sistema actual antes de solicitar aceptación.
 - **Evidencia histórica del prototipo no aceptado:** en Compose pasaron 93 pruebas backend, 51 frontend, ambos lint, `prisma validate`, `prisma migrate deploy`/`status` (cinco migraciones, esquema al día) y build optimizado; un smoke test verificó cotización, escritura de cuenta, fusión idempotente, límite de 99 y retiro de producto inactivo, eliminando al final la cuenta y producto temporales. Para usar imágenes actuales se empleó `/tmp/p05-no-bind.yaml`, sin cambiar Compose versionado ni desplegar. En navegador se revisó únicamente la vista vacía en escritorio `1422 × 800` y viewport estrecho medido de `307 × 750` CSS px, sin desbordamiento horizontal ni errores de consola; vistas con artículos, errores y presentación fiel quedaron pendientes. Estos resultados describen el prototipo archivado y no constituyen aceptación de Fase 05.
 

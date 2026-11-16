@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { randomUUID } from 'node:crypto';
 import { createApp } from '../app.js';
-import { prisma } from '../database/prisma-client.js';
 import { createCartRepository } from './cart-repository.js';
 import { CartError, createCartService } from './cart-service.js';
 
@@ -12,6 +11,7 @@ test('PostgreSQL keeps account cart items separate and reads the current product
     return;
   }
 
+  const { prisma } = await import('../database/prisma-client.js');
   context.after(async () => prisma.$disconnect());
   const accountId = randomUUID();
   const accountIdTwo = randomUUID();
