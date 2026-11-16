@@ -43,6 +43,7 @@ export default function AgeGate({ children, mediaBaseUrl }) {
   useEffect(() => {
     if (!isVisible) return undefined;
 
+    window.dispatchEvent(new Event('mictlan:age-gate-visible'));
     hasOpenedRef.current = true;
     previousFocusRef.current = document.activeElement;
     const previousOverflow = document.body.style.overflow;

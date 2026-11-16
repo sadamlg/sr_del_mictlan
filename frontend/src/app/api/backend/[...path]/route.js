@@ -3,13 +3,15 @@ const ALLOWED_ROUTES = new Set([
   'auth/password-reset-requests', 'auth/password-resets', 'auth/email-confirmations',
   'auth/password-reset-validations',
   'profile', 'profile/password', 'orders',
+  'cart/account', 'cart/account/items', 'cart/account/merge',
 ]);
-const ALLOWED_METHODS = new Set(['GET', 'POST', 'PATCH']);
+const ALLOWED_METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
 
 async function proxyAccountRequest(request, context) {
   const { path = [] } = await context.params;
   const route = path.map((part) => decodeURIComponent(part)).join('/');
-  if (!ALLOWED_ROUTES.has(route) || !ALLOWED_METHODS.has(request.method)) {
+  const removableCartItem = /^cart\/account\/items\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(route);
+  if ((!ALLOWED_ROUTES.has(route) && !(request.method === 'DELETE' && removableCartItem)) || !ALLOWED_METHODS.has(request.method)) {
     return Response.json({ error: { code: 'ROUTE_NOT_FOUND', message: 'No encontramos esta ruta.' } }, { status: 404 });
   }
 
@@ -53,3 +55,5 @@ async function proxyAccountRequest(request, context) {
 export const GET = proxyAccountRequest;
 export const POST = proxyAccountRequest;
 export const PATCH = proxyAccountRequest;
+export const PUT = proxyAccountRequest;
+export const DELETE = proxyAccountRequest;

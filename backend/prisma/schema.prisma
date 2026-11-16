@@ -56,6 +56,7 @@ model Product {
   active            Boolean  @default(false)
   createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  cartItems         AccountCartItem[]
 
   @@index([active, position, slug])
   @@map("products")
@@ -94,8 +95,34 @@ model Account {
   sessions        AccountSession[]
   tokens          AccountToken[]
   emailJobs       EmailJob[]
+  cartItems       AccountCartItem[]
+  cartMerges      AccountCartMerge[]
 
   @@map("accounts")
+}
+
+model AccountCartItem {
+  accountId String   @map("account_id") @db.Uuid
+  productId String   @map("product_id") @db.Uuid
+  quantity  Int
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([accountId, productId])
+  @@index([accountId, createdAt])
+  @@map("account_cart_items")
+}
+
+model AccountCartMerge {
+  accountId  String   @map("account_id") @db.Uuid
+  transferId String   @map("transfer_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  account    Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@id([accountId, transferId])
+  @@map("account_cart_merges")
 }
 
 model AccountSession {

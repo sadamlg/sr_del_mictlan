@@ -6,6 +6,9 @@ import { createAccountService } from './accounts/account-service.js';
 import { createTurnstileVerifier } from './accounts/turnstile-verifier.js';
 import { createCatalogHandler } from './catalog/catalog-handler.js';
 import { createCatalogRepository } from './catalog/catalog-repository.js';
+import { createCartHandlers } from './carts/cart-handler.js';
+import { createCartRepository } from './carts/cart-repository.js';
+import { createCartService } from './carts/cart-service.js';
 import { createVisitsHandlers } from './visits/visits-handler.js';
 import { createVisitsRepository } from './visits/visits-repository.js';
 
@@ -45,6 +48,7 @@ export function createApp({
     verifyTurnstile: turnstile,
     logger,
   });
+  const cartHandlers = createCartHandlers({ accountService: service, cartService: createCartService(createCartRepository(database)) });
   const accountRateLimit = createAccountRateLimit();
 
   app.use((request, response, next) => {
@@ -60,7 +64,7 @@ export function createApp({
       if (origin === frontendOrigin) {
         response.set('Access-Control-Allow-Origin', origin);
         response.set('Access-Control-Allow-Credentials', 'true');
-        response.set('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
+        response.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
         response.set('Access-Control-Allow-Headers', 'Content-Type');
         response.set('Access-Control-Max-Age', '600');
       }
@@ -124,6 +128,24 @@ export function createApp({
     return next(error);
   });
   app.use('/api/profile', profileRouter);
+
+  const cartRouter = express.Router();
+  cartRouter.use(express.json({ limit: '16kb' }));
+  cartRouter.get('/account', cartHandlers.getAccountCart);
+  cartRouter.put('/account/items', cartHandlers.setAccountItem);
+  cartRouter.delete('/account/items/:slug', cartHandlers.removeAccountItem);
+  cartRouter.post('/account/merge', cartHandlers.mergeGuestCart);
+  cartRouter.use((error, _request, response, next) => {
+    response.set('Cache-Control', 'no-store');
+    if (error?.type === 'entity.too.large') {
+      return response.status(413).json({ error: { code: 'REQUEST_TOO_LARGE', message: 'La solicitud supera el tamaño permitido.' } });
+    }
+    if (error instanceof SyntaxError && 'body' in error) {
+      return response.status(400).json({ error: { code: 'INVALID_REQUEST', message: 'La solicitud no tiene un formato válido.' } });
+    }
+    return next(error);
+  });
+  app.use('/api/cart', cartRouter);
   app.get('/api/orders', accountHandlers.orders);
 
   app.get('/api/visits', visits.get);
