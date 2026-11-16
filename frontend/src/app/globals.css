@@ -51,7 +51,13 @@
   .sign-in-register { margin-top: 1rem; padding-top: 0.75rem; }
   div:has(> main .sign-in-view) > footer { padding-top: 0.75rem; padding-bottom: 0.75rem; }
 
-  main:has(.account-security-view) { padding-top: 120px; padding-bottom: 12px; }
+  main:has(.account-security-view),
+  main:has(.account-profile-view),
+  main:has(.account-orders-view) {
+    justify-content: flex-start;
+    padding-top: 144px;
+    padding-bottom: 12px;
+  }
   .account-security-view > div:first-child { margin-bottom: 1rem; }
   .account-security-view > div:nth-child(2) { padding-top: 0.75rem; padding-bottom: 0.75rem; }
   .account-security-view > div:nth-child(2) > nav { margin-bottom: 0.5rem; }
@@ -63,7 +69,9 @@
 }
 
 @media (max-height: 900px) and (max-width: 639px) {
-  main:has(.account-security-view) { padding-top: 132px; }
+  main:has(.account-security-view),
+  main:has(.account-profile-view),
+  main:has(.account-orders-view) { padding-top: 132px; }
 }
 
 @theme inline {
@@ -161,6 +169,50 @@ body {
   color: var(--foreground);
   font-family: var(--mictlan-font-body);
   text-rendering: optimizeLegibility;
+}
+
+.money-detail {
+  font-family: var(--mictlan-font-ui);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.money-line {
+  font-family: var(--mictlan-font-ui);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--mictlan-gold);
+}
+
+.money-summary-label {
+  font-family: var(--mictlan-font-ui);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  color: var(--mictlan-sage-muted);
+}
+
+.money-summary-value {
+  font-family: var(--mictlan-font-ui);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--mictlan-gold);
+}
+
+@layer base {
+  button:not(:disabled):not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  button[aria-disabled="true"] {
+    cursor: not-allowed;
+  }
 }
 
 .cart-dialog::backdrop {

@@ -33,6 +33,18 @@ function notifyAccountSessionChanged(path, method) {
   }
 }
 
+function requiresAccountSession(path) {
+  return path === 'orders' || path.startsWith('orders/') ||
+    path === 'checkout' || path.startsWith('checkout/') ||
+    path === 'cart/account' || path.startsWith('cart/account/');
+}
+
+function notifyAccountSessionExpired(path, status) {
+  if (status === 401 && requiresAccountSession(path) && typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(ACCOUNT_SESSION_CHANGED_EVENT));
+  }
+}
+
 export async function accountRequest(path, { method = 'GET', body, signal } = {}) {
   const normalizedPath = String(path).replace(/^\/+/, '');
   const controller = new AbortController();
@@ -82,7 +94,10 @@ export async function accountRequest(path, { method = 'GET', body, signal } = {}
     notifyAccountSessionChanged(normalizedPath, method);
     return null;
   }
-  if (!response.ok) throw new AccountApiError({ status: response.status, error: payload?.error });
+  if (!response.ok) {
+    notifyAccountSessionExpired(normalizedPath, response.status);
+    throw new AccountApiError({ status: response.status, error: payload?.error });
+  }
   notifyAccountSessionChanged(normalizedPath, method);
   return payload;
 }

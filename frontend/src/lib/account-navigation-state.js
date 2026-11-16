@@ -15,3 +15,12 @@ export function shouldResetAccountView(event, currentHref) {
     return false;
   }
 }
+
+export function reorderStateAfterNavigation(state, navigationType) {
+  if (!['link', 'history', 'restore'].includes(navigationType)) return state;
+  return { id: '', busy: false, error: '' };
+}
+
+export function shouldResetAccountViewOnRestore(event) {
+  return event?.persisted === true;
+}

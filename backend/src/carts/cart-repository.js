@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 export function createCartRepository(database) {
   return {
     findAccountCartItems(accountId) {
@@ -15,8 +17,8 @@ export function createCartRepository(database) {
     setAccountCartItem({ accountId, productId, quantity }) {
       return database.accountCartItem.upsert({
         where: { accountId_productId: { accountId, productId } },
-        create: { accountId, productId, quantity },
-        update: { quantity },
+      create: { accountId, productId, quantity, version: randomUUID() },
+      update: { quantity, version: randomUUID() },
       });
     },
 
@@ -51,11 +53,12 @@ export function createCartRepository(database) {
         for (const item of items) {
           const product = productsBySlug.get(item.slug);
           await transaction.$executeRaw`
-            INSERT INTO "account_cart_items" ("account_id", "product_id", "quantity", "created_at", "updated_at")
-            VALUES (${accountId}::uuid, ${product.id}::uuid, ${item.quantity}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            INSERT INTO "account_cart_items" ("account_id", "product_id", "quantity", "version", "created_at", "updated_at")
+            VALUES (${accountId}::uuid, ${product.id}::uuid, ${item.quantity}, gen_random_uuid(), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             ON CONFLICT ("account_id", "product_id")
             DO UPDATE SET
               "quantity" = LEAST(99, "account_cart_items"."quantity" + EXCLUDED."quantity"),
+              "version" = gen_random_uuid(),
               "updated_at" = CURRENT_TIMESTAMP
           `;
         }

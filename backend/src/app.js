@@ -9,6 +9,10 @@ import { createCatalogRepository } from './catalog/catalog-repository.js';
 import { createCartHandlers } from './carts/cart-handler.js';
 import { createCartRepository } from './carts/cart-repository.js';
 import { createCartService } from './carts/cart-service.js';
+import { createCheckoutHandlers, checkoutBodyError } from './checkout/checkout-handler.js';
+import { createCheckoutRepository } from './checkout/checkout-repository.js';
+import { createCheckoutService } from './checkout/checkout-service.js';
+import { createStripeClient } from './checkout/stripe-client.js';
 import { createVisitsHandlers } from './visits/visits-handler.js';
 import { createVisitsRepository } from './visits/visits-repository.js';
 
@@ -20,6 +24,9 @@ export function createApp({
   accountsService,
   verifyTurnstile,
   secureCookies,
+  stripe: injectedStripe,
+  stripeWebhookSecret,
+  stripeMediaBaseUrl,
   logger = console,
 } = {}) {
   if (!database) throw new Error('Se requiere una conexión de base de datos.');
@@ -49,6 +56,22 @@ export function createApp({
     logger,
   });
   const cartHandlers = createCartHandlers({ accountService: service, cartService: createCartService(createCartRepository(database)) });
+  const stripe = injectedStripe === undefined
+    ? createStripeClient({ secretKey: environment.STRIPE_SECRET_KEY, mode: environment.STRIPE_MODE || 'test' })
+    : injectedStripe;
+  const checkoutService = createCheckoutService({
+    repository: createCheckoutRepository(database),
+    stripe,
+    frontendOrigin,
+    stripeMediaBaseUrl: stripeMediaBaseUrl ?? environment.STRIPE_MEDIA_BASE_URL,
+  });
+  const checkoutHandlers = createCheckoutHandlers({
+    accountService: service,
+    checkoutService,
+    stripe,
+    webhookSecret: stripeWebhookSecret ?? environment.STRIPE_WEBHOOK_SECRET,
+    logger,
+  });
   const accountRateLimit = createAccountRateLimit();
 
   app.use((request, response, next) => {
@@ -146,7 +169,24 @@ export function createApp({
     return next(error);
   });
   app.use('/api/cart', cartRouter);
-  app.get('/api/orders', accountHandlers.orders);
+
+  const checkoutRouter = express.Router();
+  checkoutRouter.get('/payment-methods', checkoutHandlers.savedPaymentMethods);
+  checkoutRouter.get('/return-status', checkoutHandlers.returnStatus);
+  checkoutRouter.post('/sessions', express.json({ limit: '16kb' }), checkoutHandlers.createSession);
+  checkoutRouter.use(checkoutBodyError);
+  app.use('/api/checkout', checkoutRouter);
+
+  const stripeWebhookRouter = express.Router();
+  stripeWebhookRouter.post('/', express.raw({ type: 'application/json', limit: '256kb' }), checkoutHandlers.webhook);
+  stripeWebhookRouter.use(checkoutBodyError);
+  app.use('/api/webhooks/stripe', stripeWebhookRouter);
+  const ordersRouter = express.Router();
+  ordersRouter.use(express.json({ limit: '4kb' }));
+  ordersRouter.get('/', checkoutHandlers.orders);
+  ordersRouter.post('/:orderId/reorder', checkoutHandlers.reorder);
+  ordersRouter.use(checkoutBodyError);
+  app.use('/api/orders', ordersRouter);
 
   app.get('/api/visits', visits.get);
   app.post('/api/visits', express.json({ limit: '256b' }), visits.post);

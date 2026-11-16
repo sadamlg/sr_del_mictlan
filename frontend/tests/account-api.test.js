@@ -51,6 +51,39 @@ test('structured API errors preserve field validation and status for form views'
   });
 });
 
+test('expired sessions on protected cart, checkout, and order requests refresh the shared session', async (context) => {
+  const originalFetch = globalThis.fetch;
+  const originalWindow = globalThis.window;
+  const events = [];
+  globalThis.window = { dispatchEvent: (event) => events.push(event.type) };
+  globalThis.fetch = async () => ({
+    status: 401, ok: false,
+    json: async () => ({ error: { code: 'AUTHENTICATION_REQUIRED', message: 'Inicia sesión para continuar.' } }),
+  });
+  context.after(() => { globalThis.fetch = originalFetch; globalThis.window = originalWindow; });
+
+  const protectedPaths = ['cart/account', 'checkout/sessions', 'orders', 'orders/22222222-2222-4222-8222-222222222222/reorder'];
+  for (const [index, path] of protectedPaths.entries()) {
+    await assert.rejects(accountRequest(path, { method: 'POST', body: {} }), (error) => error.status === 401);
+    assert.deepEqual(events, Array(index + 1).fill(ACCOUNT_SESSION_CHANGED_EVENT));
+  }
+});
+
+test('an invalid login response does not trigger a session refresh loop', async (context) => {
+  const originalFetch = globalThis.fetch;
+  const originalWindow = globalThis.window;
+  const events = [];
+  globalThis.window = { dispatchEvent: (event) => events.push(event.type) };
+  globalThis.fetch = async () => ({
+    status: 401, ok: false,
+    json: async () => ({ error: { code: 'INVALID_CREDENTIALS', message: 'Revisa tus datos.' } }),
+  });
+  context.after(() => { globalThis.fetch = originalFetch; globalThis.window = originalWindow; });
+
+  await assert.rejects(accountRequest('auth/login', { method: 'POST', body: {} }), (error) => error.status === 401);
+  assert.deepEqual(events, []);
+});
+
 test('204 responses skip JSON parsing and session mutations notify the shared provider', async (context) => {
   const originalFetch = globalThis.fetch;
   const originalWindow = globalThis.window;

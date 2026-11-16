@@ -11,7 +11,10 @@ const publicAccount = {
 
 async function withApi(service, callback) {
   const app = createApp({
-    database: { $queryRaw: async () => [{ result: 1 }] },
+    database: {
+      $queryRaw: async () => [{ result: 1 }],
+      order: { async findMany() { return []; } },
+    },
     accountsService: service,
     verifyTurnstile: async () => true,
     environment: { FRONTEND_ORIGIN: 'http://shop.test', NODE_ENV: 'test' },

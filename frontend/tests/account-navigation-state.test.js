@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { shouldResetAccountView } from '../src/lib/account-navigation-state.js';
+import {
+  reorderStateAfterNavigation,
+  shouldResetAccountView,
+  shouldResetAccountViewOnRestore,
+} from '../src/lib/account-navigation-state.js';
 
 function clickEvent(href, options = {}) {
   const anchor = {
@@ -33,4 +37,17 @@ test('keeps account view state for same route, external links, and new-tab actio
   assert.equal(shouldResetAccountView(clickEvent('/cuenta/registro', { target: '_blank' }), current), false);
   assert.equal(shouldResetAccountView(clickEvent('/cuenta/registro', { ctrlKey: true }), current), false);
   assert.equal(shouldResetAccountView(clickEvent('/cuenta/registro', { download: true }), current), false);
+});
+
+test('clears an in-progress reorder when returning to the orders view', () => {
+  const busy = { id: 'order-123', busy: true, error: '' };
+  assert.deepEqual(reorderStateAfterNavigation(busy, 'history'), { id: '', busy: false, error: '' });
+  assert.deepEqual(reorderStateAfterNavigation(busy, 'link'), { id: '', busy: false, error: '' });
+  assert.equal(reorderStateAfterNavigation(busy, 'other'), busy);
+});
+
+test('resets the account view when the browser restores it from the back-forward cache', () => {
+  assert.equal(shouldResetAccountViewOnRestore({ persisted: true }), true);
+  assert.equal(shouldResetAccountViewOnRestore({ persisted: false }), false);
+  assert.equal(shouldResetAccountViewOnRestore(undefined), false);
 });
