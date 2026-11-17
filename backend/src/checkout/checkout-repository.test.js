@@ -40,6 +40,9 @@ function createDatabase({ order = orderState() } = {}) {
     account: {
       async updateMany(query) { calls.push(['account.updateMany', query]); return { count: 1 }; },
     },
+    emailJob: {
+      async create(query) { calls.push(['emailJob.create', query]); return query.data; },
+    },
     order: {
       async create(query) { calls.push(['order.create', query]); return { id: 'order-1' }; },
       async findUnique(query) { calls.push(['order.findUnique', query]); return state.order; },
@@ -147,6 +150,9 @@ test('paid webhook verifies amount, currency and session, then atomically update
   assert.equal(state.order.stripePaymentIntentId, 'pi_test_1');
   assert.ok(calls.some(([name, query]) => name === 'cart.deleteMany' && query.where.version === snapshot.cartItemVersion));
   assert.ok(calls.some(([name, query]) => name === 'account.updateMany' && query.data.stripeCustomerId === 'cus_test_1'));
+  assert.deepEqual(calls.find(([name]) => name === 'emailJob.create'), ['emailJob.create', { data: {
+    accountId: 'account-1', orderId: 'order-1', type: 'PURCHASE_CONFIRMATION',
+  } }]);
 });
 
 test('paid webhook rejects amount, currency or session mismatches without changing the order', async () => {
@@ -190,6 +196,7 @@ test('duplicate paid webhooks are idempotent and do not clear the cart twice', a
   assert.equal((await repository.confirmPaidOrder(input)).updated, true);
   assert.equal((await repository.confirmPaidOrder(input)).updated, false);
   assert.equal(calls.filter(([name]) => name === 'cart.deleteMany').length, 1);
+  assert.equal(calls.filter(([name]) => name === 'emailJob.create').length, 1);
 });
 
 test('order history query is limited to paid orders owned by the account', async () => {

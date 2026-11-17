@@ -10,5 +10,15 @@ export function createSmtpTransport(environment = process.env) {
   if (environment.SMTP_USER && environment.SMTP_PASSWORD) {
     options.auth = { user: environment.SMTP_USER, pass: environment.SMTP_PASSWORD };
   }
-  return nodemailer.createTransport(options);
+  const transporter = nodemailer.createTransport(options);
+  return {
+    sendMail(message) {
+      const smtpMessage = { ...message };
+      delete smtpMessage.idempotencyKey;
+      return transporter.sendMail(smtpMessage);
+    },
+    close() {
+      transporter.close();
+    },
+  };
 }

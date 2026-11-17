@@ -123,6 +123,10 @@ export function createCheckoutRepository(database) {
           });
         }
 
+        await transaction.emailJob.create({
+          data: { accountId: order.accountId, orderId: order.id, type: 'PURCHASE_CONFIRMATION' },
+        });
+
         return { updated: true };
       });
     },

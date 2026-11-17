@@ -71,10 +71,12 @@ services:
     environment:
       NODE_ENV: development
       DATABASE_URL: ${DATABASE_URL:?Define DATABASE_URL in .env}
+      EMAIL_TRANSPORT: smtp
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:3000}
       MAIL_FROM: ${MAIL_FROM:-Señor del Mictlán <no-reply@local.test>}
+      RESEND_FROM: ${RESEND_FROM:-Señor del Mictlán · Compras <compras@local.test>}
     depends_on:
       postgres:
         condition: service_healthy
