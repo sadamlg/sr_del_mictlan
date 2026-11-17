@@ -2,7 +2,7 @@
 
 **Estado:** cerrado para implementación — 15 de noviembre de 2026.
 **Base de implementación:** `60b0e14dd0d5510e5042258cbbcf82c129dc38b6` (`develop`, con el cierre de Fase 04 y la corrección LAN integrados).
-**Referencia de interfaz:** legado `c4883870b2c5c1e188a34b0d870410c8d2b01cf5`.
+**Referencia de interfaz:** los criterios visuales y de comportamiento descritos en este contrato.
 
 ## Objetivo
 
@@ -36,7 +36,7 @@ La interfaz reutiliza los tokens de [DESIGN.md](../DESIGN.md): carbón para el p
 | Pie con productos | Permanece fijo y muestra subtotal recalculado en MXN. Para invitado ofrece “Inicia sesión para pagar” hacia `/cuenta/iniciar-sesion`, sin `continuar=checkout`; para una cuenta ofrece “Seguir comprando”, que cierra el panel y lleva a la colección. No muestra precio histórico ni inicia un cobro. |
 | Carga y error | Durante la restauración de sesión se muestra el estado de consulta y se deshabilitan las acciones. Los errores se anuncian con `role="alert"`; una falla al cargar ofrece reintento. Un conflicto al fusionar preserva el carrito local y permite quitar la línea inválida y volver a intentar. |
 
-El panel debe conservar su jerarquía, proporciones, tipografía, espaciado, controles y comportamiento de foco del legado. Se compararán escritorio y móvil con carritos vacío y con productos, incluida la presentación de errores; la verificación visual completa es condición de cierre.
+El panel debe conservar su jerarquía, proporciones, tipografía, espaciado, controles y comportamiento de foco. Se revisarán escritorio y móvil con carritos vacío y con productos, incluida la presentación de errores; la verificación visual completa es condición de cierre.
 
 ## Persistencia y API
 
@@ -64,12 +64,12 @@ El panel debe conservar su jerarquía, proporciones, tipografía, espaciado, con
 | C05-07 | Ninguna línea supera 99; productos inactivos o precios inválidos no se agregan ni aumentan, y se pueden quitar. |
 | C05-08 | Escritorio y móvil conservan la distribución y los controles descritos, el carrito y el menú móvil no se abren a la vez, Escape cierra, el foco vuelve al encabezado y el panel no produce desbordamiento horizontal. |
 | C05-09 | No se agrega Checkout, Stripe, webhooks, órdenes, correo de compra ni cambios de contenido o rutas de la fase 04. |
-| C05-10 | La revisión visual final cubre escritorio y móvil con carrito vacío y con productos, más carga, error y producto no disponible, comparados con el legado. |
+| C05-10 | La revisión visual final cubre escritorio y móvil con carrito vacío y con productos, más carga, error y producto no disponible, según los criterios de presentación de este contrato. |
 
-## Estado de revisión del legado
+## Evidencia histórica de revisión visual
 
 - Revisados en navegador el encabezado, el escaparate con tres productos y el carrito vacío en escritorio y móvil.
 - En escritorio y móvil se añadió Calios, se observaron la línea, imagen, nombre, descriptor, precio, subtotal y controles con cantidades 1 y 2; al final se quitó la línea temporal y el carrito quedó vacío.
 - Revisados en fuente los estados de carga/error, el reintento, la línea no disponible, su eliminación y el aviso del carrito de cuenta. La verificación final de esos estados se hará en el proyecto cuando la implementación cuente con datos de prueba adecuados.
-- La interfaz de referencia se abrió tras confirmar una vez el aviso local de mayoría de edad.
+- La interfaz revisada se abrió tras confirmar una vez el aviso local de mayoría de edad.
 - El 16 de noviembre de 2026 se verificaron en una instancia aislada con datos sintéticos las transferencias tras iniciar sesión y confirmar correo, el producto desactivado, su retirada y la recuperación tras interrumpir la API. Se corrigieron la presentación engañosa de carrito vacío durante un error y la identificación de productos no disponibles en conflictos de fusión.

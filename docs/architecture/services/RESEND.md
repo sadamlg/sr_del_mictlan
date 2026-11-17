@@ -2,25 +2,25 @@
 
 ## Estado
 
-La integración de código está preparada. El responsable confirma que los registros DNS de Resend del sistema legado ya se cargaron en Neubox/cPanel. En esta fase no se comprobó en el panel de Resend que sigan vigentes ni que el dominio aparezca verificado; tampoco se copiaron esos valores al repositorio. No volver a crear registros antes de comparar la zona actual con **Domains → Records**.
+La integración de código está preparada. El responsable confirma que los registros DNS de Resend ya se cargaron en Neubox/cPanel. El panel de Resend mostró `mail.srmictlan.com` como verificado el 16 de noviembre de 2026; los valores DNS no se copiaron al repositorio. No volver a crear registros antes de comparar la zona actual con **Domains → Records**.
 
-La documentación del proyecto legado fija `srmictlan.com` y eligió `mail.srmictlan.com` para envío. Esta guía retoma esa decisión. Antes de aplicar cambios, confirma que el dominio sigue bajo control del proyecto y que la zona DNS autoritativa sigue en Neubox/cPanel; el legado no conserva los valores DNS generados por la cuenta de Resend.
+El dominio del proyecto es `srmictlan.com` y el subdominio elegido para envío es `mail.srmictlan.com`. Antes de aplicar cambios, confirma que el dominio sigue bajo control del proyecto y que la zona DNS autoritativa sigue en Neubox/cPanel; los valores DNS generados por la cuenta de Resend no se registran en esta guía.
 
 La tienda no necesita estar publicada para verificar este subdominio. Hace falta controlar el dominio y poder editar su zona DNS autoritativa; por eso la configuración puede hacerse antes de que el hostname web apunte a la tienda.
 
-La fase 07 usa Resend por HTTPS desde el servicio Worker. La API no necesita ni recibe `RESEND_API_KEY`. En Compose se selecciona SMTP hacia Mailpit; `RESEND_API_KEY` no se configura en Compose.
+El Worker usa Resend por HTTPS en los entornos que lo configuren. La API no necesita ni recibe `RESEND_API_KEY`. Compose usa SMTP hacia Mailpit.
 
 ## Preparación de cuenta y dominio
 
-1. Seleccionar la cuenta y el equipo de Resend existentes del sistema legado, si siguen siendo los del proyecto. No crear otra cuenta ni volver a registrar el dominio hasta comprobarlo. Activar MFA y limitar el acceso administrativo.
+1. Seleccionar la cuenta y el equipo de Resend existentes del proyecto. No crear otra cuenta ni volver a registrar el dominio hasta comprobarlo. Activar MFA y limitar el acceso administrativo.
 2. Antes de habilitar uso, revisar en el panel el plan vigente, volumen permitido, límites diarios, cargos por excedentes, método de pago y alertas. Confirmar un presupuesto aprobado. No habilitar sobreconsumo ni añadir un medio de pago sin esa aprobación. Los precios y límites pueden cambiar; consultar la [página vigente de precios](https://resend.com/pricing).
-3. Usar el subdominio ya elegido en el legado, `mail.srmictlan.com`, si el dominio continúa vigente. Resend recomienda enviar desde un subdominio; si cambió el dominio o la decisión, actualizar esta guía antes de registrar nada. Consultar la [guía oficial para añadir un dominio](https://resend.com/docs/add-a-domain).
+3. Usar el subdominio elegido, `mail.srmictlan.com`, si el dominio continúa vigente. Resend recomienda enviar desde un subdominio; si cambió el dominio o la decisión, actualizar esta guía antes de registrar nada. Consultar la [guía oficial para añadir un dominio](https://resend.com/docs/add-a-domain).
 4. En Resend, abrir **Domains → mail.srmictlan.com** y revisar su estado y pestaña **Records**. Copiar los valores exactos que muestre el panel: tipo, nombre/host, valor, TTL y prioridad cuando aplique. Si el dominio no aparece en la cuenta o Resend no lo reconoce, confirmar la cuenta/equipo correcto antes de volver a añadirlo. Esta guía no inventa valores DNS.
 5. Comparar esos registros con los que ya están en Neubox/cPanel. Si coinciden y Resend lo marca verificado, no cambiar DNS. Si falta o difiere alguno, seguir la ruta concreta de Neubox/cPanel más abajo y editar sólo ese registro. Si los nameservers actuales apuntan a otro proveedor, cPanel no es autoritativo y los registros se deben revisar en el proveedor indicado por esos nameservers.
 6. No crear registros desde **Child Nameservers**, no registrar glue records y no cambiar ni delegar los nameservers de la zona para verificar TXT, CNAME o MX. La verificación requiere registros en la zona DNS autoritativa actual; no una migración de DNS.
 7. Esperar a que el panel de Resend marque el dominio como verificado. La propagación puede tardar; contrastar en el panel los registros publicados con los valores exactos generados y corregir sólo el registro correspondiente. No se considera verificado por haber guardado cambios en el proveedor DNS.
 8. En Resend, crear una clave API con el menor alcance de envío disponible. La clave se genera en Resend y se guarda como secreto del Worker de Railway o del Worker local optativo; no se introduce en cPanel ni como registro DNS. Crear claves distintas por entorno, nunca incluir su valor en `.env.example`, Git, logs, tickets o mensajes, y rotarla/revocarla si se expone.
-9. Configurar la identidad de remitente autorizada en ese dominio. El remitente de cuenta va en `MAIL_FROM`; el remitente de compras va en `RESEND_FROM`. El legado propone `Señor del Mictlán <cuentas@mail.srmictlan.com>` y `Señor del Mictlán <pedidos@mail.srmictlan.com>`, respectivamente; usarlos sólo después de que Resend acepte el dominio. La verificación de envío no crea un buzón para recibir respuestas. No asumir que cualquier dirección queda autorizada automáticamente.
+9. Configurar la identidad de remitente autorizada en ese dominio. El remitente de cuenta va en `MAIL_FROM`; el remitente de compras va en `RESEND_FROM`. Los remitentes propuestos son `Señor del Mictlán <cuentas@mail.srmictlan.com>` y `Señor del Mictlán <pedidos@mail.srmictlan.com>`, respectivamente; usarlos sólo después de que Resend acepte el dominio. La verificación de envío no crea un buzón para recibir respuestas. No asumir que cualquier dirección queda autorizada automáticamente.
 
 ### Ruta concreta: Neubox y cPanel
 
@@ -45,8 +45,8 @@ Configurar las variables en el servicio **Worker** de cada entorno Railway, no e
 
 | Variable | Uso |
 |---|---|
-| `EMAIL_TRANSPORT` | `resend` únicamente en el Worker de Railway habilitado para ese entorno. |
-| `RESEND_API_KEY` | Clave secreta de envío de ese entorno; sólo el Worker. |
+| `EMAIL_TRANSPORT` | `resend` en el Worker de Railway habilitado para ese entorno. |
+| `RESEND_API_KEY` | Clave secreta separada por entorno; sólo se entrega al Worker. |
 | `MAIL_FROM` | Remitente de confirmación, recuperación y otros mensajes de cuenta. |
 | `RESEND_FROM` | Remitente de confirmación de compra con PDF. |
 | `FRONTEND_ORIGIN` | Origen público del mismo entorno para enlaces de cuenta. |
@@ -55,7 +55,7 @@ Staging y Producción deben usar variables, claves, remitentes, dominios (o subd
 
 El Worker debe recibir `DATABASE_URL`, además de las variables anteriores. No colocar `RESEND_API_KEY` en el servicio API, configuración compartida de todo el proyecto, build args, imagen Docker o variables públicas. La integración hace `POST https://api.resend.com/emails` por HTTPS con `RESEND_API_KEY` en `Authorization`; no usa SMTP ni `SMTP_PASSWORD` para Resend.
 
-En Compose local, mantener `EMAIL_TRANSPORT=smtp`, `SMTP_HOST=mailpit`, `SMTP_PORT=1025`, `MAIL_FROM` y `RESEND_FROM` locales. No definir una clave Resend para probar localmente. Mailpit es el destino local capturable; no es una prueba de aceptación de cuenta ni de DNS de Resend.
+En Compose local se usa `EMAIL_TRANSPORT=smtp` hacia Mailpit. La verificación de Resend con una bandeja real se realizará en Staging; no hace falta configurar una clave en el entorno local.
 
 ## Cola, reintentos y límites de idempotencia
 
