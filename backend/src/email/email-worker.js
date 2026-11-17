@@ -1,5 +1,7 @@
 import { createOpaqueToken, hashToken } from '../accounts/crypto.js';
 import { createAccountEmail } from './account-email.js';
+import { createPurchaseEmail } from './purchase-email.js';
+import { createPurchaseDocuments } from './purchase-documents.js';
 
 const TOKEN_CONFIG = {
   ACCOUNT_CONFIRMATION: { purpose: 'ACCOUNT_CONFIRMATION', lifetimeMs: 24 * 60 * 60 * 1000 },
@@ -12,10 +14,11 @@ function safeCode(value, fallback) {
   return fallback;
 }
 
-export function createAccountEmailWorker({
+export function createEmailWorker({
   repository,
   transport,
-  from,
+  accountFrom,
+  purchaseFrom,
   appBaseUrl,
   now = () => new Date(),
   tokenFactory = createOpaqueToken,
@@ -28,9 +31,27 @@ export function createAccountEmailWorker({
       if (!job) return false;
 
       try {
+        const emailJob = await repository.getEmailJob(job.id);
+        if (job.type === 'PURCHASE_CONFIRMATION') {
+          const order = emailJob?.order;
+          if (order?.status !== 'PAID') {
+            throw Object.assign(new Error('Paid order snapshot is unavailable.'), { code: 'PURCHASE_ORDER_UNAVAILABLE' });
+          }
+          const message = createPurchaseEmail({ order, appBaseUrl });
+          await transport.sendMail({
+            from: purchaseFrom,
+            to: order.recipientEmail,
+            ...message,
+            attachments: createPurchaseDocuments(order),
+            idempotencyKey: `purchase/${order.id}`,
+          });
+          await repository.markEmailJobSent(job.id, now());
+          logger.info?.('[email-worker] purchase email sent', { jobId: job.id, type: job.type, attempts: job.attempts });
+          return true;
+        }
+
         const config = TOKEN_CONFIG[job.type];
         if (!config) throw Object.assign(new Error('Unknown email job type.'), { code: 'EMAIL_JOB_TYPE_UNKNOWN' });
-        const emailJob = await repository.getEmailJob(job.id);
         if (!emailJob?.account) {
           await repository.markEmailJobSent(job.id, now());
           return true;
@@ -56,21 +77,20 @@ export function createAccountEmailWorker({
           await repository.markEmailJobSent(job.id, now());
           return true;
         }
-        const type = job.type;
         const message = createAccountEmail({
-          type,
+          type: job.type,
           account,
           token,
-          continueToCheckout: type === 'ACCOUNT_CONFIRMATION' && emailJob.continueToCheckout === true,
+          continueToCheckout: job.type === 'ACCOUNT_CONFIRMATION' && emailJob.continueToCheckout === true,
           appBaseUrl,
         });
-        await transport.sendMail({ from, to: recipient, ...message });
+        await transport.sendMail({ from: accountFrom, to: recipient, ...message });
         await repository.markEmailJobSent(job.id, now());
-        logger.info?.('[email-worker] account email sent', { jobId: job.id, type, attempts: job.attempts });
+        logger.info?.('[email-worker] account email sent', { jobId: job.id, type: job.type, attempts: job.attempts });
         return true;
       } catch (error) {
         const errorCode = safeCode(error?.code, safeCode(error?.name, 'EMAIL_DELIVERY_FAILED'));
-        logger.error?.('[email-worker] account email delivery failed', {
+        logger.error?.('[email-worker] email delivery failed', {
           jobId: job.id, type: job.type, attempts: job.attempts, code: errorCode,
         });
         try {

@@ -13,7 +13,7 @@ Las reglas duraderas del repositorio están en [AGENTS.md](../AGENTS.md). El alc
 | 04 · Cuentas y perfil | Registro, confirmación, sesión, recuperación y perfil | Completada |
 | 05 · Carritos | Carrito de invitado, cuenta y transferencia | Completada |
 | 06 · Stripe Checkout y pedidos | Compra, webhook firmado, pedidos e idempotencia | Completada |
-| 07 · Correo transaccional y PDF | Resend, mensajes de compra y detalle de pedido | Planeada |
+| 07 · Correo transaccional y PDF | Resend, mensajes de compra y detalle de pedido | En curso: código local completado; configuración externa pendiente |
 | 08 · Staging | Railway, integraciones aisladas y aceptación de recorridos | Planeada |
 | 09 · Validación previa a Producción | CI, recorridos de navegador, accesibilidad, rendimiento, seguridad y operación | Planeada |
 | 10 · Producción | Dominio público, medios, costos, operación y salida autorizada | Planeada |
@@ -28,7 +28,7 @@ flowchart TB
     p03 --> p04["✅ 04 · Cuentas y perfil<br/>Completada"]
     p04 --> p05["✅ 05 · Carritos<br/>Completada"]
     p05 --> p06["✅ 06 · Stripe Checkout y pedidos<br/>Completada"]
-    p06 --> p07["○ 07 · Correo transaccional y PDF<br/>Planeada"]
+    p06 --> p07["🟠 07 · Correo transaccional y PDF<br/>Código local listo; Resend/DNS pendientes"]
     p07 --> p08["○ 08 · Staging<br/>Planeada"]
     p08 --> p09["○ 09 · Validación previa a Producción<br/>Planeada"]
     p09 --> p10["○ 10 · Producción<br/>Planeada"]
@@ -39,7 +39,8 @@ flowchart TB
     classDef planned fill:#f3f4f6,stroke:#9ca3af,color:#374151;
 
     class p00,p01,p02,p03,p04,p05,p06 completed;
-    class p07,p08,p09,p10 planned;
+    class p07 active;
+    class p08,p09,p10 planned;
 
     linkStyle default stroke:#94a3b8,stroke-width:2px;
 ```
@@ -167,18 +168,20 @@ La fase 02 aprueba el alcance maestro del MVP, la arquitectura transversal, las 
 - **Configuración externa y límites:** Stripe está configurado sólo en modo de prueba local; `STRIPE_SECRET_KEY` y el secreto emitido por Stripe CLI permanecen en el `.env` ignorado por Git. El endpoint público HTTPS y las claves/secreto independientes de Stripe para Staging no están configurados; se preparan y verifican en la Fase 08. No se habilitó modo live ni hubo cargos reales. Correo de compra y PDF pertenecen a la Fase 07.
 - **Estado y evidencia — C06-12:** completada e integrada en `develop`. El código, las comprobaciones locales, los checks del PR y el recorrido de prueba quedan asociados a los commits indicados; el estado de proveedores externos se registra por separado arriba y en el contrato. La fase 07 queda habilitada para iniciar.
 
-### 07. Correo transaccional y PDF — planeada
+### 07. Correo transaccional y PDF — en curso; implementación local completada
 
 - **Objetivo:** entregar mensajes de cuenta y una confirmación de compra con un único PDF de detalle del pedido.
-- **Dependencias:** fase 04 para mensajes de cuenta y fase 06 para pedidos pagados. Antes de habilitar envíos desde un dominio propio, el responsable del proyecto crea la cuenta de Resend y prepara el dominio de envío en el DNS autoritativo elegido.
-- **Contrato del módulo:** la fase 04 define el correo de cuenta en `docs/contracts/04-ACCOUNTS-PROFILE.md`; la fase 06 define el correo de compra/PDF en `docs/contracts/06-CHECKOUT-ORDERS.md`. Revisar esos criterios antes de implementar la entrega en esta fase. La integración y los límites del proveedor se documentan en una guía preparada en la fase 07.
-- **07.1 · Verificar el flujo local:** probar registro, recuperación y compra desde Compose; Mailpit debe recibir tanto correo de cuenta como de compra y el correo de compra debe incluir el PDF. Confirmar reintentos, tratamiento de fallos e idempotencia sin depender de un proveedor remoto.
-- **07.2 · Preparar dominio y remitentes:** añadir en el Zone Editor los registros exactos que muestre Resend para el dominio remitente elegido, comprobar la verificación y preservar los MX y registros de otros servicios. No usar la sección de child nameservers para crear TXT/CNAME/MX ni cambiar toda la delegación DNS para verificar un registro. La guía del proveedor se preparará en esta fase.
-- **07.3 · Revisar capacidad de envío:** comprobar en la cuenta el plan, límites y precios vigentes antes de configurar envíos. Confirmación, recuperación y compras comparten esos límites. No habilitar sobreconsumos ni agregar un método de pago sin presupuesto aprobado. La guía de Resend se preparará en esta fase.
+- **Dependencias:** fase 04 para mensajes de cuenta y fase 06 para pedidos pagados. La documentación heredada registra `srmictlan.com` y `mail.srmictlan.com` en Neubox/cPanel; antes de operar, el responsable confirma que el dominio sigue vigente y quién administra ahora su DNS autoritativo.
+- **Contrato del módulo:** los contratos de cuenta y checkout se actualizaron con el comportamiento de correo de esta fase en `docs/contracts/04-ACCOUNTS-PROFILE.md` y `docs/contracts/06-CHECKOUT-ORDERS.md`. La guía de cuenta, DNS, Railway y límites de Resend está en [`docs/architecture/services/RESEND.md`](architecture/services/RESEND.md).
+- **07.1 · Flujo local — completado:** PostgreSQL conserva un trabajo de compra por orden pagada; Compose dirige SMTP a Mailpit. Se probaron registro/confirmación, recuperación/restablecimiento, checkout con webhook firmado, correo de compra con un PDF, reintento tras fallo y logs sin datos personales. La evidencia reproducible se registra abajo.
+- **07.2 · Dominio y remitentes — pendiente de verificación:** el responsable confirma que los registros DNS de Resend ya se cargaron en Neubox/cPanel para el sistema legado. Falta comprobar que `mail.srmictlan.com` sigue en la cuenta/equipo correcto y que Resend lo marca verificado. Si la zona coincide con **Domains → Records**, no hay que repetir la configuración; si algo falta, corregir sólo ese registro en **cPanel → Zone Editor → Manage**. No se tocaron DNS ni nameservers durante esta fase.
+- **07.3 · Capacidad y costo — pendiente del responsable:** revisar plan, cuotas, límites y precios vigentes en la cuenta antes de configurar envíos. No se habilitó sobreconsumo, método de pago ni envío externo.
 
-- **Resultado:** PostgreSQL persistirá un solo trabajo de confirmación por pedido pagado y el worker lo procesará. En Compose, el worker usará SMTP hacia Mailpit; en Railway, usará la API HTTPS de Resend. La clave pertenecerá al Worker y se separará por entorno. `MAIL_FROM` se usará para mensajes de cuenta y `RESEND_FROM` para compras. No se añadirá otro broker a la cola persistida. El worker registrará tipo de trabajo, intento y error sin volcar destinatarios, domicilios ni contenido del mensaje.
-- **Comprobaciones:** dominio verificado, remitentes autorizados, enlaces con el origen del entorno correcto, mensaje visible en Resend y en la bandeja destino, PDF con el detalle correcto y trabajo recuperable ante fallos. No guardar claves en el repo ni configurarlas como `SMTP_PASSWORD`.
-- **Estado y evidencia:** planeada; registrar pruebas, entorno, fecha y commit al completar la fase.
+- **Resultado:** implementado localmente. PostgreSQL conserva un trabajo `PURCHASE_CONFIRMATION` único por pedido pagado; el Worker envía el mensaje con un PDF. Compose usa SMTP hacia Mailpit. Railway podrá usar HTTPS de Resend desde el Worker, con `RESEND_API_KEY` sólo allí y variables por entorno. `MAIL_FROM` se usa para mensajes de cuenta y `RESEND_FROM` para compras. No se añadió broker. Los logs omiten destinatario, domicilio, token y contenido.
+- **Comprobaciones:** pasó el flujo local integrado; quedan pendientes la verificación DNS/remitentes, envío de prueba desde Resend en Staging y recorrido de Staging. La clave idempotente de Resend reduce duplicados durante su ventana documentada de 24 horas; no se declara entrega exactamente una vez ante cualquier caída o reintento posterior.
+- **Estado y evidencia local — 16 de noviembre de 2026:** código en la rama `feat/phase-07-transactional-email-pdf`, árbol de trabajo sin commit de Fase 07, basado en `b22184b34bb035037280940be526966b7f583c1c`. Compose aislado `sr-del-mictlan-phase07`, con puertos loopback configurados `13300` (frontend, no iniciado), `13400` (API), `13543` (PostgreSQL) y `13825` (Mailpit), volumen separado y transporte SMTP local. Para las pruebas se iniciaron PostgreSQL, Mailpit, backend y Worker; el frontend no era necesario para validar la entrega. `docker compose -p sr-del-mictlan-phase07 exec -e CART_DATABASE_TEST=1 -e CHECKOUT_DATABASE_TEST=1 -e EMAIL_DELIVERY_DATABASE_TEST=1 backend npm run test:db`: 3 pruebas, 3 aprobadas; cubrieron carrito, Checkout/webhook firmado, cuenta, recuperación, compra/PDF único y reintento recuperable. `POSTGRES_PORT=13543 MAILPIT_PORT=13825 BACKEND_PORT=13400 FRONTEND_PORT=13300 docker compose -p sr-del-mictlan-phase07 up -d --wait worker`: servicios dependientes y Worker saludables; log de Worker confirmó conexión con PostgreSQL. El Compose previo no se usó para estas pruebas porque su historial de migraciones aplicado contiene `20261114180000_carts`, ausente del historial versionado actual; su Worker permanece detenido y esa base no se migró. No se inició sesión de Resend, no se cambió DNS, no se transmitieron claves y no se hizo envío externo.
+- **Validación de backend — 16 de noviembre de 2026:** `docker compose -p sr-del-mictlan-phase07 exec -T backend npm test`: 141 pruebas, 138 aprobadas, 0 fallidas y 3 integraciones de base omitidas (se ejecutaron por separado con `test:db`); `npm run lint` aprobado; `npm run prisma:validate` válido; `npm run prisma:migrate:status` informó 8 migraciones al día en la base aislada. En la integración se verificó también la recuperación de un lease `PROCESSING` vencido.
+- **Pendientes para cerrar la fase completa:** el responsable configura y verifica cuenta/dominio/remitentes, revisa costo y cuotas, y autoriza una prueba aislada de Staging; después se registra el commit que incorpore estos cambios y la evidencia externa. Las fases 08–10 siguen sin desplegar.
 
 ### 08. Staging — planeada
 

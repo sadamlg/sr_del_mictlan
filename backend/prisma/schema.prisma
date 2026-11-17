@@ -21,6 +21,7 @@ enum EmailJobType {
   ACCOUNT_CONFIRMATION
   PASSWORD_RESET
   EMAIL_CHANGE_CONFIRMATION
+  PURCHASE_CONFIRMATION
 }
 
 enum EmailJobStatus {
@@ -152,6 +153,7 @@ model Order {
   paidAt                  DateTime?   @map("paid_at") @db.Timestamptz(6)
   account                 Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
   items                   OrderItem[]
+  emailJob                EmailJob?
 
   @@index([accountId, status, paidAt])
   @@map("orders")
@@ -204,6 +206,7 @@ model AccountToken {
 model EmailJob {
   id                 String         @id @default(uuid()) @db.Uuid
   accountId          String         @map("account_id") @db.Uuid
+  orderId            String?        @unique @map("order_id") @db.Uuid
   type               EmailJobType
   status             EmailJobStatus @default(PENDING)
   attempts           Int            @default(0)
@@ -214,6 +217,7 @@ model EmailJob {
   continueToCheckout Boolean        @default(false) @map("continue_to_checkout")
   createdAt          DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   account            Account        @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  order              Order?         @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([status, nextAttemptAt, createdAt])
   @@map("email_jobs")
