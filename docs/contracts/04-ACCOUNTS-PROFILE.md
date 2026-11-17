@@ -106,3 +106,9 @@ Las escrituras de cuenta limitan solicitudes por IP y ruta a 30 por 15 minutos p
 3. Comprobar el widget y Siteverify con el par oficial de prueba local; ensayar `success`, rechazo, duplicado y caída mediante pruebas deterministas. Validar host y acción sólo cuando se utilicen llaves reales.
 4. Verificar correo, sesión y tokens contra PostgreSQL/Mailpit; comprobar que la base guarda hashes, que los logs/respuestas omiten secretos y que el worker reintenta fallos sin crear trabajos externos.
 5. Navegar y probar teclado/foco, tamaños móvil/escritorio, consola y solicitudes de red. Aceptar diferencias sólo cuando sean necesarias para respetar las fases, arquitectura o seguridad actuales y queden anotadas aquí.
+
+## Addendum de correo transaccional · Fase 07
+
+La implementación posterior de Fase 07 conserva la cola persistida en PostgreSQL y procesa confirmación, cambio de correo y recuperación con el Worker. En Compose el transporte es SMTP a Mailpit. En Railway, cuando el responsable configure ese entorno, Resend se invoca por HTTPS desde el Worker; `RESEND_API_KEY` no pertenece a la API ni al frontend. `MAIL_FROM` identifica los correos de cuenta y `RESEND_FROM` los correos de compra. Los fallos sólo registran ID de trabajo, tipo, intento y código seguro; no correo, domicilio, token ni cuerpo.
+
+La guía operativa y sus pendientes externos están en [`docs/architecture/services/RESEND.md`](../architecture/services/RESEND.md). La prueba PostgreSQL/Compose del 16 de noviembre de 2026 ejercitó registro y confirmación, recuperación/restablecimiento y reintento tras un fallo SMTP usando una base aislada; véase la evidencia de Fase 07 en [`docs/ROADMAP.md`](../ROADMAP.md). Resend, DNS y Staging no están configurados.

@@ -56,7 +56,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      test: ["CMD", "node", "-e", "Promise.all([fetch('http://127.0.0.1:3000/health'), fetch('http://127.0.0.1:3000/api/cart/account')]).then(([health, cart]) => process.exit(health.ok && (cart.ok || cart.status === 401) ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -71,10 +71,12 @@ services:
     environment:
       NODE_ENV: development
       DATABASE_URL: ${DATABASE_URL:?Define DATABASE_URL in .env}
+      EMAIL_TRANSPORT: smtp
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:3000}
       MAIL_FROM: ${MAIL_FROM:-Señor del Mictlán <no-reply@local.test>}
+      RESEND_FROM: ${RESEND_FROM:-Señor del Mictlán · Compras <compras@local.test>}
     depends_on:
       postgres:
         condition: service_healthy

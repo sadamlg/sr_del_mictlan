@@ -1,14 +1,19 @@
 'use client';
 
 import { ShoppingBasket } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { useCart } from './cart-provider.js';
+
+const subscribe = () => () => {};
+const clientSnapshot = () => true;
+const serverSnapshot = () => false;
 
 export default function AddToCartButton({ product }) {
   const { addProduct, registerProduct, items, pending, isRestoring } = useCart();
+  const hydrated = useSyncExternalStore(subscribe, clientSnapshot, serverSnapshot);
   useEffect(() => registerProduct(product), [product, registerProduct]);
   const quantity = items.find((item) => item.slug === product.slug)?.quantity ?? 0;
-  const disabled = pending || isRestoring || quantity >= 99;
+  const disabled = !hydrated || pending || isRestoring || quantity >= 99;
   return (
     <button
       type="button"

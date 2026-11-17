@@ -1,18 +1,27 @@
 import { prisma } from './database/prisma-client.js';
 import { createAccountRepository } from './accounts/account-repository.js';
-import { createAccountEmailWorker } from './email/account-email-worker.js';
-import { createSmtpTransport } from './email/smtp-transport.js';
+import { createEmailWorker } from './email/email-worker.js';
+import { createEmailTransport } from './email/email-transport.js';
 import { recordHeartbeat } from './worker-heartbeat.js';
 
 const heartbeatIntervalMs = 10_000;
 const emailIntervalMs = 2_000;
 const safeCode = (value) => typeof value === 'string' && /^[A-Z0-9_-]{1,48}$/.test(value) ? value : undefined;
 
-const emailTransport = createSmtpTransport(process.env);
-const emailWorker = createAccountEmailWorker({
+const emailTransport = createEmailTransport(process.env);
+if (process.env.EMAIL_TRANSPORT === 'resend') {
+  if (!process.env.MAIL_FROM?.trim()) {
+    throw Object.assign(new Error('MAIL_FROM is required for the Worker.'), { code: 'MAIL_FROM_MISSING' });
+  }
+  if (!process.env.RESEND_FROM?.trim()) {
+    throw Object.assign(new Error('RESEND_FROM is required for the Worker.'), { code: 'RESEND_FROM_MISSING' });
+  }
+}
+const emailWorker = createEmailWorker({
   repository: createAccountRepository(prisma),
   transport: emailTransport,
-  from: process.env.MAIL_FROM || 'Señor del Mictlán <no-reply@local.test>',
+  accountFrom: process.env.MAIL_FROM || 'Señor del Mictlán <no-reply@local.test>',
+  purchaseFrom: process.env.RESEND_FROM || 'Señor del Mictlán · Compras <compras@local.test>',
   appBaseUrl: process.env.FRONTEND_ORIGIN || 'http://localhost:3000',
   logger: console,
 });

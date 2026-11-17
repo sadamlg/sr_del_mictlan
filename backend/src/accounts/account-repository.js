@@ -173,6 +173,24 @@ export function createAccountRepository(database) {
           account: {
             select: { id: true, firstName: true, email: true, pendingEmail: true, emailVerifiedAt: true },
           },
+          order: {
+            select: {
+              id: true,
+              status: true,
+              createdAt: true,
+              paidAt: true,
+              recipientName: true,
+              recipientEmail: true,
+              shippingAddress: true,
+              currency: true,
+              subtotalCents: true,
+              totalCents: true,
+              items: {
+                select: { name: true, quantity: true, unitPriceCents: true, lineTotalCents: true },
+                orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+              },
+            },
+          },
         },
       });
     },
@@ -227,7 +245,7 @@ export function createAccountRepository(database) {
               "locked_at" = ${now}
           FROM candidate
           WHERE job."id" = candidate."id"
-          RETURNING job."id", job."account_id" AS "accountId", job."type", job."continue_to_checkout" AS "continueToCheckout", job."attempts"
+          RETURNING job."id", job."account_id" AS "accountId", job."order_id" AS "orderId", job."type", job."continue_to_checkout" AS "continueToCheckout", job."attempts"
         `;
         return rows[0] ?? null;
       });

@@ -98,9 +98,24 @@ test('worker email job query omits password hashes and account addresses', async
   assert.equal('street' in accountSelection, false);
 });
 
+test('purchase email job query reads only the paid order snapshot needed for the email and PDF', async () => {
+  let query;
+  const repository = createAccountRepository({
+    emailJob: { findUnique: async (input) => { query = input; return null; } },
+  });
+  await repository.getEmailJob('job-1');
+  const orderSelection = query.select.order.select;
+  assert.equal(orderSelection.recipientEmail, true);
+  assert.equal(orderSelection.shippingAddress, true);
+  assert.deepEqual(orderSelection.items.select, {
+    name: true, quantity: true, unitPriceCents: true, lineTotalCents: true,
+  });
+  assert.equal(orderSelection.status, true);
+});
+
 test('email queue uses a skip-locked claim and increments its attempt under transaction', async () => {
   let queryCalled = false;
-  const job = { id: 'job-1', accountId: 'account-1', type: 'ACCOUNT_CONFIRMATION', attempts: 1 };
+  const job = { id: 'job-1', accountId: 'account-1', orderId: null, type: 'ACCOUNT_CONFIRMATION', attempts: 1 };
   const repository = createAccountRepository({
     $transaction: async (work) => work({
       emailJob: { updateMany: async () => ({ count: 0 }) },

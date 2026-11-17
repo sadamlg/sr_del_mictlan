@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { mediaObjectUrl } from '../../lib/media-url';
+import { useAccountSession } from '../account/account-session.js';
 import {
   AGE_GATE_PHASES,
   nextAgeGatePhase,
@@ -22,16 +23,19 @@ function readAgeConfirmation() {
 }
 
 export default function AgeGate({ children, mediaBaseUrl }) {
+  const session = useAccountSession();
   const [hasConfirmedAge, setHasConfirmedAge] = useState(readAgeConfirmation);
   const [showcaseEntered, setShowcaseEntered] = useState(false);
   const hasOpenedRef = useRef(false);
   const previousFocusRef = useRef(null);
   const yesButtonRef = useRef(null);
   const noLinkRef = useRef(null);
-  const isVerified = hasConfirmedAge;
+  const isVerified = hasConfirmedAge || Boolean(session.account) || session.status === 'account';
   const phase = isVerified
     ? AGE_GATE_PHASES.VERIFIED
-    : nextAgeGatePhase(AGE_GATE_PHASES.ARMED, showcaseEntered ? 'showcase-entered' : 'waiting');
+    : session.status === 'loading' || session.status === 'refreshing'
+      ? AGE_GATE_PHASES.CHECKING
+      : nextAgeGatePhase(AGE_GATE_PHASES.ARMED, showcaseEntered ? 'showcase-entered' : 'waiting');
   const isVisible = phase === AGE_GATE_PHASES.VISIBLE;
 
   useEffect(() => {
