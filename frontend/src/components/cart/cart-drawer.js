@@ -5,7 +5,7 @@ import { MAX_CART_QUANTITY } from '../../lib/guest-cart.js';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Minus, Plus, ShoppingBasket, Trash2, X } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useDesktopViewport } from '../../hooks/use-desktop-viewport.js';
 import { lockBodyScroll } from '../header/behavior.js';
 import { useCart } from './cart-provider.js';
@@ -108,11 +108,10 @@ function CartLine({ item, disabled, onChange, onRemove }) {
 
 export default function CartDrawer() {
   const {
-    activePanel, closeCart, items, totalCount, subtotal, error, pending,
+    activePanel, closeCart, isCartClosing: isClosing, setIsCartClosing: setIsClosing, items, totalCount, subtotal, error, pending,
     isRestoring, isAccount, isAccountLoading, setQuantity, removeItem, retry,
   } = useCart();
   const isOpen = activePanel === 'cart';
-  const [isClosing, setIsClosing] = useState(false);
   const closingTimerRef = useRef(null);
   const dialogRef = useRef(null);
   const closeButtonRef = useRef(null);
@@ -130,7 +129,7 @@ export default function CartDrawer() {
       closeCart();
       setIsClosing(false);
     }, duration);
-  }, [closeCart]);
+  }, [closeCart, setIsClosing]);
 
   useEffect(() => () => window.clearTimeout(closingTimerRef.current), []);
 

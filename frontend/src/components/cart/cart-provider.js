@@ -59,6 +59,7 @@ export function CartProvider({ children, mediaBaseUrl = '' }) {
   const [accountCart, setAccountCart] = useState(null);
   const [accountCartAccountId, setAccountCartAccountId] = useState(null);
   const [activePanel, setActivePanel] = useState(null);
+  const [isCartClosing, setIsCartClosing] = useState(false);
   const [checkoutNotice, setCheckoutNotice] = useState('');
   const [error, setError] = useState('');
   const [mergeFailed, setMergeFailed] = useState(false);
@@ -321,7 +322,7 @@ export function CartProvider({ children, mediaBaseUrl = '' }) {
     ? session.error || 'No pudimos consultar tu sesión. Inténtalo de nuevo.'
     : session.status === 'account' ? error : '';
   const value = {
-    activePanel, openCart, closeCart, toggleCart, toggleMenu, closeMenu,
+    activePanel, isCartClosing, setIsCartClosing, openCart, closeCart, toggleCart, toggleMenu, closeMenu,
     addProduct, registerProduct, setQuantity, removeItem, retry,
     checkoutState,
     checkoutNotice, setCheckoutNotice, reorderPaidOrder,
