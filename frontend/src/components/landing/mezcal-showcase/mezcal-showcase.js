@@ -42,7 +42,7 @@ function MezcalCard({ product, className = '' }) {
         />
       </div>
 
-      <div className="relative isolate mt-5 flex w-full flex-col items-center before:pointer-events-none before:absolute before:inset-x-10 before:-top-16 before:-bottom-4 before:-z-10 before:bg-[linear-gradient(180deg,transparent_0%,color-mix(in_srgb,var(--mictlan-night)_76%,transparent)_20%,var(--mictlan-night)_48%,var(--mictlan-night)_100%)] lg:mt-2">
+      <div className="relative isolate mt-5 flex w-full flex-col items-center before:pointer-events-none before:absolute before:inset-x-10 before:top-0 before:-bottom-4 before:-z-10 before:bg-[linear-gradient(180deg,transparent_0%,color-mix(in_srgb,var(--mictlan-night)_76%,transparent)_20%,var(--mictlan-night)_48%,var(--mictlan-night)_100%)] lg:mt-2">
         <h3 className="flex min-h-11 flex-col items-center justify-center text-mictlan-bone" aria-label={product.name}>
           <span className="font-display text-xl leading-6">{name}</span>
           {descriptor && <span className="font-ui text-sm font-semibold uppercase leading-5 tracking-[0.08em] text-mictlan-bone/95">{descriptor}</span>}
