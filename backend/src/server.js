@@ -1,3 +1,4 @@
+import { createShutdown } from './runtime.js';
 import { createApp } from './app.js';
 import { prisma } from './database/prisma-client.js';
 
@@ -12,12 +13,10 @@ const server = app.listen(port, '0.0.0.0', () => {
   console.log(`API disponible en el puerto ${port}.`);
 });
 
-async function stop() {
-  server.close(async () => {
-    await prisma.$disconnect();
-    process.exit(0);
-  });
-}
+const stop = createShutdown(async () => {
+  await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  await prisma.$disconnect();
+});
 
 process.on('SIGINT', stop);
 process.on('SIGTERM', stop);
