@@ -19,6 +19,12 @@ El carrito es un panel lateral integrado con la tienda. No crea una ruta indepen
 - Esta fase no incluye Checkout, Stripe, webhooks, órdenes, correos de compra ni cambios al flujo de **Mis pedidos**. Los botones del carrito no enlazan a pago ni agregan `continuar=checkout` a las rutas de cuenta.
 - La cuenta, la sesión y sus rutas existentes siguen siendo responsabilidad de la fase 04; el carrito consume la sesión compartida y no crea otra autenticación.
 
+## Estado inicial y disponibilidad del botón — integración de fase 08
+
+El botón de producto empieza deshabilitado con “Cargando carrito…” tanto en el HTML del servidor como en la primera hidratación del cliente. Hasta completar esa hidratación no usa estados del proveedor que puedan haber cambiado mientras se transmitía el catálogo. Esto evita diferencias de texto y nombre accesible entre servidor y cliente.
+
+Después de hidratar, la consulta de configuración muestra “Consultando…”; si Checkout está apagado muestra “Próximamente”, y si la consulta falla muestra “No disponible”. Con Checkout habilitado, la restauración o actualización del carrito muestra “Cargando carrito…” y el límite de 99 unidades muestra “Límite alcanzado”. Sólo el estado disponible muestra “Agregar al carrito” y permite pulsarlo. Este control de fase 08 complementa el bloqueo de Checkout de la API; no impide acceder al resumen.
+
 ## Referencia visual
 
 La interfaz reutiliza los tokens de [DESIGN.md](../DESIGN.md): carbón para el panel, marfil y salvia para el texto, verde agua para acciones y foco, dorado para importes y rojo para errores o productos no disponibles. Usa Cinzel Decorative para títulos y Montserrat para etiquetas y controles. Los iconos son de Lucide React.

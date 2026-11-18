@@ -68,13 +68,17 @@ test('account proxy allows Checkout and reorder routes and preserves the Stripe 
   const catalogResponse = await GET(new Request('http://shop.test/api/backend/catalog/products'), {
     params: Promise.resolve({ path: ['catalog', 'products'] }),
   });
+  const publicConfigResponse = await GET(new Request('http://shop.test/api/backend/public-config'), {
+    params: Promise.resolve({ path: ['public-config'] }),
+  });
 
-  assert.deepEqual([returnResponse.status, checkoutResponse.status, reorderResponse.status, catalogResponse.status], [200, 200, 200, 200]);
+  assert.deepEqual([returnResponse.status, checkoutResponse.status, reorderResponse.status, catalogResponse.status, publicConfigResponse.status], [200, 200, 200, 200, 200]);
   assert.deepEqual(forwarded, [
     'http://backend:3000/api/checkout/return-status?session_id=cs_test_return',
     'http://backend:3000/api/checkout/sessions',
     'http://backend:3000/api/orders/11111111-1111-4111-8111-111111111111/reorder',
     'http://backend:3000/api/catalog/products',
+    'http://backend:3000/api/public-config',
   ]);
 });
 

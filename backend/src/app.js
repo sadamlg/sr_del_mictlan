@@ -16,6 +16,17 @@ import { createStripeClient } from './checkout/stripe-client.js';
 import { createVisitsHandlers } from './visits/visits-handler.js';
 import { createVisitsRepository } from './visits/visits-repository.js';
 
+function accountBodyError(error, _request, response, next) {
+  response.set('Cache-Control', 'no-store');
+  if (error?.type === 'entity.too.large') {
+    return response.status(413).json({ error: { code: 'REQUEST_TOO_LARGE', message: 'La solicitud supera el tamaño permitido.' } });
+  }
+  if (error instanceof SyntaxError && 'body' in error) {
+    return response.status(400).json({ error: { code: 'INVALID_REQUEST', message: 'La solicitud no tiene un formato válido.' } });
+  }
+  return next(error);
+}
+
 export function createApp({
   database,
   mediaBaseUrl = 'http://localhost:3000',
@@ -27,6 +38,7 @@ export function createApp({
   stripe: injectedStripe,
   stripeWebhookSecret,
   stripeMediaBaseUrl,
+  checkoutEnabled = environment.CHECKOUT_ENABLED === 'true',
   logger = console,
 } = {}) {
   if (!database) throw new Error('Se requiere una conexión de base de datos.');
@@ -70,6 +82,7 @@ export function createApp({
     checkoutService,
     stripe,
     webhookSecret: stripeWebhookSecret ?? environment.STRIPE_WEBHOOK_SECRET,
+    checkoutEnabled,
     logger,
   });
   const accountRateLimit = createAccountRateLimit();
@@ -109,6 +122,11 @@ export function createApp({
     response.json({ service: 'backend', message: 'Frontend y backend se comunican.' });
   });
 
+  app.get('/api/public-config', (_request, response) => {
+    response.set('Cache-Control', 'no-store');
+    response.json({ checkoutEnabled });
+  });
+
   app.get('/api/catalog/products', createCatalogHandler({
     findActiveProducts: () => catalog.findActiveProducts(), mediaBaseUrl, allowInsecureDevHttp,
   }));
@@ -123,16 +141,7 @@ export function createApp({
   authRouter.post('/password-reset-validations', accountRateLimit, accountHandlers.validatePasswordResetToken);
   authRouter.post('/password-resets', accountRateLimit, accountHandlers.resetPassword);
   authRouter.post('/email-confirmations', accountRateLimit, accountHandlers.confirmEmail);
-  authRouter.use((error, _request, response, next) => {
-    response.set('Cache-Control', 'no-store');
-    if (error?.type === 'entity.too.large') {
-      return response.status(413).json({ error: { code: 'REQUEST_TOO_LARGE', message: 'La solicitud supera el tamaño permitido.' } });
-    }
-    if (error instanceof SyntaxError && 'body' in error) {
-      return response.status(400).json({ error: { code: 'INVALID_REQUEST', message: 'La solicitud no tiene un formato válido.' } });
-    }
-    return next(error);
-  });
+  authRouter.use(accountBodyError);
   app.use('/api/auth', authRouter);
 
   const profileRouter = express.Router();
@@ -140,16 +149,7 @@ export function createApp({
   profileRouter.get('/', accountHandlers.getProfile);
   profileRouter.patch('/', accountRateLimit, accountHandlers.updateProfile);
   profileRouter.patch('/password', accountRateLimit, accountHandlers.changePassword);
-  profileRouter.use((error, _request, response, next) => {
-    response.set('Cache-Control', 'no-store');
-    if (error?.type === 'entity.too.large') {
-      return response.status(413).json({ error: { code: 'REQUEST_TOO_LARGE', message: 'La solicitud supera el tamaño permitido.' } });
-    }
-    if (error instanceof SyntaxError && 'body' in error) {
-      return response.status(400).json({ error: { code: 'INVALID_REQUEST', message: 'La solicitud no tiene un formato válido.' } });
-    }
-    return next(error);
-  });
+  profileRouter.use(accountBodyError);
   app.use('/api/profile', profileRouter);
 
   const cartRouter = express.Router();
@@ -158,16 +158,7 @@ export function createApp({
   cartRouter.put('/account/items', cartHandlers.setAccountItem);
   cartRouter.delete('/account/items/:slug', cartHandlers.removeAccountItem);
   cartRouter.post('/account/merge', cartHandlers.mergeGuestCart);
-  cartRouter.use((error, _request, response, next) => {
-    response.set('Cache-Control', 'no-store');
-    if (error?.type === 'entity.too.large') {
-      return response.status(413).json({ error: { code: 'REQUEST_TOO_LARGE', message: 'La solicitud supera el tamaño permitido.' } });
-    }
-    if (error instanceof SyntaxError && 'body' in error) {
-      return response.status(400).json({ error: { code: 'INVALID_REQUEST', message: 'La solicitud no tiene un formato válido.' } });
-    }
-    return next(error);
-  });
+  cartRouter.use(accountBodyError);
   app.use('/api/cart', cartRouter);
 
   const checkoutRouter = express.Router();

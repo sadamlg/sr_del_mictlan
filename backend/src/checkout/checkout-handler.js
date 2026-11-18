@@ -65,6 +65,12 @@ function setCommonHeaders(response) {
   response.set('Referrer-Policy', 'no-referrer');
 }
 
+function checkoutDisabled(response) {
+  return response.status(503).json({
+    error: { code: 'CHECKOUT_DISABLED', message: 'El checkout no está disponible.' },
+  });
+}
+
 function logFailure(logger, scope, error) {
   logger.error?.(`[checkout] ${scope} failed`, {
     name: error instanceof Error ? error.name : 'UnknownError',
@@ -82,7 +88,7 @@ function sendServiceError(response, error, logger, scope) {
   });
 }
 
-export function createCheckoutHandlers({ accountService, checkoutService, stripe, webhookSecret, logger = console }) {
+export function createCheckoutHandlers({ accountService, checkoutService, stripe, webhookSecret, checkoutEnabled = false, logger = console }) {
   return {
     savedPaymentMethods: async (request, response) => {
       setCommonHeaders(response);
@@ -119,6 +125,8 @@ export function createCheckoutHandlers({ accountService, checkoutService, stripe
 
     reorder: async (request, response) => {
       setCommonHeaders(response);
+      if (!checkoutEnabled) return checkoutDisabled(response);
+
       const transferId = request.body?.transferId;
       if (!isRecord(request.body) || Object.keys(request.body).length !== 1 || typeof transferId !== 'string' || !UUID_PATTERN.test(transferId)) {
         return response.status(422).json({ error: { code: 'INVALID_CART_TRANSFER', message: 'No se pudo procesar el nuevo intento.' } });
@@ -134,6 +142,8 @@ export function createCheckoutHandlers({ accountService, checkoutService, stripe
 
     createSession: async (request, response) => {
       setCommonHeaders(response);
+      if (!checkoutEnabled) return checkoutDisabled(response);
+
       const { recipient, error: bodyError } = normalizeRecipientBody(request.body);
       if (bodyError) return recipientError(response, bodyError);
 

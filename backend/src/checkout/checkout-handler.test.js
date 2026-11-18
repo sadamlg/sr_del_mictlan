@@ -25,6 +25,7 @@ test('Checkout requires a valid account session and rejects client-supplied tota
     checkoutService: { async createSession() { creates += 1; return { checkoutUrl: 'https://checkout.stripe.com/c/pay/test' }; } },
     stripe: null,
     webhookSecret: '',
+    checkoutEnabled: true,
   });
 
   const unauthenticated = response();
@@ -46,6 +47,7 @@ test('Checkout handler returns only the hosted URL with private response headers
     checkoutService: { async createSession(account) { receivedAccount = account; return { checkoutUrl: 'https://checkout.stripe.com/c/pay/test' }; } },
     stripe: null,
     webhookSecret: '',
+    checkoutEnabled: true,
   });
   const result = response();
 
@@ -104,6 +106,7 @@ test('reorder route requires an owned account session and accepts only an idempo
     checkoutService: { async reorderPaidOrder(...args) { reordered = args; return { unavailableSlugs: [] }; } },
     stripe: null,
     webhookSecret: '',
+    checkoutEnabled: true,
   });
   const orderId = '11111111-1111-4111-8111-111111111111';
   const transferId = '22222222-2222-4222-8222-222222222222';
@@ -123,6 +126,30 @@ test('reorder route requires an owned account session and accepts only an idempo
   assert.equal(valid.statusCode, 200);
   assert.deepEqual(valid.body, { unavailableSlugs: [] });
   assert.deepEqual(reordered, [{ id: 'account-1' }, orderId, transferId]);
+});
+
+test('reorder cannot create a new Checkout session while Checkout is disabled', async () => {
+  let reordered = false;
+  const handlers = createCheckoutHandlers({
+    accountService: { async getSession() { return { id: 'account-1' }; } },
+    checkoutService: { async reorderPaidOrder() { reordered = true; } },
+    stripe: null,
+    webhookSecret: '',
+    checkoutEnabled: false,
+  });
+  const result = response();
+
+  await handlers.reorder({
+    headers: { cookie },
+    params: { orderId: '11111111-1111-4111-8111-111111111111' },
+    body: { transferId: '22222222-2222-4222-8222-222222222222' },
+  }, result);
+
+  assert.equal(result.statusCode, 503);
+  assert.deepEqual(result.body, {
+    error: { code: 'CHECKOUT_DISABLED', message: 'El checkout no está disponible.' },
+  });
+  assert.equal(reordered, false);
 });
 
 test('Stripe webhook rejects an invalid signature before dispatching an event', async () => {
@@ -193,6 +220,7 @@ test('Checkout and webhook failures return generic errors without leaking provid
     checkoutService: { async createSession() { throw new CheckoutError(503, 'CHECKOUT_UNAVAILABLE', 'No se pudo iniciar el pago.'); }, async processStripeEvent() { throw new Error('sk_live_secret'); } },
     stripe: { webhooks: { constructEvent() { return { type: 'customer.updated' }; } } },
     webhookSecret: 'whsec_test',
+    checkoutEnabled: true,
     logger: { error(_message, fields) { assert.equal('sk_live_secret' in fields, false); } },
   });
   const checkout = response();
