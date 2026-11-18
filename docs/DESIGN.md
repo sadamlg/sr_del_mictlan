@@ -100,7 +100,7 @@ La paleta se organiza por función: verde agua para interacción, neutrales cál
 
 - **Verde agua (`mictlan-teal`):** iconos, enlaces, foco visible, bordes activos y subrayado de 2 px en la barra de navegación. En el FAQ distingue las preguntas al pasar el cursor o al abrirlas, junto con su icono, enlaces y borde activo.
 - **Verde agua profundo (`mictlan-teal-deep`):** fondo de las acciones principales de cuenta, aviso de edad y hero.
-- **Verde agua de interacción (`mictlan-teal-hover`):** estado hover de las acciones principales. `mictlan-teal-bright` destaca el título del escaparate y el hover de su acción de reintento.
+- **Verde agua de interacción (`mictlan-teal-hover`):** estado hover de las acciones principales y color del corazón decorativo del pie de página. `mictlan-teal-bright` destaca el título del escaparate y el hover de su acción de reintento.
 - **Morado Stripe (`mictlan-stripe-purple`):** fondo de la acción para abrir Stripe desde el resumen; el hover usa `mictlan-stripe-purple-hover`. Es una excepción local al verde agua de las acciones principales.
 - **Menta (`mictlan-mint`):** texto de navegación al pasar el cursor.
 
@@ -113,7 +113,7 @@ La paleta se organiza por función: verde agua para interacción, neutrales cál
 
 - **Rojo y burdeos (`mictlan-red`, `mictlan-burgundy`):** rechazo del aviso de edad, errores, barra de desplazamiento y detalles rojizos existentes.
 - **Rojo de interacción (`mictlan-red-hover`):** estado hover de la opción de rechazo.
-- **Burdeos profundo (`mictlan-burgundy-deep`):** corazón decorativo del pie de página.
+- **Corazón decorativo del pie de página (`mictlan-teal-hover`):** verde agua oscuro que conserva el acento sin el turquesa brillante.
 - **Texto de error (`mictlan-error-text`, `mictlan-error-text-muted`):** mensajes y avisos de error.
 
 ### Neutrales

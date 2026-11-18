@@ -64,6 +64,7 @@ export function CartProvider({ children, mediaBaseUrl = '' }) {
   const [mergeFailed, setMergeFailed] = useState(false);
   const [unavailableSlugs, setUnavailableSlugs] = useState([]);
   const [pending, setPending] = useState(false);
+  const [checkoutState, setCheckoutState] = useState('loading');
   const syncing = useRef(false);
   const [retryKey, setRetryKey] = useState(0);
   const accountReady = session.status === 'account'
@@ -77,6 +78,20 @@ export function CartProvider({ children, mediaBaseUrl = '' }) {
     const closePanelsBehindAgeGate = () => setActivePanel(null);
     window.addEventListener('mictlan:age-gate-visible', closePanelsBehindAgeGate);
     return () => window.removeEventListener('mictlan:age-gate-visible', closePanelsBehindAgeGate);
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+    accountRequest('public-config', { signal: controller.signal }).then((config) => {
+      if (active) setCheckoutState(config?.checkoutEnabled === true ? 'enabled' : 'disabled');
+    }).catch(() => {
+      if (active) setCheckoutState('unavailable');
+    });
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, []);
 
   const commitGuestCart = useCallback((next) => {
@@ -177,7 +192,7 @@ export function CartProvider({ children, mediaBaseUrl = '' }) {
   }, [localReady, retryKey, session.status, session.account?.id, syncAccount]);
 
   const addProduct = useCallback(async (product) => {
-    if (!product?.slug || !product.price?.amount || pending || document.getElementById('age-gate-title')) return;
+    if (checkoutState !== 'enabled' || !product?.slug || !product.price?.amount || pending || document.getElementById('age-gate-title')) return;
     registerProduct(product);
     setError('');
     if (accountReady && !mergeFailed) {
@@ -198,7 +213,7 @@ export function CartProvider({ children, mediaBaseUrl = '' }) {
       commitGuestCart(addGuestCartItem(guestCartRef.current, product.slug));
     }
     openCart();
-  }, [accountCart, accountReady, commitGuestCart, mergeFailed, openCart, pending, registerProduct]);
+  }, [accountCart, accountReady, checkoutState, commitGuestCart, mergeFailed, openCart, pending, registerProduct]);
 
   const setQuantity = useCallback(async (item, quantity) => {
     if (pending || !item.available) return;
@@ -308,6 +323,7 @@ export function CartProvider({ children, mediaBaseUrl = '' }) {
   const value = {
     activePanel, openCart, closeCart, toggleCart, toggleMenu, closeMenu,
     addProduct, registerProduct, setQuantity, removeItem, retry,
+    checkoutState,
     checkoutNotice, setCheckoutNotice, reorderPaidOrder,
     items, totalCount, subtotal, error: displayError, pending, isRestoring,
     isAccount: session.status === 'account',

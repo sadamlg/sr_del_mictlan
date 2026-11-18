@@ -78,10 +78,9 @@ export async function accountRequest(path, { method = 'GET', body, signal } = {}
       }
     }
   } catch {
-    const timeout = timedOut;
     throw new AccountApiError({
       status: 0,
-      error: timeout
+      error: timedOut
         ? { code: 'REQUEST_TIMEOUT', message: 'El servidor tardó demasiado en responder. Inténtalo de nuevo.' }
         : { code: 'NETWORK_ERROR', message: 'No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.' },
     });

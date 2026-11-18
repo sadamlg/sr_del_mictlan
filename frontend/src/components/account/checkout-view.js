@@ -1,5 +1,7 @@
 'use client';
 
+import { MAX_CART_QUANTITY } from '../../lib/guest-cart.js';
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { CreditCard, Minus, Pencil, Plus, ShieldCheck, Trash2 } from 'lucide-react';
@@ -70,7 +72,7 @@ function CheckoutItem({ item, disabled, onQuantity, onRemove }) {
             ? <button type="button" aria-label={`Disminuir cantidad de ${item.name}`} disabled={disabled || !item.available} onClick={() => onQuantity(item.quantity - 1)} className="inline-flex size-10 items-center justify-center text-mictlan-sage hover:text-mictlan-teal focus-visible:relative focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mictlan-teal disabled:opacity-40"><Minus className="size-4" aria-hidden="true" /></button>
             : <button type="button" aria-label={`Quitar ${item.name}`} disabled={disabled} onClick={onRemove} className="inline-flex size-10 items-center justify-center text-mictlan-sage hover:text-mictlan-error-text focus-visible:relative focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mictlan-teal disabled:opacity-40"><Trash2 className="size-4" aria-hidden="true" /></button>}
           <span className="money-detail min-w-8 text-center" aria-live="polite">{item.quantity}</span>
-          <button type="button" aria-label={`Aumentar cantidad de ${item.name}`} disabled={disabled || !item.available || item.quantity >= 99} onClick={() => onQuantity(item.quantity + 1)} className="inline-flex size-10 items-center justify-center text-mictlan-sage hover:text-mictlan-teal focus-visible:relative focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mictlan-teal disabled:opacity-40"><Plus className="size-4" aria-hidden="true" /></button>
+          <button type="button" aria-label={`Aumentar cantidad de ${item.name}`} disabled={disabled || !item.available || item.quantity >= MAX_CART_QUANTITY} onClick={() => onQuantity(item.quantity + 1)} className="inline-flex size-10 items-center justify-center text-mictlan-sage hover:text-mictlan-teal focus-visible:relative focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mictlan-teal disabled:opacity-40"><Plus className="size-4" aria-hidden="true" /></button>
         </div>
       </div>
       {item.quantity > 1 && <button type="button" disabled={disabled} onClick={onRemove} aria-label={`Quitar ${item.name}`} className="inline-flex min-h-9 items-center gap-1.5 text-xs text-mictlan-sage-muted transition-colors hover:text-mictlan-error-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mictlan-teal disabled:opacity-40"><Trash2 className="size-3.5" aria-hidden="true" />Quitar</button>}

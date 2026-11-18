@@ -72,7 +72,7 @@ test('Compose API creates Checkout from current prices and saves one owner-only 
       database: prisma,
       mediaBaseUrl: 'http://localhost:3000',
       allowInsecureDevHttp: true,
-      environment: { FRONTEND_ORIGIN: frontendOrigin, NODE_ENV: 'test' },
+      environment: { FRONTEND_ORIGIN: frontendOrigin, NODE_ENV: 'test', CHECKOUT_ENABLED: 'true' },
       secureCookies: false,
       verifyTurnstile: async () => true,
       stripe,

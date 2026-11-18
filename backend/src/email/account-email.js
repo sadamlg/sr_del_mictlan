@@ -1,10 +1,4 @@
-import { EMAIL_COLORS, emailBrandImageUrl, renderBrandedEmail } from './email-layout.js';
-
-function escapeHtml(value) {
-  return String(value ?? '').replace(/[&<>"']/g, (character) => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-  })[character]);
-}
+import { EMAIL_COLORS, emailBrandImageUrl, escapeHtml, renderBrandedEmail } from './email-layout.js';
 
 function accountLink({ path, token, continueToCheckout, appBaseUrl }) {
   const base = new URL(appBaseUrl);

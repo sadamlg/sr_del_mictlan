@@ -1,0 +1,28 @@
+FROM node:24.21.0-bookworm-slim
+
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci --include=dev
+
+COPY --chown=node:node . .
+RUN mkdir -p .next && chown node:node .next
+
+ARG MEDIA_BASE_URL
+ARG NEXT_PUBLIC_TURNSTILE_SITE_KEY
+ENV MEDIA_BASE_URL=${MEDIA_BASE_URL} \
+    NEXT_PUBLIC_TURNSTILE_SITE_KEY=${NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+
+RUN test -n "$MEDIA_BASE_URL" \
+    && test -n "$NEXT_PUBLIC_TURNSTILE_SITE_KEY"
+
+USER node
+
+RUN npm run build
+
+EXPOSE 3000
+
+CMD ["npm", "run", "start"]

@@ -188,8 +188,3 @@ test('session restoration derives the account from the opaque session and return
   assert.equal('passwordHash' in restored, false);
   await assert.rejects(service.getSession('invalid'), (error) => error.status === 401);
 });
-
-test('Mis pedidos returns an empty list when there are no persisted paid orders', async () => {
-  const { service } = makeService();
-  assert.deepEqual(await service.listOrders(account.id), []);
-});

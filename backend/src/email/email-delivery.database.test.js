@@ -78,7 +78,7 @@ test('Compose API and PostgreSQL deliver account, recovery, and paid-order email
       database: prisma,
       mediaBaseUrl: 'http://localhost:3000',
       allowInsecureDevHttp: true,
-      environment: { FRONTEND_ORIGIN: frontendOrigin, NODE_ENV: 'test' },
+      environment: { FRONTEND_ORIGIN: frontendOrigin, NODE_ENV: 'test', CHECKOUT_ENABLED: 'true' },
       secureCookies: false,
       verifyTurnstile: async () => true,
       stripe,

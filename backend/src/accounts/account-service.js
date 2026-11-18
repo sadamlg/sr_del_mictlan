@@ -51,9 +51,9 @@ function ensureSessionToken(value) {
   }
 }
 
-function checkObjectInput(input, allowedKeys, message) {
+function checkObjectInput(input, allowedKeys) {
   return Boolean(input) && typeof input === 'object' && !Array.isArray(input)
-    && Object.keys(input).every((key) => allowedKeys.includes(key)) && message;
+    && Object.keys(input).every((key) => allowedKeys.includes(key));
 }
 
 export function createAccountService({
@@ -101,7 +101,7 @@ export function createAccountService({
     },
 
     async login(input) {
-      const validShape = checkObjectInput(input, ['email', 'password'], true);
+      const validShape = checkObjectInput(input, ['email', 'password']);
       if (!validShape) throw new AccountError(422, 'VALIDATION_ERROR', 'Escribe un correo y una contraseña válidos.');
       const email = normalizeEmail(input.email);
       const password = typeof input.password === 'string' ? input.password : '';
@@ -146,7 +146,7 @@ export function createAccountService({
     },
 
     async requestPasswordReset(input) {
-      if (!checkObjectInput(input, ['email'], true)) {
+      if (!checkObjectInput(input, ['email'])) {
         throw new AccountError(422, 'VALIDATION_ERROR', 'Escribe un correo electrónico válido.');
       }
       const email = normalizeEmail(input.email);
@@ -159,14 +159,14 @@ export function createAccountService({
 
     async validatePasswordResetToken(input) {
       const token = input?.token;
-      if (!checkObjectInput(input, ['token'], true) || typeof token !== 'string' || !TOKEN_PATTERN.test(token)) {
+      if (!checkObjectInput(input, ['token']) || typeof token !== 'string' || !TOKEN_PATTERN.test(token)) {
         return { valid: false };
       }
       return { valid: await repository.isPasswordResetTokenValid(hashTokenValue(token), now()) };
     },
 
     async resetPassword(input) {
-      if (!checkObjectInput(input, ['token', 'password'], true)) {
+      if (!checkObjectInput(input, ['token', 'password'])) {
         throw new AccountError(422, 'VALIDATION_ERROR', 'El enlace o la nueva contraseña no son válidos.');
       }
       const { token, password } = input;
@@ -213,7 +213,7 @@ export function createAccountService({
 
     async confirmEmail(input) {
       const token = input?.token;
-      if (!checkObjectInput(input, ['token'], true) || typeof token !== 'string' || !TOKEN_PATTERN.test(token)) {
+      if (!checkObjectInput(input, ['token']) || typeof token !== 'string' || !TOKEN_PATTERN.test(token)) {
         throw new AccountError(400, 'EMAIL_CONFIRMATION_INVALID', 'El enlace de confirmación no es válido.');
       }
       let confirmation;
@@ -279,8 +279,5 @@ export function createAccountService({
       }
     },
 
-    async listOrders() {
-      return [];
-    },
   };
 }

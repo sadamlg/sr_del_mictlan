@@ -1,5 +1,7 @@
 'use client';
 
+import { MAX_CART_QUANTITY } from '../../lib/guest-cart.js';
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { Minus, Plus, ShoppingBasket, Trash2, X } from 'lucide-react';
@@ -89,7 +91,7 @@ function CartLine({ item, disabled, onChange, onRemove }) {
               </span>
               <button
                 type="button"
-                disabled={disabled || !item.available || item.quantity >= 99}
+                disabled={disabled || !item.available || item.quantity >= MAX_CART_QUANTITY}
                 onClick={() => onChange(item.quantity + 1)}
                 aria-label={`Aumentar cantidad de ${item.name}`}
                 className="inline-flex size-10 items-center justify-center transition-colors hover:text-mictlan-teal disabled:opacity-40 sm:size-11"

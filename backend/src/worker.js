@@ -2,6 +2,7 @@ import { prisma } from './database/prisma-client.js';
 import { createAccountRepository } from './accounts/account-repository.js';
 import { createEmailWorker } from './email/email-worker.js';
 import { createEmailTransport } from './email/email-transport.js';
+import { createSerialTask, createShutdown } from './runtime.js';
 import { recordHeartbeat } from './worker-heartbeat.js';
 
 const heartbeatIntervalMs = 10_000;
@@ -29,33 +30,24 @@ const emailWorker = createEmailWorker({
 await recordHeartbeat(prisma);
 console.log('Worker conectado a PostgreSQL.');
 
-const interval = setInterval(() => {
-  recordHeartbeat(prisma).catch((error) => {
-    console.error('No se pudo guardar la actividad del worker.', error.message);
+
+function logEmailJobError(error) {
+  const code = safeCode(error?.code);
+  console.error('No se pudo procesar la cola de correo.', {
+    name: error instanceof Error ? error.name : 'UnknownError',
+    ...(code ? { code } : {}),
   });
-}, heartbeatIntervalMs);
-
-async function processEmailJob() {
-  try {
-    await emailWorker.processNext();
-  } catch (error) {
-    console.error('No se pudo procesar la cola de correo.', {
-      name: error instanceof Error ? error.name : 'UnknownError',
-      ...(safeCode(error?.code) ? { code: safeCode(error.code) } : {}),
-    });
-  }
 }
 
-void processEmailJob();
-const emailInterval = setInterval(() => { void processEmailJob(); }, emailIntervalMs);
-
-async function stop() {
-  clearInterval(interval);
-  clearInterval(emailInterval);
-  emailTransport.close();
+const heartbeatTask = createSerialTask(() => recordHeartbeat(prisma), heartbeatIntervalMs, () => {
+  console.error('No se pudo guardar la actividad del worker.');
+});
+const emailTask = createSerialTask(() => emailWorker.processNext(), emailIntervalMs, logEmailJobError);
+const stop = createShutdown(async () => {
+  await Promise.all([heartbeatTask.stop(), emailTask.stop()]);
+  emailTransport.close?.();
   await prisma.$disconnect();
-  process.exit(0);
-}
+});
 
 process.on('SIGINT', stop);
 process.on('SIGTERM', stop);

@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createApp } from './app.js';
 
-async function withApi(database, callback) {
-  const server = createApp({ database }).listen(0, '127.0.0.1');
+async function withApi(database, callback, options = {}) {
+  const server = createApp({ database, ...options }).listen(0, '127.0.0.1');
   await new Promise((resolve) => server.once('listening', resolve));
 
   try {
@@ -43,5 +43,40 @@ test('GET /api/hello returns the frontend communication contract', async () => {
       service: 'backend',
       message: 'Frontend y backend se comunican.',
     });
+  });
+});
+
+test('GET /api/public-config exposes the public Checkout availability flag', async () => {
+  for (const [checkoutEnabled, expected] of [[undefined, false], ['false', false], ['true', true]]) {
+    await withApi({ $queryRaw: async () => [{ result: 1 }] }, async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/api/public-config`);
+
+      assert.equal(response.status, 200);
+      assert.deepEqual(await response.json(), { checkoutEnabled: expected });
+      assert.equal(response.headers.get('cache-control'), 'no-store');
+    }, {
+      environment: {
+        NODE_ENV: 'test',
+        FRONTEND_ORIGIN: 'http://shop.example.test',
+        ...(checkoutEnabled === undefined ? {} : { CHECKOUT_ENABLED: checkoutEnabled }),
+      },
+    });
+  }
+});
+
+test('production Checkout stays unavailable until explicitly enabled', async () => {
+  await withApi({ $queryRaw: async () => [{ result: 1 }] }, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/checkout/sessions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}',
+    });
+
+    assert.equal(response.status, 503);
+    assert.deepEqual(await response.json(), {
+      error: { code: 'CHECKOUT_DISABLED', message: 'El checkout no está disponible.' },
+    });
+  }, {
+    environment: { NODE_ENV: 'production', FRONTEND_ORIGIN: 'https://shop.example.test' },
   });
 });

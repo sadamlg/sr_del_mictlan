@@ -1,7 +1,6 @@
 import Link from 'next/link';
 
 export const ACCOUNT_INPUT_CLASS = 'w-full rounded-sm border border-mictlan-sand/20 bg-mictlan-carbon/30 px-3.5 py-3 font-sans text-sm text-mictlan-ivory placeholder:text-mictlan-earth-muted';
-export const accountInputClass = ACCOUNT_INPUT_CLASS;
 
 export function AccountCard({ eyebrow = 'Tu cuenta', title, description, children, wide = false, className = '' }) {
   return (
@@ -49,14 +48,13 @@ export function AccountField({ id, label, error, hint, className = '', children,
   );
 }
 
-export function AccountNotice({ children, variant = 'info', kind, role }) {
-  const noticeKind = kind || variant;
-  const styles = noticeKind === 'error'
+export function AccountNotice({ children, variant = 'info', role }) {
+  const styles = variant === 'error'
     ? 'border-mictlan-red/45 bg-mictlan-burgundy/20 text-mictlan-error-text-muted'
-    : noticeKind === 'success'
+    : variant === 'success'
       ? 'border-mictlan-teal/30 bg-mictlan-teal-deep/20 text-mictlan-teal'
       : 'border-mictlan-teal/25 bg-mictlan-teal-deep/15 text-mictlan-sage-muted';
-  return <div className={`border px-4 py-3 text-sm leading-6 ${styles}`} role={role || (noticeKind === 'error' ? 'alert' : 'status')}>{children}</div>;
+  return <div className={`border px-4 py-3 text-sm leading-6 ${styles}`} role={role || (variant === 'error' ? 'alert' : 'status')}>{children}</div>;
 }
 
 export function AccountButton({ children, busy = false, disabled = false, type = 'submit', variant = 'primary', ...props }) {

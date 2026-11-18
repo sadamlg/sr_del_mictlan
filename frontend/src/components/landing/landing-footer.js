@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import { ArrowUp, ArrowUpRight } from 'lucide-react';
+import { ArrowUp, ArrowUpRight, Heart } from 'lucide-react';
 import { mediaObjectUrl } from '../../lib/media-url';
 
 const footerLinks = [
@@ -74,7 +74,7 @@ export default function LandingFooter({ mediaBaseUrl, year }) {
           <div className="order-2 flex flex-col items-center gap-1.5 text-[9px] font-medium uppercase tracking-[0.13em] text-mictlan-muted/80 sm:text-[10px] md:order-1 md:items-start">
             <p className="m-0">© {year} Señor del Mictlán. Todos los derechos reservados.</p>
             <p className="m-0 text-mictlan-earth-muted normal-case tracking-[0.08em] md:text-[11px] lg:text-xs">
-              Hecho con <span className="text-[1.2em] text-mictlan-burgundy-deep" aria-label="amor">♥</span> por sadamlg
+              Hecho con <Heart className="inline-block size-[1.2em] align-[-0.15em] fill-current text-mictlan-teal-hover" role="img" aria-label="amor" strokeWidth={0} /> por sadamlg
             </p>
           </div>
           <div

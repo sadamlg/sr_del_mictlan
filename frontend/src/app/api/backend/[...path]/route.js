@@ -10,6 +10,7 @@ const ALLOWED_ROUTES = new Map([
   ['profile', new Set(['GET', 'PATCH'])],
   ['profile/password', new Set(['PATCH'])],
   ['orders', new Set(['GET'])],
+  ['public-config', new Set(['GET'])],
   ['checkout/payment-methods', new Set(['GET'])],
   ['checkout/return-status', new Set(['GET'])],
   ['checkout/sessions', new Set(['POST'])],
@@ -31,7 +32,7 @@ async function proxyAccountRequest(request, context) {
     return Response.json({ error: { code: 'ROUTE_NOT_FOUND', message: 'No encontramos esta ruta.' } }, { status: 404 });
   }
 
-  const apiBase = process.env.INTERNAL_API_URL || process.env.API_INTERNAL_URL;
+  const apiBase = process.env.INTERNAL_API_URL;
   if (!apiBase) {
     return Response.json({ error: { code: 'ACCOUNT_UNAVAILABLE', message: 'La cuenta no está disponible. Inténtalo de nuevo.' } }, { status: 503, headers: { 'Cache-Control': 'no-store' } });
   }
