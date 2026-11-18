@@ -125,7 +125,7 @@ Configurar las variables en el servicio **Worker** de cada entorno Railway, no e
 | `RESEND_FROM` | Remitente de confirmación de compra con PDF. |
 | `FRONTEND_ORIGIN` | Origen público del mismo entorno para enlaces de cuenta. |
 
-Staging y Producción deben usar variables, claves, remitentes, dominios (o subdominios) y límites revisados por separado. Al preparar Staging en Fase 08, usar sólo recursos no productivos y registrar evidencia antes de habilitar envíos. Producción queda apagada hasta la Fase 10 y una autorización expresa. Nunca reutilizar claves entre entornos.
+Staging y Producción deben usar variables, claves, remitentes, dominios (o subdominios) y límites revisados por separado. En el Worker de Staging actual se observaron `EMAIL_TRANSPORT`, `RESEND_API_KEY`, `MAIL_FROM` y `RESEND_FROM`; los valores se mantienen fuera de la documentación. La presencia de esas variables no acredita que la clave sea válida ni que Resend acepte los remitentes. Producción queda apagada hasta la Fase 10 y una autorización expresa. Nunca reutilizar claves entre entornos.
 
 El Worker debe recibir `DATABASE_URL`, además de las variables anteriores. No colocar `RESEND_API_KEY` en el servicio API, configuración compartida de todo el proyecto, build args, imagen Docker o variables públicas. La integración hace `POST https://api.resend.com/emails` por HTTPS con `RESEND_API_KEY` en `Authorization`; no usa SMTP ni `SMTP_PASSWORD` para Resend.
 
@@ -147,7 +147,7 @@ El recorrido previsto para el repositorio actual separa los servicios frontend, 
 
 Con esa configuración, registro, recuperación y cambio de correo generan trabajo y el Worker envía enlaces que regresan al frontend de Staging. Para compras, usa Stripe de prueba; el webhook recibido por el API confirma el pago, persiste el único trabajo, y el Worker genera y adjunta el PDF a la solicitud HTTPS de Resend. Resend intenta entregarlo a una dirección controlada y válida, por ejemplo `juan+prueba@gmail.com`. Revisa tanto el mensaje/estado en Resend como el mensaje recibido, que el enlace abra Staging, que exista un PDF adjunto legible, los reintentos ante un fallo controlado y la idempotencia ante la repetición del webhook.
 
-Esta guía describe la configuración que debe probarse; no afirma que Staging del repositorio actual ya esté desplegado ni que el envío real haya pasado esa prueba. No uses una clave de Producción ni remitentes o recursos productivos en esta validación.
+El Worker usa Resend para las notificaciones de Staging. Valida la entrega de cuenta y compra con destinatarios de prueba antes de aceptar el entorno; no uses claves ni remitentes productivos. Los nombres y valores de referencia están en la [guía de Railway](RAILWAY.md#configuracion-de-referencia-de-staging).
 
 ### Producción
 
@@ -162,9 +162,10 @@ Un pedido solo produce confirmación después de que el API acepta el webhook de
 | Implementado en el código | Transportes SMTP y Resend HTTPS; cola PostgreSQL procesada por Worker; mensajes de cuenta y compra; tokens de un solo uso; PDF de compra generado en memoria; reintentos acotados; protección contra trabajos de compra duplicados y clave idempotente para Resend. Hay pruebas unitarias y una prueba de integración con PostgreSQL/Mailpit en el repositorio. |
 | Configurado en local | `compose.yaml` fija SMTP → Mailpit; `.env.example` define `FRONTEND_ORIGIN=http://localhost:3000` y remitentes locales de ejemplo. No requiere clave Resend ni envía a bandejas externas. |
 | Configuración externa reportada | Esta guía registra que el responsable cargó registros en Neubox/cPanel y que el panel de Resend mostró `mail.srmictlan.com` verificado el 16 de noviembre de 2026. Los valores no están guardados aquí y el estado no se volvió a consultar durante esta actualización. |
-| Pendiente de verificar | Que Neubox/cPanel siga siendo autoritativo y que la zona coincida con **Domains → Records**; que la clave correcta esté instalada en el Worker del repositorio actual; que los remitentes estén aceptados; el despliegue y recorrido Resend→bandeja en Staging, incluida compra, PDF, enlaces y reintentos; y la configuración separada de Producción. |
+| Observado en Staging | Railway muestra `EMAIL_TRANSPORT`, `RESEND_API_KEY`, `MAIL_FROM` y `RESEND_FROM` en el servicio `worker`; los valores secretos no se inspeccionaron ni copiaron. El Worker está en línea. |
+| Pendiente de verificar | Que Neubox/cPanel siga siendo autoritativo y que la zona coincida con **Domains → Records**; que la clave presente sea válida, tenga el alcance esperado y los remitentes estén aceptados; el envío Resend→bandeja en Staging, incluida compra, PDF, enlaces y reintentos; y la configuración separada de Producción. |
 
-La existencia de una clave en una cuenta de Resend o su uso por otro servicio no demuestra que el Worker de este repositorio la tenga configurada ni que este recorrido haya sido probado. Esta distinción debe mantenerse al registrar evidencia de cada entorno.
+La presencia de `RESEND_API_KEY` en Variables confirma que el Worker recibió un valor, pero no muestra si la clave es válida, qué permisos tiene ni si el recorrido se completó. Esta distinción debe mantenerse al registrar evidencia de cada entorno.
 
 ## Cola, reintentos y límites de idempotencia
 

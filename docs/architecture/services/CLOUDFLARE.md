@@ -54,4 +54,4 @@ Si se requiere un hostname de medios personalizado en staging, conecta un domini
 
 ## Decisiones reservadas
 
-El dominio definitivo, los nombres de buckets, la política de caché y las credenciales se definen al preparar cada entorno. La carga del MVP es manual. No se ha configurado aquí ningún dominio, zona, DNS, proxy ni bucket de staging. Si en el futuro la aplicación necesita escribir en R2, primero se debe definir el flujo y sus permisos.
+El dominio definitivo y la política de caché se preparan en Producción. La carga del MVP es manual. Staging usa el bucket dedicado y el origen público documentados en [R2.md](R2.md#url-configurada-en-este-entorno), junto con dominios públicos de Railway. Producción requiere un bucket y hostname propios. Si la aplicación necesita escribir en R2, define primero el flujo y sus permisos.
