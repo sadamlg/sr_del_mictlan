@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   createCheckoutTransferId,
+  isStripeCheckoutSessionId,
   checkoutReturnMessage,
   checkoutReturnPollDelay,
   CHECKOUT_RETURN_MAX_ATTEMPTS,
@@ -89,4 +90,12 @@ test('checkout return polling backs off like the legacy flow and stops after twe
   assert.equal(checkoutReturnPollDelay(2), 1500);
   assert.equal(checkoutReturnPollDelay(3), 3000);
   assert.equal(checkoutReturnPollDelay(20), 3000);
+});
+
+ test('stored Checkout session IDs reject malformed and oversized values', () => {
+  assert.equal(isStripeCheckoutSessionId('cs_test_abc123'), true);
+  assert.equal(isStripeCheckoutSessionId('cs_live_abc123'), true);
+  for (const value of [null, '', 'cs_test_', 'https://stripe.com', 'cs_test_a/b', `cs_test_${'a'.repeat(256)}`]) {
+    assert.equal(isStripeCheckoutSessionId(value), false);
+  }
 });
