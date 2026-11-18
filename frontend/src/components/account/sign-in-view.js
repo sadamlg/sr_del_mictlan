@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Eye, EyeOff, Mail } from 'lucide-react';
 import { accountRequest } from '../../lib/account-api.js';
 import TurnstileWidget from './turnstile-widget.js';
@@ -98,8 +99,18 @@ export default function SignInView({ continueToCheckout = false }) {
         <TurnstileWidget action="account_login" onToken={onToken} resetKey={challenge} />
         <AccountButton busy={busy} disabled={!token}>Entrar a mi cuenta</AccountButton>
       </form>
-      <div className="sign-in-register mt-7 border-t border-mictlan-sand/10 pt-5 text-center text-sm text-mictlan-sage-muted">
-        ¿Aún no tienes cuenta? <AccountTextLink href={continueToCheckout ? '/cuenta/registro?continuar=checkout' : '/cuenta/registro'}>Crear una cuenta</AccountTextLink>
+      <div className="sign-in-register mt-8 border-t border-mictlan-sand/10 pt-5">
+        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center">
+          <div>
+            <p className="font-display text-sm leading-snug sm:text-base text-mictlan-ivory">¿Aún no tienes cuenta?</p>
+          </div>
+          <Link
+            href={continueToCheckout ? '/cuenta/registro?continuar=checkout' : '/cuenta/registro'}
+            className="inline-flex min-h-9 shrink-0 items-center justify-center border border-mictlan-teal/30 px-3 py-1.5 font-ui text-[0.6875rem] sm:text-xs font-medium tracking-wide text-mictlan-sage-muted transition-colors hover:border-mictlan-teal/60 hover:text-mictlan-teal focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-mictlan-teal"
+          >
+            Crear una cuenta
+          </Link>
+        </div>
       </div>
     </AccountCard>
   );

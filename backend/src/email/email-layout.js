@@ -21,7 +21,7 @@ export function escapeHtml(value) {
 export function emailBrandImageUrl(appBaseUrl) {
   if (typeof appBaseUrl !== 'string' || !appBaseUrl) return null;
   try {
-    return new URL('/images/brand/senor-del-mictlan-email.jpg', appBaseUrl).toString();
+    return new URL('/images/brand/senor-del-mictlan-brand.png', appBaseUrl).toString();
   } catch {
     return null;
   }
@@ -36,23 +36,26 @@ export function renderBrandedEmail(contentHtml, { brandImageUrl } = {}) {
 <html lang="es">
   <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <meta name="supported-color-schemes" content="dark">
   </head>
-  <body style="margin:0;padding:0;background-color:${EMAIL_COLORS.background};color:${EMAIL_COLORS.ivory};font-family:Arial,Helvetica,sans-serif">
-    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;background-color:${EMAIL_COLORS.background}">
+  <body bgcolor="${EMAIL_COLORS.background}" style="margin:0;padding:0;background-color:${EMAIL_COLORS.background};color:${EMAIL_COLORS.ivory};font-family:Arial,Helvetica,sans-serif">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" bgcolor="${EMAIL_COLORS.background}" style="width:100%;background-color:${EMAIL_COLORS.background}">
       <tr>
-        <td align="center" style="padding:36px 16px">
-          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="width:100%;max-width:560px;background-color:${EMAIL_COLORS.background};border:1px solid rgba(151,210,198,0.24)">
+        <td align="center" bgcolor="${EMAIL_COLORS.background}" style="padding:36px 16px;background-color:${EMAIL_COLORS.background}">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" bgcolor="${EMAIL_COLORS.background}" style="width:100%;max-width:560px;background-color:${EMAIL_COLORS.background};border:1px solid #29423b">
             <tr>
-              <td style="padding:0">
+              <td bgcolor="${EMAIL_COLORS.background}" style="padding:0;background-color:${EMAIL_COLORS.background}">
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:collapse">
                   <tr>
-                    <td style="padding:12px 28px;background-color:${EMAIL_COLORS.background}">${brandHeader}</td>
+                    <td bgcolor="${EMAIL_COLORS.background}" style="padding:12px 28px;background-color:${EMAIL_COLORS.background}">${brandHeader}</td>
                   </tr>
                   <tr>
-                    <td style="padding:24px 28px 32px">
+                    <td bgcolor="${EMAIL_COLORS.background}" style="padding:24px 28px 32px;background-color:${EMAIL_COLORS.background}">
                       <div style="width:40px;height:1px;margin:18px 0 24px;background-color:${EMAIL_COLORS.teal}"></div>
                       ${contentHtml}
-                      <p style="margin:28px 0 0;border-top:1px solid rgba(224,205,184,0.16);padding-top:18px;color:${EMAIL_COLORS.earthMuted};font-size:11px;letter-spacing:1.2px;line-height:1.6;text-transform:uppercase">Señor del Mictlán · Etúcuaro, Michoacán</p>
+                      <p style="margin:28px 0 0;border-top:1px solid #352f26;padding-top:18px;color:${EMAIL_COLORS.earthMuted};font-size:11px;letter-spacing:1.2px;line-height:1.6;text-transform:uppercase">Señor del Mictlán · Etúcuaro, Michoacán</p>
                     </td>
                   </tr>
                 </table>

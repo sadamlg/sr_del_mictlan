@@ -3,6 +3,10 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 export const CHECKOUT_RETURN_MAX_ATTEMPTS = 20;
 
+export function isStripeCheckoutSessionId(value) {
+  return typeof value === 'string' && value.length <= 255 && /^cs_(?:test|live)_[A-Za-z0-9]+$/.test(value);
+}
+
 export function checkoutReturnPollDelay(attempt) {
   const retryNumber = Number.isInteger(attempt) && attempt > 0 ? attempt : 1;
   return Math.min(750 * (2 ** Math.min(retryNumber - 1, 2)), 3000);
@@ -66,7 +70,7 @@ export function validateHostedCheckoutUrl(value) {
 
 export function checkoutReturnMessage(status) {
   const messages = {
-    PENDING: { kind: 'info', message: 'Stripe recibió tu regreso. Esperamos la confirmación del pago para registrar el pedido.' },
+    PENDING: { kind: 'info', message: 'Estamos esperando la confirmación del pago para registrar tu pedido. Si acabas de pagar, no vuelvas a intentarlo; actualiza en unos minutos.' },
     PAID: { kind: 'success', message: 'Pago confirmado. Tu pedido aparece en esta lista.' },
     FAILED: { kind: 'error', message: 'El pago no se completó. Tu carrito sigue disponible para intentarlo de nuevo.' },
     EXPIRED: { kind: 'error', message: 'La sesión de pago venció. Tu carrito sigue disponible para continuar.' },

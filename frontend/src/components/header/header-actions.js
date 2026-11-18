@@ -5,10 +5,10 @@ import { useCart } from '../cart/cart-provider.js';
 import { useDesktopViewport } from '../../hooks/use-desktop-viewport.js';
 
 export default function HeaderActions() {
-  const { activePanel, toggleCart, totalCount } = useCart();
+  const { activePanel, isCartClosing, toggleCart, totalCount } = useCart();
   const isDesktop = useDesktopViewport();
   const cartOpen = activePanel === 'cart';
-  const closeIcon = cartOpen && !isDesktop;
+  const closeIcon = cartOpen && !isCartClosing && !isDesktop;
   const itemLabel = totalCount === 1 ? 'producto' : 'productos';
   return (
     <div className="order-3 flex flex-1 items-center justify-end gap-1 lg:flex-none">

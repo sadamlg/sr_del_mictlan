@@ -40,18 +40,27 @@ Los eventos `checkout.session.completed` y `checkout.session.async_payment_succe
 
 ## Separación de entornos
 
-El listener local no publica un endpoint del Dashboard. Staging necesitará su propio dominio HTTPS, destino de eventos, claves de prueba y secreto `whsec_…`; esa preparación pertenece a la Fase 08. Producción requiere claves live, un endpoint distinto y precios comerciales aprobados. No compartas secretos de un entorno con otro ni los copies al repositorio.
+El listener local no publica un endpoint del Dashboard. En Staging, el `Backend` público recibe los webhooks; verifica el destino y sus entregas del sandbox antes de aceptar el flujo. Producción requiere claves live, un endpoint distinto y precios comerciales aprobados. No compartas secretos entre entornos ni los copies al repositorio. Los nombres y valores de referencia de Railway están en [RAILWAY.md](RAILWAY.md#configuracion-de-referencia-de-staging).
 
 ## Webhook público de staging
 
-Cuando la API de staging esté desplegada y tenga un origen HTTPS público comprobado, registra en el sandbox de Stripe un destino de eventos de tipo webhook con URL `https://<dominio-publico-api>/api/webhooks/stripe`. El dominio público de la API recibe el webhook; el proxy del frontend no es el destino. Un dominio proporcionado por el alojamiento sirve si es accesible por HTTPS. No registres una URL ficticia ni la URL local.
+Para crear o verificar el destino de este Staging, usa la URL `https://backend-staging-c2e45865.up.railway.app/api/webhooks/stripe` mientras ése siga siendo el dominio asignado al servicio `Backend`. El dominio público del Backend recibe el webhook; el proxy del Frontend no es el destino. Si Railway cambia el dominio, reemplázalo con el vigente que aparece en su panel. No registres una URL ficticia ni la URL local.
 
-1. En Workbench, revisa los destinos existentes para evitar duplicados. Crea un destino de eventos **snapshot** para la cuenta del sandbox y selecciona sólo `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed` y `checkout.session.expired`.
+1. En Workbench, revisa los destinos existentes para evitar duplicados. Actualiza el destino existente o, si no hay uno, crea un destino de eventos **snapshot** para la cuenta del sandbox. Selecciona sólo `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed` y `checkout.session.expired`.
 2. Comprueba la versión de API del destino frente a la versión usada por el SDK de Stripe del proyecto; verifica el payload en staging antes de aceptar la integración.
-3. Configura exclusivamente en el servicio API de staging `CHECKOUT_ENABLED=true`, `STRIPE_MODE=test`, `STRIPE_SECRET_KEY` con su clave secreta de prueba y `STRIPE_WEBHOOK_SECRET` con el secreto de firma del destino público. `STRIPE_MEDIA_BASE_URL` puede apuntar a una base pública HTTPS de medios del entorno. Configura `FRONTEND_ORIGIN` con el origen HTTPS del frontend de staging.
+3. Configura exclusivamente en el servicio Railway `Backend` (la API) de Staging `CHECKOUT_ENABLED=true`, `STRIPE_MODE=test`, `STRIPE_SECRET_KEY` con su clave secreta de prueba y `STRIPE_WEBHOOK_SECRET` con el secreto de firma del destino público. `STRIPE_MEDIA_BASE_URL` puede apuntar a una base pública HTTPS de medios del entorno. Configura `FRONTEND_ORIGIN` con el origen HTTPS de `Frontend`.
 4. El secreto `whsec_…` del destino público es distinto del que muestra `stripe listen`. La aplicación usa Checkout alojado desde el servidor y no requiere una clave publicable `pk_test_…` en el frontend para este flujo.
-5. Ejecuta un Checkout de prueba desde staging. Verifica en Stripe la entrega exitosa del evento y en la aplicación el pedido pagado y la actualización del carrito; registra fecha, versión desplegada y resultado sin guardar secretos ni datos de tarjeta.
+5. Ejecuta un Checkout de prueba desde staging. Verifica que Stripe reciba una respuesta `2xx` del webhook y que la aplicación muestre el pedido pagado y actualice el carrito. El regreso verde de Checkout por sí solo no confirma el pedido en la tienda.
 
-Este procedimiento describe una configuración futura y no afirma que el endpoint, las variables o el despliegue existan. Consulta [webhooks de Stripe](https://docs.stripe.com/webhooks) y [claves de API](https://docs.stripe.com/keys?locale=es-419).
+#### Si cambia el dominio del Backend
+
+El destino de Stripe conserva la URL que se registró aunque Railway asigne un dominio público nuevo al servicio. Después de cambiarlo:
+
+1. Copia el dominio vigente desde **Backend → Settings → Networking** en Railway y actualiza el destino del sandbox a `https://<dominio-actual>/api/webhooks/stripe`. Si el destino ya existe, edítalo en vez de crear otro.
+2. Conserva los cuatro eventos indicados arriba. Si creas un destino nuevo, copia su nuevo secreto de firma en `STRIPE_WEBHOOK_SECRET` del servicio `Backend` y despliega ese servicio antes de reenviar eventos.
+3. Comprueba que una entrega de cada evento reciba `2xx`. Si Stripe muestra `404`, la URL o la ruta no corresponde al Backend vigente: el evento no se procesa, el pedido sigue pendiente y no se crea la tarea de correo de compra. El Worker no puede enviar un comprobante que no llegó a su cola.
+4. Confirma el estado del pago directamente en Stripe antes de pedir al comprador que intente pagar otra vez. Corrige el destino antes de usar **Resend** para una entrega fallida.
+
+Consulta [webhooks de Stripe](https://docs.stripe.com/webhooks) y [claves de API](https://docs.stripe.com/keys?locale=es-419).
 
 Si Stripe no muestra una tarjeta guardada, confirma que la persona aceptó el consentimiento para reutilizarla y que Stripe la considera visible en otro Checkout. Checkout alojado administra el formulario y los datos de pago; la tienda sólo presenta marca, últimos cuatro dígitos y vencimiento elegible. [Stripe documenta los clientes existentes y la reutilización de tarjetas](https://docs.stripe.com/payments/existing-customers?platform=web&ui=stripe-hosted).

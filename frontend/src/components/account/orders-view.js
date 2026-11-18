@@ -1,10 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { accountRequest } from '../../lib/account-api.js';
 import {
   CHECKOUT_RETURN_MAX_ATTEMPTS, checkoutReturnMessage, checkoutReturnPollDelay, createCheckoutTransferId,
+  isStripeCheckoutSessionId,
 } from '../../lib/checkout.js';
 import { reorderStateAfterNavigation } from '../../lib/account-navigation-state.js';
 import { useAccountSession } from './account-session.js';
@@ -15,8 +16,18 @@ import SignOutButton from './sign-out-button.js';
 import useAccountViewReset from './use-account-view-reset.js';
 import { AccountButton, AccountCard, AccountLink, AccountNavigation, AccountNotice } from './account-ui.js';
 
+const RETURN_STORAGE_EVENT = 'mictlan:checkout-return-updated';
+function subscribeToReturnSession(callback) {
+  window.addEventListener('storage', callback);
+  window.addEventListener(RETURN_STORAGE_EVENT, callback);
+  return () => {
+    window.removeEventListener('storage', callback);
+    window.removeEventListener(RETURN_STORAGE_EVENT, callback);
+  };
+}
+
 export default function OrdersList() {
-  const { status: sessionStatus } = useAccountSession();
+  const { status: sessionStatus, account } = useAccountSession();
   const searchParams = useSearchParams();
   const router = useRouter();
   const { reorderPaidOrder, setCheckoutNotice, retry: refreshCart } = useCart();
@@ -25,16 +36,40 @@ export default function OrdersList() {
   const [orderImages, setOrderImages] = useState({});
   const [statusAttempt, setStatusAttempt] = useState(0);
   const [returnState, setReturnState] = useState({ sessionId: '', status: 'idle', message: '' });
+  const storageKey = account?.id ? `mictlan:checkout-return:${account.id}` : '';
+  const readReturnSession = useCallback(() => {
+    try {
+      const value = storageKey ? window.sessionStorage.getItem(storageKey) : '';
+      return isStripeCheckoutSessionId(value) ? value : '';
+    } catch {
+      return '';
+    }
+  }, [storageKey]);
+  const storedReturnSessionId = useSyncExternalStore(subscribeToReturnSession, readReturnSession, () => null);
+  const returnSessionReady = storedReturnSessionId !== null;
   const [reorderState, setReorderState] = useState({ id: '', busy: false, error: '' });
   const handledPaidSession = useRef('');
   const reorderTransfers = useRef(new Map());
-  const returnSessionId = searchParams.get('checkout') === 'return' ? searchParams.get('session_id') || '' : '';
+  const querySessionId = searchParams.get('checkout') === 'return' ? searchParams.get('session_id') || '' : '';
+  const queryReturnSessionId = isStripeCheckoutSessionId(querySessionId) ? querySessionId : '';
+  const returnSessionId = queryReturnSessionId || storedReturnSessionId;
   const resetBeforeLeaving = useCallback((navigationType) => {
     setState({ attempt: -1, status: 'loading', orders: [], error: '' });
     setReorderState((current) => reorderStateAfterNavigation(current, navigationType));
     if (navigationType === 'history' || navigationType === 'restore') setAttempt((value) => value + 1);
   }, []);
   useAccountViewReset(resetBeforeLeaving);
+
+  useEffect(() => {
+    if (sessionStatus !== 'account' || !storageKey || !queryReturnSessionId) return;
+    try {
+      window.sessionStorage.setItem(storageKey, queryReturnSessionId);
+      window.dispatchEvent(new Event(RETURN_STORAGE_EVENT));
+    } catch {
+      // The return URL remains usable when storage is unavailable.
+    }
+  }, [storageKey, queryReturnSessionId, sessionStatus]);
+
   useEffect(() => {
     if (sessionStatus !== 'account') return undefined;
     let active = true;
@@ -73,6 +108,14 @@ export default function OrdersList() {
         const status = ['PAID', 'FAILED', 'EXPIRED', 'NOT_FOUND', 'PENDING'].includes(result?.status) ? result.status : 'PENDING';
         const notice = checkoutReturnMessage(status);
         setReturnState({ sessionId: returnSessionId, status, message: notice.message, kind: notice.kind });
+        if (['PAID', 'FAILED', 'EXPIRED', 'NOT_FOUND'].includes(status)) {
+          try {
+            window.sessionStorage.removeItem(storageKey);
+            window.dispatchEvent(new Event(RETURN_STORAGE_EVENT));
+          } catch {
+            // Storage can be unavailable in restricted browser sessions.
+          }
+        }
         if (status === 'PAID' && handledPaidSession.current !== returnSessionId) {
           handledPaidSession.current = returnSessionId;
           setAttempt((value) => value + 1);
@@ -87,7 +130,7 @@ export default function OrdersList() {
     };
     void checkStatus();
     return () => { active = false; window.clearTimeout(timeoutId); };
-  }, [returnSessionId, sessionStatus, statusAttempt, refreshCart]);
+  }, [storageKey, returnSessionId, sessionStatus, statusAttempt, refreshCart]);
 
   const stateStatus = state.attempt === attempt ? state.status : 'loading';
   const visibleReturnState = returnState.sessionId === returnSessionId
@@ -104,9 +147,18 @@ export default function OrdersList() {
         ? <div className="space-y-4"><AccountNotice variant="error" role="alert">{state.error}</AccountNotice><AccountButton type="button" onClick={() => setAttempt((value) => value + 1)}>Intentar de nuevo</AccountButton></div>
         : state.orders.length === 0
           ? <div className="py-8 text-center">
-            <h2 className="font-display text-xl text-mictlan-ivory">Aún no tienes pedidos</h2>
-            <p className="mt-2 text-sm leading-6 text-mictlan-sage-muted">Cuando realices un pedido, aparecerá aquí.</p>
-            <AccountLink href="/#coleccion" className="mt-5">Explorar la colección</AccountLink>
+            {returnSessionId && ['PENDING', 'checking', 'error'].includes(visibleReturnState.status)
+              ? <>
+                <h2 className="font-display text-xl text-mictlan-ivory">Estamos confirmando tu compra</h2>
+                <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-mictlan-sage-muted">Tu pedido aparecerá aquí cuando recibamos la confirmación del pago. No vuelvas a pagar; puedes actualizar en unos minutos.</p>
+              </>
+              : !returnSessionReady
+                ? <AccountNotice role="status">Consultando el estado de tus compras…</AccountNotice>
+                : <>
+                  <h2 className="font-display text-xl text-mictlan-ivory">Aún no tienes pedidos</h2>
+                  <p className="mt-2 text-sm leading-6 text-mictlan-sage-muted">Cuando realices un pedido, aparecerá aquí.</p>
+                  <AccountLink href="/#coleccion" className="mt-5">Explorar la colección</AccountLink>
+                </>}
           </div>
           : <div className="space-y-4">{state.orders.map((order) => <OrderSummary key={order.id} order={order} images={orderImages} busy={reorderState.busy} active={reorderState.busy && reorderState.id === order.id} onReorder={async () => {
               setReorderState({ id: order.id, busy: true, error: '' });
