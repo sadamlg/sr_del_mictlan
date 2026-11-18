@@ -4,9 +4,10 @@ import { useSearchParams } from 'next/navigation';
 import AccountAccess from './account-access.js';
 import { AccountCard, AccountLink } from './account-ui.js';
 import CheckoutView from './checkout-view.js';
+import OrdersList from './orders-view.js';
 import LoginForm from './sign-in-view.js';
 import {
-  ChangePasswordForm, EmailConfirmation, OrdersList, PasswordRecoveryForm,
+  ChangePasswordForm, EmailConfirmation, PasswordRecoveryForm,
   PasswordResetForm, ProfileForm, RegistrationForm,
 } from './account-forms.js';
 

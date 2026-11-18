@@ -17,8 +17,8 @@ export function createCartRepository(database) {
     setAccountCartItem({ accountId, productId, quantity }) {
       return database.accountCartItem.upsert({
         where: { accountId_productId: { accountId, productId } },
-      create: { accountId, productId, quantity, version: randomUUID() },
-      update: { quantity, version: randomUUID() },
+        create: { accountId, productId, quantity, version: randomUUID() },
+        update: { quantity, version: randomUUID() },
       });
     },
 

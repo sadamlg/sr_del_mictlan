@@ -24,9 +24,7 @@ function wrap(handler) {
 }
 
 export function createCartHandlers({ accountService, cartService }) {
-  const currentAccount = async (request) => {
-    return accountService.getSession(readSessionCookie(request));
-  };
+  const currentAccount = (request) => accountService.getSession(readSessionCookie(request));
   return {
     getAccountCart: wrap(async (request) => ({ cart: await cartService.getAccountCart((await currentAccount(request)).id) })),
     setAccountItem: wrap(async (request) => {

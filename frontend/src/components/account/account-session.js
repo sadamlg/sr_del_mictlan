@@ -3,7 +3,6 @@
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { ACCOUNT_SESSION_CHANGED_EVENT } from '../../lib/account-api.js';
 import { loadAccountSession } from '../../lib/account-session-state.js';
-export { loadAccountSession } from '../../lib/account-session-state.js';
 
 const AccountSessionContext = createContext(null);
 

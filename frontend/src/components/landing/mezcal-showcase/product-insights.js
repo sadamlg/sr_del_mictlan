@@ -95,7 +95,7 @@ export default function ProductInsights({ product }) {
               setActive((current) => nextInsight(current, `touch:${key}`));
             }
           }}
-          className={`inline-flex min-h-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 font-ui text-xs font-semibold uppercase tracking-[0.06em] transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mictlan-teal sm:px-3 ${['profile', 'alcohol', 'volume'].includes(key) ? 'min-w-11' : ''} ${active === key ? 'border-mictlan-gold bg-mictlan-gold text-mictlan-brown-ink [text-shadow:none]' : 'border-mictlan-bone/55 bg-mictlan-ink/45 text-mictlan-bone hover:border-mictlan-gold hover:text-mictlan-gold'}`}
+          className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 font-ui text-xs font-semibold uppercase tracking-[0.06em] transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mictlan-teal sm:px-3 ${active === key ? 'border-mictlan-gold bg-mictlan-gold text-mictlan-brown-ink [text-shadow:none]' : 'border-mictlan-bone/55 bg-mictlan-ink/45 text-mictlan-bone hover:border-mictlan-gold hover:text-mictlan-gold'}`}
         >
           {display}
         </button>

@@ -45,7 +45,6 @@ function makeService(overrides = {}) {
     getProfile: async () => publicAccount,
     updateProfile: async () => publicAccount,
     changePassword: async () => ({ message: 'Actualizamos tu contraseña.', sessionToken: 's'.repeat(43) }),
-    listOrders: async () => [],
     ...overrides,
   };
 }
