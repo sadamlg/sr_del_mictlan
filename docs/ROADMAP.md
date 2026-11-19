@@ -14,7 +14,7 @@ El alcance aprobado está en [MVP_SCOPE.md](MVP_SCOPE.md), las decisiones transv
 | 05 · Carritos | Carrito de invitado y cuenta | Completada |
 | 06 · Checkout y pedidos | Pagos Stripe y órdenes confirmadas por webhook | Completada |
 | 07 · Correo y PDF | Worker y mensajes transaccionales | Implementación local completada; integración externa validada en fase 08 |
-| 08 · Staging | Despliegue e integración de proveedores | En curso: servicios desplegados; aceptación integral pendiente |
+| 08 · Staging | Despliegue e integración de proveedores | Completada |
 | 09 · Validación previa a Producción | Aceptación de calidad, seguridad y recuperación | Planeada |
 | 10 · Producción | Entorno público y salida autorizada | Planeada |
 
@@ -67,16 +67,16 @@ flowchart LR
 - PostgreSQL conserva los trabajos de correo; el Worker procesa confirmaciones de cuenta, recuperación y compra con PDF. Compose usa Mailpit; Railway usa la API HTTPS de Resend.
 - `MAIL_FROM` se usa para cuenta y `RESEND_FROM` para compras. Cada entorno debe mantener su clave y configuración propias. PR #17 cerró la integración local (`1cebfdc`); la entrega de correo de registro se confirmó en Staging.
 
-### 08. Staging — en curso
+### 08. Staging — completada
 
-- Railway tiene cuatro servicios (`postgres`, `Backend`, `worker` y `Frontend`) en California (`us-west2`), una réplica por servicio. El despliegue se integró mediante PR #18 (`8d88eb9`); la [guía de Railway](architecture/services/RAILWAY.md) contiene el orden y la configuración actual de referencia.
-- El catálogo, el carrito y el correo de confirmación de cuenta se comprobaron en el entorno. Staging mantiene Stripe en modo `test` con `CHECKOUT_ENABLED=true`.
-- Falta aceptar los recorridos integrales de cuenta, Turnstile, Checkout, webhook, pedido, PDF/correo y recuperación. Si una métrica de memoria requiere ajuste, se debe identificar antes el proceso responsable y corregir la causa, no cambiar límites por intuición.
+- Railway opera `postgres`, `Backend`, `worker` y `Frontend` en California (`us-west2`), con una réplica por servicio. El despliegue se integró mediante PR #18 (`8d88eb9`); la [guía de Railway](architecture/services/RAILWAY.md) conserva el procedimiento reproducible y la configuración de referencia.
+- Integración de proveedores y recorridos de registro, confirmación por correo, Turnstile, sesión, recuperación de contraseña y compra de prueba con Stripe, webhook, pedido y correo/PDF aceptados en Staging el 2026-11-18 por el responsable del proyecto. Candidato desplegado: `cb5a64d` (merge del PR #20). Stripe permaneció en modo `test` con `CHECKOUT_ENABLED=true`.
+- La aceptación cubre los flujos funcionales en escritorio y móvil. La validación previa a Producción de calidad, accesibilidad, rendimiento, seguridad, restauración y presentación visual en clientes de correo corresponde a la fase 09.
 
 ### 09. Validación previa a Producción — planeada
 
 - Aceptar recorridos críticos en Staging en escritorio y móvil; revisar accesibilidad, rendimiento y seguridad del candidato.
-- Preparar `docs/quality/QUALITY-AND-RELEASE.md` con Playwright y axe, Lighthouse, ZAP Baseline y revisión manual. Aceptar lint, pruebas y build del mismo candidato; resolver hallazgos altos/críticos confirmados antes de Producción.
+- Preparar `docs/quality/QUALITY-AND-RELEASE.md` con Playwright y axe, Lighthouse, ZAP Baseline y revisión manual. Aceptar lint, pruebas y build del mismo candidato; revisar accesibilidad y presentación visual de los recorridos y correos en clientes prioritarios; resolver hallazgos altos/críticos confirmados antes de Producción.
 - Acordar y comprobar respaldo, restauración aislada, alertas de disponibilidad y rollback. Definir objetivos de accesibilidad, rendimiento y SEO, responsables y presupuesto antes de ejecutar la aceptación.
 
 ### 10. Producción — planeada
