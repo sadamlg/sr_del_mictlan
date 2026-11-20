@@ -81,3 +81,38 @@ jobs:
       - name: Generate Prisma Client
         run: npm run prisma:generate
         working-directory: backend
+
+  database-integration:
+    name: Database integration
+    runs-on: ubuntu-latest
+    env:
+      COMPOSE_PROJECT_NAME: phase09-ci-${{ github.run_id }}-${{ github.run_attempt }}
+      POSTGRES_DB: phase09_test
+      POSTGRES_USER: phase09_test
+      POSTGRES_PASSWORD: phase09_ci_only
+      DATABASE_URL: postgresql://phase09_test:phase09_ci_only@postgres:5432/phase09_test
+      POSTGRES_PORT: 25432
+      MAILPIT_PORT: 28025
+      BACKEND_PORT: 25400
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build isolated backend image
+        run: docker compose -f compose.yaml -f compose.phase09.yaml build backend
+      - name: Start isolated PostgreSQL, Mailpit and API
+        run: >-
+          docker compose -f compose.yaml -f compose.phase09.yaml
+          up --detach --wait --wait-timeout 180 postgres mailpit backend
+      - name: Run PostgreSQL integration tests
+        run: >-
+          docker compose -f compose.yaml -f compose.phase09.yaml
+          exec -T -e CART_DATABASE_TEST=1 -e CHECKOUT_DATABASE_TEST=1
+          -e EMAIL_DELIVERY_DATABASE_TEST=1 backend npm run test:db
+      - name: Show service logs after failure
+        if: failure()
+        run: docker compose -f compose.yaml -f compose.phase09.yaml logs --no-color
+      - name: Remove isolated test services and data
+        if: always()
+        run: docker compose -f compose.yaml -f compose.phase09.yaml down --volumes --remove-orphans

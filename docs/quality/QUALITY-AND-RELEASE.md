@@ -6,7 +6,7 @@ Esta guía define la preparación, el orden y los criterios de la fase **09 · V
 
 La fase requiere que la [fase 08](../ROADMAP.md#08-staging--completada) esté aceptada y que Staging esté operativo. Antes de cada validación remota, comprueba despliegues, hostnames y SHA de `Frontend`, `Backend` y `worker`. Para la entrega externa de correo, sigue la [guía de Resend](../architecture/services/RESEND.md); la configuración del Worker en Railway está en [RAILWAY.md](../architecture/services/RAILWAY.md). Registra la evidencia resumida en el roadmap; esta guía contiene el procedimiento, no resultados de ejecuciones.
 
-El flujo existente ejecuta pruebas con `node:test`, ESLint, build de Frontend y validación/generación de Prisma mediante GitHub Actions. Esta preparación agrega Playwright y axe con versiones exactas, una suite corta de navegador y su ejecución en CI; CI también ejecuta el caso de indexación con `ROBOTS_INDEXABLE=true` para cubrir el opt-in. Lighthouse y ZAP siguen siendo herramientas puntuales de auditoría, no checks de cada PR. Las pruebas opcionales de base de datos se ejecutan sólo mediante una composición aislada.
+GitHub Actions ejecuta pruebas con `node:test`, ESLint, build de Frontend, validación/generación de Prisma, Playwright/axe y una integración de base de datos en un proyecto Docker efímero. CI también verifica el opt-in de indexación con `ROBOTS_INDEXABLE=true`. Lighthouse y ZAP siguen siendo auditorías puntuales del candidato, no checks de cada PR.
 
 ## Objetivo y alcance
 
@@ -99,7 +99,7 @@ Antes de recorridos que creen cuentas, envíen correo, creen pedidos o cambien c
 
 ### 2. Validar código y dependencias del candidato
 
-El workflow vigente de [CI](../../.github/workflows/ci.yml) corre en PR y push a `develop` y `main`. Usa Node `24.21.0` y lockfiles. Frontend ejecuta `npm test`, `npm run lint` y `npm run build`; Backend ejecuta `npm test`, `npm run lint`, `npm run prisma:validate` y `npm run prisma:generate`. No existe un script `build` de Backend. Comprueba los checks del commit exacto; una ejecución de otra rama o SHA no sustituye este requisito.
+El workflow vigente de [CI](../../.github/workflows/ci.yml) corre en PR y push a `develop` y `main`. Usa Node `24.21.0` y lockfiles. Frontend ejecuta `npm test`, `npm run lint`, los recorridos Playwright/axe y `npm run build`; Backend ejecuta `npm test`, `npm run lint`, `npm run prisma:validate` y `npm run prisma:generate`. Un job aparte construye un entorno Compose efímero con PostgreSQL y Mailpit y ejecuta `npm run test:db`; cada ejecución elimina sólo su proyecto y volumen temporales. No existe un script `build` de Backend. Comprueba los checks del commit exacto; una ejecución de otra rama o SHA no sustituye este requisito.
 
 Railway despliega automáticamente los commits de la rama conectada cuando esa función está habilitada. Para cerrar el circuito CI/CD, comprueba en cada servicio la rama, el autodespliegue, **Wait for CI** y el SHA activo; configura protección de ramas y checks obligatorios para impedir que un merge con CI fallido llegue a `develop`. Un despliegue sano no demuestra que los checks pasaron ni que todos los servicios ejecutan el mismo candidato. [Autodespliegues de Railway](https://docs.railway.com/deployments/github-autodeploys).
 
