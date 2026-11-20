@@ -23,6 +23,20 @@ test('public media keep their external origin and optional base path', async () 
   );
 });
 
+test('media preconnect uses only the secure origin and omits the object path', async () => {
+  const { mediaOrigin } = await import('../src/lib/media-url.js');
+
+  assert.equal(mediaOrigin('https://media.example.test/staging/'), 'https://media.example.test');
+});
+
+test('media preconnect skips empty, insecure, malformed, or credential-bearing URLs', async () => {
+  const { mediaOrigin } = await import('../src/lib/media-url.js');
+
+  for (const base of ['', 'http://localhost:9000', 'not-a-url', 'https://user:secret@media.example.test']) {
+    assert.equal(mediaOrigin(base), null);
+  }
+});
+
 test('bypasses server-side image optimization for private HTTP media only in development', async () => {
   const { shouldBypassNextImageOptimization } = await import('../src/lib/media-url.js');
 

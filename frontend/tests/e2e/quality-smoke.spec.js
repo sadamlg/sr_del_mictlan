@@ -72,6 +72,23 @@ async function scrollToCollection(page) {
   await collection.scrollIntoViewIfNeeded();
 }
 
+test('landing anticipa la conexión al origen externo de medios', async ({ safePage }) => {
+  const { page } = safePage;
+  await page.goto('/');
+
+  const backgroundSrc = await page.locator('#coleccion picture img').getAttribute('src');
+  expect(backgroundSrc).toBeTruthy();
+
+  const mediaOrigin = new URL(backgroundSrc).origin;
+  const pageOrigin = new URL(page.url()).origin;
+  if (mediaOrigin === pageOrigin) return;
+
+  const preconnectOrigins = await page.locator('head link[rel="preconnect"]').evaluateAll((links) =>
+    links.map((link) => new URL(link.href).origin),
+  );
+  expect(preconnectOrigins).toContain(mediaOrigin);
+});
+
 test('landing: edad, foco del diálogo y accesibilidad', async ({ safePage }, testInfo) => {
   const { page } = safePage;
   await openAsGuest(page, '/');
