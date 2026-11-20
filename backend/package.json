@@ -32,6 +32,7 @@
     "prisma": "7.10.1"
   },
   "overrides": {
+    "effect": "3.22.1",
     "minimatch": "11.0.1"
   }
 }

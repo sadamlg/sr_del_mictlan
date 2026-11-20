@@ -72,12 +72,12 @@ flowchart LR
 
 ### 09. Validación previa a Producción — en curso
 
-**Resultado de fase:** la validación local cubre los controles funcionales y de calidad definidos. Las correcciones de encabezados, accesibilidad e indexación están en el código actual; falta aceptar el candidato desplegado.
+**Resultado de fase:** CI y las pruebas locales cubren controles funcionales, accesibilidad, auditoría de dependencias, integración de base de datos y la restauración cifrada de un respaldo sintético. Las correcciones de encabezados e indexación están en el código; falta aceptar el candidato desplegado y cerrar los controles operativos externos.
 
 - Staging conserva pagos en modo de prueba y requiere no indexación. Antes de aceptar el dominio, verificamos que los cuatro servicios estén disponibles y que la respuesta efectiva mantenga esa política.
 - La revisión identificó fallos de encabezados y accesibilidad que ya corregimos en el código. La revisión pasiva no confirmó hallazgos críticos o altos; antes de Production quedan la revalidación del candidato y los controles de confianza del proxy, Cloudflare y GitHub. Este análisis no sustituye una prueba de penetración completa.
 - La línea base de Lighthouse es 70/100 en rendimiento móvil y 14.25 s de LCP. Acordamos un umbral de aceptación y perfilamos el LCP antes de elegir optimizaciones.
-- El respaldo diario cifrado con `pg_dump` hacia R2 privado es la estrategia del proyecto. La [guía de respaldos](architecture/services/POSTGRES-BACKUPS.md) define el procedimiento; la automatización, una restauración demostrada y la medición del RTO siguen siendo puertas para Production.
+- El job `pg_dump` cifra y valida copias con una prueba aislada de restauración sintética. Configurar el Cron, bucket/credenciales R2, alertas, retención y medir el RTO queda pendiente antes de respaldar datos reales.
 - La aceptación de accesibilidad requiere completar zoom real al 200% y navegación con lector de pantalla.
 
 ### 10. Producción — planeada

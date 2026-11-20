@@ -1,0 +1,18 @@
+FROM public.ecr.aws/aws-cli/aws-cli:2.41.1@sha256:538a9a80bc7c78e3228bc65100404a5dbd89ad812a547004c05ea20109543432 AS awscli
+
+FROM postgres:18.6-bookworm
+
+ENV AWS_EC2_METADATA_DISABLED=true
+WORKDIR /tmp
+
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends age ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=awscli /usr/local/aws-cli /usr/local/aws-cli
+RUN ln -s /usr/local/aws-cli/v2/current/bin/aws /usr/local/bin/aws
+
+COPY --chmod=755 scripts/backup-postgres.sh /usr/local/bin/backup-postgres
+
+USER postgres
+ENTRYPOINT ["backup-postgres"]

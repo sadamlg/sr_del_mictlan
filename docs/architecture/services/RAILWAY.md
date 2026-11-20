@@ -1,6 +1,6 @@
 # Despliegue en Railway: local, staging y producción
 
-Esta guía describe cómo preparamos los servicios de aplicación y base, conectamos sus dependencias y los desplegamos en orden. Usa nombres de variables y referencias de servicio como plantillas; sustituye sus valores según el entorno sin copiar datos de Staging a Production. El servicio Cron `database-backup` sigue el diseño de [POSTGRES-BACKUPS.md](POSTGRES-BACKUPS.md).
+Esta guía describe cómo preparamos los servicios de aplicación y base, conectamos sus dependencias y los desplegamos en orden. Usa nombres de variables y referencias de servicio como plantillas; sustituye sus valores según el entorno sin copiar datos de Staging a Production. El repositorio incluye el job Cron `database-backup` descrito en [POSTGRES-BACKUPS.md](POSTGRES-BACKUPS.md); configura un servicio independiente por entorno y demuestra su recuperación antes de respaldar datos reales.
 
 Crear servicios, conectar el repositorio, configurar variables, añadir dominios o desplegar son cambios externos y requieren autorización explícita antes de aplicarse. Revisa el comportamiento de autodespliegue al conectar la rama: un push posterior puede iniciar un despliegue sin otra acción manual. En Railway inspecciona y aprueba la vista de cambios staged sólo después de la autorización correspondiente.
 
@@ -29,7 +29,7 @@ Railway puede importar servicios compatibles desde un archivo Compose, pero no t
 | `postgres` | PostgreSQL de Railway con volumen | Sólo red privada | Plantilla PostgreSQL; respaldos se configuran por separado |
 | `Backend` | `backend/` | Dominio público HTTPS para recibir webhooks de Stripe; las llamadas de `Frontend` usan la red privada | `backend/Dockerfile.production` |
 | `worker` | `backend/` | Sólo red privada | `backend/Dockerfile.production` |
-| `database-backup` | Job Cron efímero `pg_dump` cifrado | Sólo red privada; sin dominio | Ejecuta el procedimiento de [POSTGRES-BACKUPS.md](POSTGRES-BACKUPS.md) |
+| `database-backup` | Job Cron efímero `pg_dump` cifrado | Sólo red privada; sin dominio | `backend/Dockerfile.backup.production` |
 | `Frontend` | `frontend/` | Dominio público | `frontend/Dockerfile.production` |
 
 No despliegues Mailpit en Railway: es sólo para desarrollo local.
@@ -197,13 +197,46 @@ DATABASE_URL=postgresql://${{postgres.PGUSER}}:${{postgres.POSTGRES_PASSWORD}}@$
 FRONTEND_ORIGIN=https://${{Frontend.RAILWAY_PUBLIC_DOMAIN}}
 EMAIL_TRANSPORT=resend
 RESEND_API_KEY=re_EJEMPLO_NO_VALIDO
+HEALTHCHECKS_WORKER_PING_URL=https://hc-ping.com/00000000-0000-0000-0000-000000000000
 MAIL_FROM="<nombre-visible> <cuentas@<dominio-remitente-verificado>>"
 RESEND_FROM="<nombre-visible> <pedidos@<dominio-remitente-verificado>>"
 ```
 
-`MAIL_FROM` envía confirmación, recuperación y cambios de cuenta; `RESEND_FROM` envía confirmaciones de compra con PDF. Cada valor debe conservar el formato `Nombre visible <dirección@dominio-verificado>` y las comillas exteriores del Raw Editor. Estas direcciones identifican al remitente; no crean buzones para recibir respuestas. No añadas `PORT`, Stripe ni secretos Turnstile al Worker.
+`MAIL_FROM` envía confirmación, recuperación y cambios de cuenta; `RESEND_FROM` envía confirmaciones de compra con PDF. Cada valor debe conservar el formato `Nombre visible <dirección@dominio-verificado>` y las comillas exteriores del Raw Editor. Estas direcciones identifican al remitente; no crean buzones para recibir respuestas. `HEALTHCHECKS_WORKER_PING_URL` es opcional: usa la URL secreta del control configurado para el latido del Worker; el ejemplo artificial no es una URL operativa. No añadas `PORT`, Stripe ni secretos Turnstile al Worker.
 
 En Railway, el código envía por la API HTTPS de Resend los correos de compra y los de cuenta (registro, confirmación y recuperación de contraseña). Así funciona también en los planes de Railway que bloquean conexiones SMTP salientes. Mailpit y SMTP sólo se usan en Compose para desarrollo local; no configures variables `SMTP_*` en Railway.
+
+### Servicio Cron de respaldo PostgreSQL
+
+Configura un servicio `database-backup` independiente para cada entorno donde deban generarse copias. Conéctalo al repositorio del proyecto y usa:
+
+- **Root Directory:** `/backend`.
+- **Dockerfile Path:** `Dockerfile.backup.production` mediante `RAILWAY_DOCKERFILE_PATH`.
+- **Start Command:** sin sobrescribir; el `ENTRYPOINT` del Dockerfile ejecuta el job y termina al acabar.
+- **Cron Schedule:** `0 8 * * *` (08:00 UTC cada día); Railway puede variar unos minutos y omite una nueva ejecución si la anterior sigue activa.
+- **Dominio público:** ninguno.
+- **Red:** conexión privada al servicio `postgres` del mismo entorno.
+
+El job requiere una credencial R2 de mínimo privilegio para un bucket privado dedicado y la clave pública de `age`. Mantén la clave privada de descifrado fuera del repositorio, Railway y R2; resguárdala en un gestor de secretos externo con acceso de recuperación. Conserva los recursos y valores separados entre entornos. Consulta [Respaldo y restauración](POSTGRES-BACKUPS.md) para costos, retención, validación y simulacro.
+
+#### Plantilla `database-backup` — Raw Editor
+
+```env
+RAILWAY_DOCKERFILE_PATH=Dockerfile.backup.production
+DATABASE_URL=postgresql://${{postgres.PGUSER}}:${{postgres.POSTGRES_PASSWORD}}@${{postgres.RAILWAY_PRIVATE_DOMAIN}}:5432/${{postgres.PGDATABASE}}
+BACKUP_ENVIRONMENT=production
+BACKUP_AGE_RECIPIENT=age1EJEMPLO_PUBLICO_NO_VALIDO
+R2_BACKUP_BUCKET=srmictlan-backups-<entorno>
+R2_ACCOUNT_ID=00000000000000000000000000000000
+R2_ENDPOINT_URL=https://00000000000000000000000000000000.r2.cloudflarestorage.com
+R2_REGION=auto
+R2_ACCESS_KEY_ID=R2_ACCESS_KEY_EJEMPLO_NO_VALIDO
+R2_SECRET_ACCESS_KEY=R2_SECRET_EJEMPLO_NO_VALIDO
+AWS_EC2_METADATA_DISABLED=true
+HEALTHCHECKS_BACKUP_PING_URL=https://hc-ping.com/00000000-0000-0000-0000-000000000000
+```
+
+Los valores artificiales identifican la forma de cada dato y no autentican ni cifran una copia. Sustituye el nombre del entorno, crea el bucket/token en Cloudflare y genera `BACKUP_AGE_RECIPIENT` fuera del servicio. `HEALTHCHECKS_BACKUP_PING_URL` es opcional hasta que exista el control de alertas; el ejemplo no es una URL operativa. No agregues un dominio público, acceso público al bucket ni credenciales de medios a este job.
 
 ## 4. Configurar frontend
 
@@ -382,7 +415,7 @@ Mantén `ROBOTS_INDEXABLE=false` durante la preparación. Cámbiala a `true` só
 
 ### Respaldos y recuperación
 
-Nuestra arquitectura genera `pg_dump` diario con un job Cron independiente, cifra cada archivo y lo conserva en un bucket R2 privado. Así mantenemos una copia fuera de Railway y no dependemos de los snapshots nativos como única vía de recuperación. La [guía de respaldo PostgreSQL](POSTGRES-BACKUPS.md) describe el job, los costos, las alertas y el simulacro de restauración. Los snapshots nativos pueden complementar esta estrategia si el plan y el presupuesto lo permiten; no sustituyen la restauración externa demostrada. Comprueba el costo/plan vigente y restaura siempre en una base aislada. Consulta [respaldos de volumen](https://docs.railway.com/volumes/backups), [Cron](https://docs.railway.com/cron-jobs) y [respaldo/restauración PostgreSQL](https://railway.com/guides/postgres-backups-restores).
+El repositorio contiene el job Cron que genera `pg_dump`, cifra cada archivo y valida su carga/descarga; la prueba aislada restaura datos sintéticos, pero no crea una copia real en R2. Configura bucket, credenciales, clave y horario por separado en cada entorno, confirma costos y ejecuta una restauración completa antes de respaldar datos reales. Los snapshots nativos pueden complementar la estrategia si el plan y el presupuesto lo permiten. Consulta la [guía de respaldo PostgreSQL](POSTGRES-BACKUPS.md), [respaldos de volumen](https://docs.railway.com/volumes/backups), [Cron](https://docs.railway.com/cron-jobs) y [respaldo/restauración PostgreSQL](https://railway.com/guides/postgres-backups-restores).
 
 ## Referencias
 

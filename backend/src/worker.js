@@ -4,10 +4,12 @@ import { createEmailWorker } from './email/email-worker.js';
 import { createEmailTransport } from './email/email-transport.js';
 import { createSerialTask, createShutdown } from './runtime.js';
 import { recordHeartbeat } from './worker-heartbeat.js';
+import { createWorkerHealthchecks } from './worker-healthchecks.js';
 
 const heartbeatIntervalMs = 10_000;
 const emailIntervalMs = 2_000;
 const safeCode = (value) => typeof value === 'string' && /^[A-Z0-9_-]{1,48}$/.test(value) ? value : undefined;
+const pingHealthchecks = createWorkerHealthchecks({ pingUrl: process.env.HEALTHCHECKS_WORKER_PING_URL });
 
 const emailTransport = createEmailTransport(process.env);
 if (process.env.EMAIL_TRANSPORT === 'resend') {
@@ -27,7 +29,12 @@ const emailWorker = createEmailWorker({
   logger: console,
 });
 
-await recordHeartbeat(prisma);
+async function refreshWorkerHeartbeat() {
+  await recordHeartbeat(prisma);
+  await pingHealthchecks();
+}
+
+await refreshWorkerHeartbeat();
 console.log('Worker conectado a PostgreSQL.');
 
 
@@ -39,7 +46,7 @@ function logEmailJobError(error) {
   });
 }
 
-const heartbeatTask = createSerialTask(() => recordHeartbeat(prisma), heartbeatIntervalMs, () => {
+const heartbeatTask = createSerialTask(refreshWorkerHeartbeat, heartbeatIntervalMs, () => {
   console.error('No se pudo guardar la actividad del worker.');
 });
 const emailTask = createSerialTask(() => emailWorker.processNext(), emailIntervalMs, logEmailJobError);

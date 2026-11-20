@@ -30,6 +30,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
         working-directory: frontend
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
+        working-directory: frontend
       - name: Run tests
         run: npm test
         working-directory: frontend
@@ -45,7 +48,7 @@ jobs:
       - name: Verify explicit public indexing opt-in
         env:
           ROBOTS_INDEXABLE: true
-        run: npm run test:e2e -- --grep='indexación: sólo se permite con opt-in'
+        run: "npm run test:e2e -- --grep='indexación: sólo se permite con opt-in'"
         working-directory: frontend
       - name: Build frontend
         run: npm run build
@@ -68,6 +71,9 @@ jobs:
           package-manager-cache: false
       - name: Install dependencies
         run: npm ci
+        working-directory: backend
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
         working-directory: backend
       - name: Run tests
         run: npm test
@@ -110,6 +116,8 @@ jobs:
           docker compose -f compose.yaml -f compose.phase09.yaml
           exec -T -e CART_DATABASE_TEST=1 -e CHECKOUT_DATABASE_TEST=1
           -e EMAIL_DELIVERY_DATABASE_TEST=1 backend npm run test:db
+      - name: Verify isolated PostgreSQL backup and restore
+        run: bash scripts/test-backup-roundtrip.sh
       - name: Show service logs after failure
         if: failure()
         run: docker compose -f compose.yaml -f compose.phase09.yaml logs --no-color
