@@ -7,9 +7,11 @@ workdir="$(mktemp -d)"
 project_name="phase09-backup-${RANDOM}-${RANDOM}"
 env_file="$workdir/compose.env"
 identity_file="$workdir/age-identity"
-# The CI integration stack exports a fixed PostgreSQL host port. Keep this
-# second, independent Compose project on an OS-assigned ephemeral port.
-export POSTGRES_PORT=0
+# GitHub Actions exports integration-stack values in the process environment;
+# Docker Compose gives those precedence over this script's isolated env file.
+# Remove them so this project uses only its synthetic database and credentials.
+unset COMPOSE_PROJECT_NAME POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD DATABASE_URL
+unset POSTGRES_PORT MAILPIT_PORT BACKEND_PORT
 compose=(docker compose --project-name "$project_name" --env-file "$env_file" -f "$repo_root/compose.yaml" -f "$repo_root/compose.phase09.yaml")
 
 cleanup() {
