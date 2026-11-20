@@ -25,6 +25,11 @@ function getShowcaseObserverOptions() {
   };
 }
 
+function lockAgeGateScroll(body) {
+  body.classList.add('age-gate-open');
+  return () => body.classList.remove('age-gate-open');
+}
+
 function observeShowcase(document, window, onEnter) {
   let intersectionObserver;
   let mutationObserver;
@@ -66,6 +71,7 @@ function observeShowcase(document, window, onEnter) {
 export {
   AGE_GATE_PHASES,
   getShowcaseObserverOptions,
+  lockAgeGateScroll,
   nextAgeGatePhase,
   observeShowcase,
 };

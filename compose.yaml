@@ -72,7 +72,9 @@ services:
     environment:
       NODE_ENV: development
       DATABASE_URL: ${DATABASE_URL:?Define DATABASE_URL in .env}
-      EMAIL_TRANSPORT: smtp
+      EMAIL_TRANSPORT: ${EMAIL_TRANSPORT:-smtp}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      HEALTHCHECKS_WORKER_PING_URL: ${HEALTHCHECKS_WORKER_PING_URL:-}
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:3000}

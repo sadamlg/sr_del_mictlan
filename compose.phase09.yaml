@@ -2,3 +2,38 @@
 services:
   backend:
     image: sr-del-mictlan-backend:dev
+  s3mock:
+    image: adobe/s3mock:5.2.2
+    environment:
+      COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: phase09-backups
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/favicon.ico"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    restart: "no"
+  database-backup:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.backup.production
+    image: sr-del-mictlan-backup:test
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?Define DATABASE_URL for the isolated backup test}
+      BACKUP_ENVIRONMENT: phase09-test
+      BACKUP_AGE_RECIPIENT: ${BACKUP_AGE_RECIPIENT:-}
+      R2_BACKUP_BUCKET: phase09-backups
+      R2_ENDPOINT_URL: http://s3mock:9090
+      R2_REGION: us-east-1
+      R2_ACCESS_KEY_ID: phase09_test
+      R2_SECRET_ACCESS_KEY: phase09_test_secret
+      AWS_ACCESS_KEY_ID: phase09_test
+      AWS_SECRET_ACCESS_KEY: phase09_test_secret
+      AWS_EC2_METADATA_DISABLED: "true"
+      HEALTHCHECKS_BACKUP_PING_URL: ${HEALTHCHECKS_BACKUP_PING_URL:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      s3mock:
+        condition: service_healthy
+    restart: "no"

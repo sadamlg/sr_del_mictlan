@@ -11,32 +11,77 @@ function responseProbe() {
   };
 }
 
-test('limits requests by connection address and path, then releases the slot after the window', () => {
-  let now = 1000;
-  const limit = createAccountRateLimit({ limit: 2, windowMs: 1000, now: () => now });
-  const call = () => {
-    let nextCalled = false;
-    const response = responseProbe();
-    limit({ path: '/api/auth/login', ip: '127.0.0.1', headers: { 'x-real-ip': '203.0.113.1' } }, response, () => { nextCalled = true; });
-    return { response, nextCalled };
-  };
-  assert.equal(call().nextCalled, true);
-  assert.equal(call().nextCalled, true);
-  const rejected = call();
+function makeRequest({ ip = '10.0.0.2', path = '/api/auth/login', body, headers = {} } = {}) {
+  return { ip, path, body, headers, socket: { remoteAddress: ip } };
+}
+
+function run(limit, request) {
+  const response = responseProbe();
+  let nextCalled = false;
+  limit(request, response, () => { nextCalled = true; });
+  return { response, nextCalled };
+}
+
+test('separates accounts behind the same frontend proxy and limits one account across proxy addresses', () => {
+  const rateLimit = createAccountRateLimit({ limit: 2, windowMs: 1000, now: () => 1000 });
+  const login = (email, ip) => run(rateLimit, makeRequest({ ip, body: { email } }));
+
+  assert.equal(login('ana@example.mx', '10.0.0.2').nextCalled, true);
+  assert.equal(login('luis@example.mx', '10.0.0.2').nextCalled, true);
+  assert.equal(login('ana@example.mx', '10.0.0.3').nextCalled, true);
+  const rejected = login(' ANA@example.mx ', '10.0.0.4');
+
   assert.equal(rejected.response.statusCode, 429);
   assert.equal(rejected.response.headers['Retry-After'], '1');
-  now += 1001;
-  assert.equal(call().nextCalled, true);
 });
 
-test('does not allow client supplied forwarded addresses to allocate unbounded buckets', () => {
-  const limit = createAccountRateLimit({ limit: 1, windowMs: 60_000, maxEntries: 1, now: () => 1 });
-  let rejected = 0;
-  const request = (ip, forwarded) => ({ path: '/api/auth/login', ip, headers: { 'x-real-ip': forwarded } });
-  const run = (req) => limit(req, responseProbe(), () => {});
-  run(request('127.0.0.1', '203.0.113.1'));
-  const response = responseProbe();
-  limit(request('127.0.0.1', '203.0.113.2'), response, () => { rejected += 1; });
-  assert.equal(response.statusCode, 429);
-  assert.equal(rejected, 0);
+test('uses opaque tokens and authenticated session cookies as account identities', () => {
+  const rateLimit = createAccountRateLimit({ limit: 1, windowMs: 60_000, now: () => 1 });
+  const firstToken = run(rateLimit, makeRequest({ path: '/api/auth/password-resets', body: { token: 'token-one' } }));
+  const otherToken = run(rateLimit, makeRequest({ path: '/api/auth/password-resets', body: { token: 'token-two' } }));
+  const repeatedToken = run(rateLimit, makeRequest({ path: '/api/auth/password-resets', body: { token: 'token-one' } }));
+  const firstSession = run(rateLimit, makeRequest({ path: '/api/profile/password', headers: { cookie: 'mictlan_session=session-one' } }));
+  const otherSession = run(rateLimit, makeRequest({ path: '/api/profile/password', headers: { cookie: 'mictlan_session=session-two' } }));
+
+  assert.equal(firstToken.nextCalled, true);
+  assert.equal(otherToken.nextCalled, true);
+  assert.equal(repeatedToken.response.statusCode, 429);
+  assert.equal(firstSession.nextCalled, true);
+  assert.equal(otherSession.nextCalled, true);
+});
+
+test('does not use client supplied forwarding headers as an identity', () => {
+  const rateLimit = createAccountRateLimit({ limit: 1, windowMs: 60_000, now: () => 1 });
+  const first = run(rateLimit, makeRequest({
+    body: { email: 'ana@example.mx' }, headers: { 'x-forwarded-for': '203.0.113.1' },
+  }));
+  const spoofed = run(rateLimit, makeRequest({
+    body: { email: 'ANA@example.mx' }, headers: { 'x-forwarded-for': '203.0.113.2' },
+  }));
+
+  assert.equal(first.nextCalled, true);
+  assert.equal(spoofed.response.statusCode, 429);
+});
+
+test('evicts the oldest bucket at capacity instead of blocking every new identity', () => {
+  let now = 1;
+  const rateLimit = createAccountRateLimit({ limit: 1, windowMs: 60_000, maxEntries: 1, now: () => now });
+  const first = run(rateLimit, makeRequest({ body: { email: 'ana@example.mx' } }));
+  const second = run(rateLimit, makeRequest({ body: { email: 'luis@example.mx' } }));
+  const secondAgain = run(rateLimit, makeRequest({ body: { email: 'luis@example.mx' } }));
+
+  assert.equal(first.nextCalled, true);
+  assert.equal(second.nextCalled, true);
+  assert.equal(secondAgain.response.statusCode, 429);
+});
+
+test('releases an account bucket when the fixed window expires', () => {
+  let now = 1000;
+  const rateLimit = createAccountRateLimit({ limit: 1, windowMs: 1000, now: () => now });
+  const request = makeRequest({ body: { email: 'ana@example.mx' } });
+
+  assert.equal(run(rateLimit, request).nextCalled, true);
+  assert.equal(run(rateLimit, request).response.statusCode, 429);
+  now += 1001;
+  assert.equal(run(rateLimit, request).nextCalled, true);
 });

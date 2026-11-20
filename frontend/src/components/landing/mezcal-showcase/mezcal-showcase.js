@@ -61,8 +61,9 @@ export default function MezcalShowcase({ products, mediaBaseUrl }) {
     <>
       <section id="coleccion" className="relative isolate scroll-mt-24 overflow-hidden bg-mictlan-night px-6 pb-20 pt-24 text-mictlan-bone sm:px-10 lg:min-h-dvh lg:px-14 lg:py-5 [@media(min-width:80rem)_and_(min-height:54rem)]:h-dvh [@media(min-width:80rem)_and_(min-height:54rem)]:py-12" aria-labelledby="mezcal-showcase-title">
       <picture className="absolute inset-0 -z-20">
+        <source media="(max-width: 640px)" type="image/webp" srcSet={mediaObjectUrl(mediaBaseUrl, 'images/mezcal-showcase-background-mobile.webp')} />
         <source media="(max-width: 640px)" srcSet={mediaObjectUrl(mediaBaseUrl, 'images/mezcal-showcase-background-mobile.png')} />
-        <img src={mediaObjectUrl(mediaBaseUrl, 'images/mezcal-showcase-background.png')} alt="" width="1672" height="941" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
+        <img src={mediaObjectUrl(mediaBaseUrl, 'images/mezcal-showcase-background.png')} alt="" width="1672" height="941" decoding="async" fetchPriority="high" className="absolute inset-0 h-full w-full object-cover" />
       </picture>
       <div className="absolute inset-0 -z-10 bg-mictlan-ink/80 max-sm:bg-mictlan-ink/55" aria-hidden="true" />
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-[5] h-32 bg-[linear-gradient(to_bottom,var(--mictlan-night),transparent)] sm:h-48 lg:h-56" aria-hidden="true" />

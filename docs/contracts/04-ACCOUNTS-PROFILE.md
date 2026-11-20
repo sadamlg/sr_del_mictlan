@@ -26,7 +26,7 @@ La fase incluye la entrega de correo de cuenta desde el worker local a Mailpit, 
 - Cuando el alta viene de una intención de checkout, la cola conserva únicamente la bandera booleana de continuación y el enlace dirige a una ruta local fija con `continuar=checkout`. No se acepta una URL de retorno arbitraria ni se implementa carrito o pago en esta fase.
 - La recuperación responde `202` con el mismo mensaje tanto si el correo existe como si no. Restablecer contraseña invalida el token usado, los otros tokens de recuperación y todas las sesiones de la cuenta. Cambiar la contraseña autenticado exige verificar la actual y rota las demás sesiones conservando la sesión actual.
 - La sesión usa un identificador aleatorio opaco de 32 bytes; se guarda en PostgreSQL sólo su hash SHA-256. La cookie `mictlan_session` tiene `HttpOnly`, `SameSite=Lax`, `Path=/`, duración de siete días y `Secure` bajo HTTPS. La identidad de las operaciones privadas deriva exclusivamente de la cookie validada.
-- El worker reclama correo desde una cola persistida en PostgreSQL, procesa confirmación, cambio de correo y recuperación, y envía por SMTP a Mailpit en Compose. No se guardan tokens en claro dentro del trabajo ni se usa un broker adicional. Los errores de correo no incluyen direcciones, domicilios, tokens ni contenido personal.
+- El worker reclama correo desde una cola persistida en PostgreSQL, procesa confirmación, cambio de correo y recuperación, y usa SMTP a Mailpit en Compose por defecto. No se guardan tokens en claro dentro del trabajo ni se usa un broker adicional. Los errores de correo no incluyen direcciones, domicilios, tokens ni contenido personal.
 - Esta fase no integra Resend. Su configuración, límites y dominio de envío corresponden a la fase 07; las llaves y hostnames reales de Turnstile se verifican en Staging durante la fase 08 y se preparan para Producción en la fase 10.
 
 ## Turnstile
@@ -35,6 +35,7 @@ La fase incluye la entrega de correo de cuenta desde el worker local a Mailpit, 
 - Los tokens tienen un máximo de 2.048 caracteres, se usan en una sola solicitud y nunca se pasan al servicio de cuentas ni se escriben en logs. El navegador renueva el reto tras cada envío, incluso si falla la validación de cuenta.
 - Desarrollo local usa exclusivamente las llaves de prueba oficiales de Cloudflare: sitekey `1x00000000000000000000AA` y secret `1x0000000000000000000000000000000AA`, declaradas como valores ilustrativos en `.env.example` y configurables en `.env`. No se inventan ni se solicitan credenciales reales.
 - Cloudflare indica que una verificación exitosa con la llave de prueba devuelve `hostname: example.com` y no incluye `action`; por eso el entorno local no puede exigir esos valores. Con llaves reales, la API debe exigir que host y acción correspondan a `FRONTEND_ORIGIN` y a `account_register` o `account_login`. Nunca se aceptan llaves de prueba como evidencia de Staging o Producción. Fuente: [pruebas de Turnstile](https://developers.cloudflare.com/turnstile/troubleshooting/testing/).
+- La configuración de Turnstile por entorno está en la [guía de Cloudflare](../architecture/services/CLOUDFLARE.md#turnstile) y la asignación de variables a Railway en [RAILWAY.md](../architecture/services/RAILWAY.md#turnstile-de-staging).
 
 ## Rutas de página
 
@@ -106,9 +107,3 @@ Las escrituras de cuenta limitan solicitudes por IP y ruta a 30 por 15 minutos p
 3. Comprobar el widget y Siteverify con el par oficial de prueba local; ensayar `success`, rechazo, duplicado y caída mediante pruebas deterministas. Validar host y acción sólo cuando se utilicen llaves reales.
 4. Verificar correo, sesión y tokens contra PostgreSQL/Mailpit; comprobar que la base guarda hashes, que los logs/respuestas omiten secretos y que el worker reintenta fallos sin crear trabajos externos.
 5. Navegar y probar teclado/foco, tamaños móvil/escritorio, consola y solicitudes de red. Aceptar diferencias sólo cuando sean necesarias para respetar las fases, arquitectura o seguridad actuales y queden anotadas aquí.
-
-## Addendum de correo transaccional · Fase 07
-
-La implementación posterior de Fase 07 conserva la cola persistida en PostgreSQL y procesa confirmación, cambio de correo y recuperación con el Worker. En Compose el transporte es SMTP a Mailpit. En Railway, cuando el responsable configure ese entorno, Resend se invoca por HTTPS desde el Worker; `RESEND_API_KEY` no pertenece a la API ni al frontend. `MAIL_FROM` identifica los correos de cuenta y `RESEND_FROM` los correos de compra. Los fallos sólo registran ID de trabajo, tipo, intento y código seguro; no correo, domicilio, token ni cuerpo.
-
-La guía operativa y sus pendientes externos están en [`docs/architecture/services/RESEND.md`](../architecture/services/RESEND.md). La prueba PostgreSQL/Compose del 16 de noviembre de 2026 ejercitó registro y confirmación, recuperación/restablecimiento y reintento tras un fallo SMTP usando una base aislada; véase la evidencia de Fase 07 en [`docs/ROADMAP.md`](../ROADMAP.md). Resend, DNS y Staging no están configurados.

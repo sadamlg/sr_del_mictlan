@@ -1,8 +1,8 @@
-# Mapa de implementación de Cloudflare
+# Cloudflare: DNS, proxy y capa pública
 
-> **Preparación en curso:** verificar los recursos, DNS y controles de cada entorno antes de aplicar estos pasos. La presencia de esta guía no acredita un despliegue.
+Esta guía explica cómo conectar DNS, proxy/CDN, TLS y R2. Confirma el proveedor y los recursos del entorno antes de aplicar cambios; la guía no registra el estado actual de una cuenta.
 
-Crear buckets, habilitar su acceso público, añadir dominios o cambiar registros DNS modifica servicios externos; requiere autorización explícita antes de hacerlo. No se ha aplicado ningún cambio desde esta guía.
+Crear buckets, habilitar acceso público, añadir dominios o cambiar registros DNS modifica servicios externos. Realiza esos pasos en una ventana autorizada y conserva su detalle en el registro del proveedor; actualiza el roadmap sólo si cambia un resultado de fase, una decisión o un bloqueo de aceptación.
 
 > Este documento resume la función de Cloudflare y el orden de su configuración pública. La preparación de R2, el inventario de medios y su integración tienen una sola guía: [Cloudflare R2 para los medios](R2.md). Verifica la documentación vigente del proveedor al configurar cada cuenta.
 
@@ -10,15 +10,27 @@ Crear buckets, habilitar su acceso público, añadir dominios o cambiar registro
 
 Cloudflare puede administrar la zona DNS, el proxy/CDN y R2 desde una cuenta. R2 se activa por separado; agregar un dominio no crea buckets ni habilita su acceso público. [Inicio de R2](https://developers.cloudflare.com/r2/get-started/)
 
-El dominio puede estar registrado en cualquier registrador. Para la configuración habitual de Cloudflare Free, se agrega la zona a Cloudflare y se cambian los *nameservers* en el registrador. Antes de hacerlo, revisa y copia los registros DNS existentes, especialmente los de correo y verificación. [Configuración DNS principal](https://developers.cloudflare.com/dns/get-started/), [cambio de nameservers](https://developers.cloudflare.com/dns/nameservers/update-nameservers/)
+El dominio puede estar registrado en cualquier registrador. Para delegar DNS a Cloudflare, agrega la zona y cambia los *nameservers* en el registrador. Antes de hacerlo, revisa y copia los registros DNS existentes, especialmente los de correo y verificación. [Configuración DNS principal](https://developers.cloudflare.com/dns/get-started/), [cambio de nameservers](https://developers.cloudflare.com/dns/nameservers/update-nameservers/)
 
-Para el dominio de este proyecto, la [guía de Resend](RESEND.md) explica cómo identificar la zona actual y conservar los registros antes de cualquier cambio de delegación.
+La [guía de Resend](RESEND.md) explica cómo conservar los registros de envío antes de cualquier cambio de delegación.
+
+## Separación de entornos
+
+| Perfil | Uso previsto | Regla de configuración |
+|---|---|---|
+| Local | No necesita DNS público; usa `localhost` y puede cargar medios desde R2 | Mantener fuera de la zona pública de la tienda |
+| Staging | Hostnames Railway o subdominio dedicado; zona y medios no productivos | Separar del dominio público de Production y de sus registros |
+| Production | Dominio aprobado hacia servicios productivos; hostname de medios R2 independiente | Mantener DNS, TLS y controles de borde alineados con el origen y las políticas de publicación |
+
+El registrador y la zona DNS autoritativa son funciones distintas. Antes de editar registros, identifica quién sirve los nameservers y conserva los registros de correo/verificación. Consulta [NEUBOX.md](NEUBOX.md) y el [runbook de Producción](../../operations/PRODUCTION-RUNBOOK.md) para la secuencia entre servicios.
 
 Cloudflare administra la entrada pública y los medios; Railway ejecuta Next.js, Express, PostgreSQL y el worker. Las conexiones internas entre servicios Railway —por ejemplo, Next.js a Express durante SSR y Express a PostgreSQL— permanecen dentro de su red privada.
 
+### Turnstile
+
 Turnstile es un producto de verificación antiabuso independiente de DNS, proxy/CDN y R2. Para staging no hace falta migrar nameservers ni activar el proxy: se permite el hostname público del frontend en el widget y la API valida los tokens mediante Siteverify. La [guía de Railway](RAILWAY.md#turnstile-de-staging) indica qué clave va en cada servicio. Usa widgets y claves separados para desarrollo, staging y producción; el secreto nunca se configura en el frontend.
 
-La compra de prueba y el correo con PDF del proyecto actual aún deben comprobarse en staging. El estado actual de dominios y DNS debe verificarse en los proveedores; no se deduce sólo del repositorio.
+La configuración DNS no sustituye la verificación independiente de correo, Checkout, medios ni servicios internos.
 
 ## Orden por fase
 
@@ -52,6 +64,12 @@ Si se requiere un hostname de medios personalizado en staging, conecta un domini
 
 **Criterio de cierre:** producción no depende de <code>r2.dev</code>; los servicios públicos y los medios usan los hostnames de producción y la configuración se valida con los procedimientos de operación y recuperación documentados. La salida pública, los cambios de DNS y los cobros reales siguen bloqueados hasta sus autorizaciones explícitas.
 
+## Rendimiento, seguridad y costos
+
+- **Rendimiento:** el proxy/CDN puede reducir latencia para recursos cacheables. Define reglas específicas para medios estáticos; no caches respuestas de cuenta, API privada, Checkout o webhook sin una revisión de cookies, headers y comportamiento. Compara TTFB/latencia con y sin proxy antes de activarlo en un origen dinámico.
+- **Seguridad:** valida TLS entre Cloudflare y Railway antes de elegir modo estricto; expón sólo Frontend y Backend que reciban tráfico público; mantén base y Worker privados. DNS proxy, WAF, protección de bots y reglas de caché son controles distintos. Si el tráfico de cuenta pasa por el proxy, añade una regla de rate limiting por IP que cubra sólo los métodos y rutas de autenticación/perfil del Frontend. Calibra un umbral conservador y una mitigación breve contra el tráfico normal esperado, incluidas redes compartidas; verifica que las páginas públicas no coincidan con la regla. Mantén también el límite de Backend por identidad: el hostname de origen de Railway puede recibir solicitudes sin pasar por Cloudflare. Si Backend usa varias réplicas, el límite de aplicación necesita un almacén compartido. Revisa el plan y los periodos disponibles en la [guía de rate limiting](https://developers.cloudflare.com/waf/rate-limiting-rules/) antes de configurar la zona. Evalúa DNSSEC y conserva registros de correo/verificación al delegar la zona.
+- **Costos:** DNS, proxy, WAF, reglas y productos adicionales pueden tener planes y cuotas distintas. Confirma el plan y el precio de cada producto en la [página de planes de Cloudflare](https://www.cloudflare.com/plans/) y revisa cuotas de R2/Images en sus guías antes de diseñar el tráfico o configurar alertas.
+
 ## Decisiones reservadas
 
-El dominio definitivo y la política de caché se preparan en Producción. La carga del MVP es manual. Staging usa el bucket dedicado y el origen público documentados en [R2.md](R2.md#url-configurada-en-este-entorno), junto con dominios públicos de Railway. Producción requiere un bucket y hostname propios. Si la aplicación necesita escribir en R2, define primero el flujo y sus permisos.
+Define el dominio de medios y la política de caché por entorno. La carga del MVP es manual. Los buckets de medios de Staging y Production deben mantenerse separados. Si la aplicación necesita escribir en R2, define primero el flujo y sus permisos.

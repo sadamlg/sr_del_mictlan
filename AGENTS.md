@@ -3,10 +3,13 @@
 ## Fuentes de verdad
 
 - `README.md`: propósito, arquitectura, políticas del repositorio e instrucciones del entorno local.
-- `docs/ROADMAP.md`: fases, dependencias, resultados, configuración externa y evidencia de cierre.
+- `docs/ROADMAP.md`: resultado principal de cada fase, decisiones relevantes, riesgos críticos y estado de aceptación.
+- `docs/architecture/services/`: manuales por proveedor, con procedimientos reproducibles y perfiles por entorno usando marcadores; no son inventarios de configuración desplegada ni bitácoras de prueba/incidentes.
 - Las decisiones detalladas de alcance, diseño, contratos de módulos y calidad se añadirán en las fases indicadas por el roadmap. Hasta entonces, el roadmap describe cuándo se prepararán; no supongas que esos documentos o capacidades ya existen.
 
-Mantén cada hecho en su fuente principal. El README describe el producto y sus políticas; el roadmap registra qué está implementado, configurado y comprobado, con su evidencia. No dupliques el estado de fase en el README.
+Mantén cada hecho en su fuente principal. El README describe el producto y sus políticas; los manuales de servicio explican cómo configurar y operar cada proveedor sin fijar valores resueltos de Staging; el roadmap resume los resultados principales, los riesgos que afectan la aceptación y las soluciones de mayor impacto. El roadmap no es una bitácora de herramientas, cambios, commits ni implementaciones. No dupliques el estado de fase en el README ni copies contraseñas, hostnames resueltos, variables actuales o registros de ejecución a los manuales de servicio.
+
+La documentación presenta este repositorio como la fuente definitiva del producto y habla desde la perspectiva de nuestro sistema. Describe arquitectura, comportamiento y decisiones vigentes en presente; usa el pasado sólo cuando una evidencia fechada requiere describir un resultado. Limita el contenido al sistema que define este repositorio; no añadas contexto ni comparaciones de implementaciones ajenas salvo solicitud expresa. Los procedimientos se redactan como pasos reproducibles; la plantilla no acredita que una configuración ya esté desplegada.
 
 ## Modos de trabajo y autorizaciones
 
@@ -30,14 +33,17 @@ Mantén cada hecho en su fuente principal. El README describe el producto y sus 
 - Conserva las carpetas que agrupan documentación por tema o proveedor. Al mover o renombrar archivos, actualiza y comprueba sus enlaces.
 - El README es un documento protegido: no lo reestructures ni reduzcas sin una solicitud explícita. Corrige enlaces rotos sin alterar su contenido sustancial.
 - Al actualizar una guía, conserva sus pasos para construir desde cero y distingue ejemplos históricos del estado actual. Contrasta comandos, variables y comportamiento con los archivos y el código vigentes.
+- Las guías de servicio deben explicar el propósito, separación por entorno, pasos reproducibles y consideraciones de rendimiento, seguridad y costos. Usa nombres de variables y referencias genéricas; guarda valores resueltos, resultados y correcciones en el roadmap como evidencia resumida, no como una sección de estado dentro del manual.
 - Antes de cerrar cambios documentales, compara la versión anterior y la nueva. Informa qué contenido se conservó, trasladó, actualizó o retiró. Verificar enlaces o levantar contenedores no demuestra por sí solo que se haya preservado la información.
 
 ## Planificación y estado del roadmap
 
 - Para cada fase nueva o modificada, documenta objetivo, dependencias, resultado esperado y comprobaciones concretas para darla por terminada.
+- El roadmap conserva sólo logros principales, decisiones relevantes y estado de aceptación por fase. Incluye errores y soluciones únicamente cuando sean críticos para la seguridad, continuidad, calidad o salida a Producción; resúmelos por impacto, no como secuencia de pasos.
+- No uses el roadmap como changelog, bitácora de pruebas o historial de implementaciones. Omite recuentos por herramienta, trazas, inventarios de variables y PR/commits históricos; conserva una referencia de candidato sólo cuando haga falta para entender una aceptación o un bloqueo vigente.
 - Si una fase requiere una cuenta, dominio, configuración DNS, credencial o recurso externo, indica quién debe prepararlo y cuándo. Añade ese requisito antes del paso que lo utiliza y señala la guía cuando exista.
-- Al actualizar el estado de una fase, distingue si el código está implementado, si el servicio externo está configurado y si el recorrido completo se ha probado. Indica entorno, fecha y commit de cada evidencia; marca como pendiente lo que no se haya comprobado.
-- Conserva los resultados, dependencias y criterios de las fases anteriores. Si una decisión posterior los cambia, actualízalos y explica qué cambió sin borrar el contexto necesario para reconstruir el proyecto.
+- Al actualizar el estado de una fase, distingue si el código está implementado, si el servicio externo está configurado y si el recorrido completo se ha probado. No registres fecha o commit por defecto; identifícalos sólo si hacen falta para resolver una aceptación o un bloqueo vigente. Marca como pendiente lo que no se haya comprobado.
+- Conserva de fases anteriores sólo los resultados, dependencias y criterios necesarios para entender el estado actual. Si una decisión posterior los cambia, actualiza la decisión vigente sin convertir el roadmap en un historial de cambios.
 - Antes de proponer la siguiente fase, comprueba sus requisitos contra el roadmap, el código y la configuración conocidos. Señala lo que falte o no puedas verificar; no lo presentes como ya disponible.
 
 ## Alcance y frontend
@@ -50,6 +56,9 @@ Mantén cada hecho en su fuente principal. El README describe el producto y sus 
 - Antes de implementar una sección de la landing, revisa su estructura, recursos, estilos, interacciones y tamaños definidos. Conserva el comportamiento aprobado y señala ambigüedades antes de cambiarlo.
 
 ## Pruebas y ejecución
+
+- Todo entorno local, temporal o de Staging expuesto por HTTP debe impedir la indexación por defecto. En este repositorio, `ROBOTS_INDEXABLE` ausente o `false` mantiene `X-Robots-Tag: noindex, nofollow`; sólo la landing de Production puede permitir indexación con `true` explícito después de aprobar dominio canónico, metadatos, `robots.txt` y `sitemap.xml`. Las rutas de cuenta permanecen en `noindex` en todos los entornos.
+- `robots.txt` regula el rastreo y no sustituye `noindex`. No bloquees con `Disallow: /` las páginas cuyo encabezado `noindex` debe leer el buscador. Después de cada despliegue público, comprueba la respuesta HTTP efectiva en todos los hostnames, incluidos los dominios generados por Railway; el nombre del dominio no acredita el entorno ni su política de indexación.
 
 - Define y documenta el CI mínimo al preparar la fase 01. Añade pruebas y build cuando exista código que validar; la validación integral de calidad se definirá en la fase 09.
 - Los cambios de lógica o comportamiento incluyen pruebas del contrato afectado y siguen TDD. Los cambios sólo documentales o visuales no requieren pruebas unitarias artificiales.

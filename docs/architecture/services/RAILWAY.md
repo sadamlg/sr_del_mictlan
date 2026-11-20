@@ -1,14 +1,24 @@
-# Despliegue en Railway: staging y producción
+# Despliegue en Railway: local, staging y producción
 
-Esta guía explica cómo crear los cuatro servicios, configurar sus conexiones y desplegarlos en orden. Usa Staging como referencia real; Producción requiere recursos, dominios y credenciales propios.
+Esta guía describe cómo preparamos los servicios de aplicación y base, conectamos sus dependencias y los desplegamos en orden. Usa nombres de variables y referencias de servicio como plantillas; sustituye sus valores según el entorno sin copiar datos de Staging a Production. El repositorio incluye el job Cron `database-backup` descrito en [POSTGRES-BACKUPS.md](POSTGRES-BACKUPS.md); configura un servicio independiente por entorno y demuestra su recuperación antes de respaldar datos reales.
 
 Crear servicios, conectar el repositorio, configurar variables, añadir dominios o desplegar son cambios externos y requieren autorización explícita antes de aplicarse. Revisa el comportamiento de autodespliegue al conectar la rama: un push posterior puede iniciar un despliegue sin otra acción manual. En Railway inspecciona y aprueba la vista de cambios staged sólo después de la autorización correspondiente.
 
-Antes de configurar staging, completa el [entorno local](../docker/COMPOSE.md) y prueba [Stripe en local](STRIPE.md). Usa la guía de [Cloudflare R2](R2.md) para crear un bucket dedicado de staging, separado del bucket local y de producción. La cuenta, dominio, remitentes, límites y envío real de Resend se revisan en staging siguiendo [Resend](RESEND.md); no configures Resend en Compose. No necesitas cambiar los *nameservers* para usar dominios públicos de Railway en staging.
+Antes de configurar staging, completa el [entorno local](../docker/COMPOSE.md) y prueba [Stripe en local](STRIPE.md). Usa la guía de [Cloudflare R2](R2.md) para crear un bucket dedicado de staging, separado del bucket local y de producción. Compose usa Mailpit por defecto; la guía de [Resend](RESEND.md) también describe el transporte local opcional. Staging confirma la integración, los remitentes y la entrega en el entorno remoto. No necesitas cambiar los *nameservers* para usar dominios públicos de Railway en staging.
+
+## Perfiles de entorno
+
+| Perfil | Recursos | Regla |
+|---|---|---|
+| Local | Compose: frontend, API, PostgreSQL, Worker; Mailpit predeterminado y Resend opcional | Aislado de datos remotos; Resend envía fuera de Compose sólo si se activa expresamente |
+| Staging | PostgreSQL, Backend, Worker y Frontend | Credenciales, bases, dominios y proveedores de prueba propios |
+| Production | PostgreSQL, Backend, Worker y Frontend | Recursos y secretos separados; Checkout deshabilitado hasta la autorización de salida |
+
+El dominio público de Production no debe apuntar a Staging. Confirma proveedor y zona DNS autoritativa antes de conectar un hostname; consulta [NEUBOX.md](NEUBOX.md).
 
 ## Por qué existen Dockerfiles de producción
 
-Los Dockerfiles normales y Compose ejecutan servidores de desarrollo con observación de cambios. `frontend/Dockerfile.production` construye Next.js con `npm run build` y arranca `next start`; `backend/Dockerfile.production` instala Prisma CLI, genera Prisma Client y arranca la API. El worker comparte la imagen del backend, pero usa `node src/worker.js` como comando de inicio. Las imágenes de este proyecto usan Node.js `24.21.0-bookworm-slim` y ejecutan como usuario `node`. Railway debe usar `Dockerfile.production` mediante `RAILWAY_DOCKERFILE_PATH`; los argumentos Docker `MEDIA_BASE_URL` y `NEXT_PUBLIC_TURNSTILE_SITE_KEY` se requieren al construir el frontend. El primero configura la lista de imágenes remotas y el segundo se incorpora al bundle público, así que el frontend se reconstruye cuando cambien. [Dockerfiles de Railway](https://docs.railway.com/builds/dockerfiles), [variables de entorno de Next.js](https://nextjs.org/docs/app/guides/environment-variables).
+Los Dockerfiles normales y Compose ejecutan servidores de desarrollo con observación de cambios. `frontend/Dockerfile.production` construye Next.js con `npm run build` y arranca `next start`; `backend/Dockerfile.production` instala Prisma CLI, genera Prisma Client y arranca la API. El worker comparte la imagen del backend, pero usa `node src/worker.js` como comando de inicio. Los Dockerfiles fijan la versión de Node.js y ejecutan como usuario `node`; consulta esos archivos para conocer la versión del commit que se va a desplegar. Railway debe usar `Dockerfile.production` mediante `RAILWAY_DOCKERFILE_PATH`; los argumentos Docker `MEDIA_BASE_URL` y `NEXT_PUBLIC_TURNSTILE_SITE_KEY` se requieren al construir el frontend. El primero configura la lista de imágenes remotas y el segundo se incorpora al bundle público, así que el frontend se reconstruye cuando cambien. [Dockerfiles de Railway](https://docs.railway.com/builds/dockerfiles), [variables de entorno de Next.js](https://nextjs.org/docs/app/guides/environment-variables).
 
 ## Servicios
 
@@ -19,47 +29,47 @@ Railway puede importar servicios compatibles desde un archivo Compose, pero no t
 | `postgres` | PostgreSQL de Railway con volumen | Sólo red privada | Plantilla PostgreSQL; respaldos se configuran por separado |
 | `Backend` | `backend/` | Dominio público HTTPS para recibir webhooks de Stripe; las llamadas de `Frontend` usan la red privada | `backend/Dockerfile.production` |
 | `worker` | `backend/` | Sólo red privada | `backend/Dockerfile.production` |
+| `database-backup` | Job Cron efímero `pg_dump` cifrado | Sólo red privada; sin dominio | `backend/Dockerfile.backup.production` |
 | `Frontend` | `frontend/` | Dominio público | `frontend/Dockerfile.production` |
 
 No despliegues Mailpit en Railway: es sólo para desarrollo local.
 
-`Backend` tiene un dominio público porque Stripe debe poder enviar eventos a una URL HTTPS pública. El dominio privado `backend.railway.internal` sólo resuelve entre servicios del mismo entorno Railway, así que sirve para las llamadas de `Frontend`, no para Stripe. En Staging, `Frontend` usa `INTERNAL_API_URL=http://${{Backend.RAILWAY_PRIVATE_DOMAIN}}:${{Backend.PORT}}` y su proxy `/api/backend/*`; no necesita llamar al dominio público de la API. El destino de Stripe es `https://backend-staging-c2e45865.up.railway.app/api/webhooks/stripe`. [Red privada de Railway](https://docs.railway.com/networking/private-networking/how-it-works) · [URL pública requerida por Stripe](https://docs.stripe.com/webhooks#setup-your-endpoint).
+`Backend` tiene un dominio público porque Stripe debe poder enviar eventos a una URL HTTPS pública. El dominio privado del servicio sólo resuelve dentro del mismo entorno Railway; úsalo para llamadas internas de `Frontend`, no para Stripe. En cada entorno, `Frontend` usa `INTERNAL_API_URL=http://${{Backend.RAILWAY_PRIVATE_DOMAIN}}:${{Backend.PORT}}` y su proxy `/api/backend/*`; no necesita llamar al dominio público de la API. El webhook de Stripe usa `https://<dominio-publico-backend>/api/webhooks/stripe`. [Red privada de Railway](https://docs.railway.com/networking/private-networking/how-it-works) · [URL pública requerida por Stripe](https://docs.stripe.com/webhooks#setup-your-endpoint).
 
 El dominio público hace alcanzables las rutas HTTP de Backend, no sólo el webhook. La API comprueba `Origin` en solicitudes de navegador, pero esa comprobación no autentica clientes que llamen directamente. Mantén las rutas protegidas por sesión/autorización y límites correspondientes; el webhook valida `Stripe-Signature` con `STRIPE_WEBHOOK_SECRET`. La base de datos permanece privada.
 
 ### Configuración de referencia de Staging
 
-Los servicios `postgres`, `Backend`, `worker` y `Frontend` usan **US West Metal (California; `us-west2`)**, una réplica por servicio. Mantén PostgreSQL, Backend y Worker en la misma región para evitar latencia entre regiones. Elige la región antes de inicializar el volumen: mover una base existente requiere una ventana de mantenimiento y respaldo previo. La cercanía geográfica a México no garantiza la menor latencia desde todas las redes.
+Usa nombres de servicio estables para que las referencias de Railway sean legibles (`postgres`, `Backend`, `worker`, `Frontend`) o ajusta cada referencia a los nombres elegidos. Mantén PostgreSQL, Backend y Worker en la misma región para reducir latencia y tráfico entre regiones. Elige región y número de réplicas con base en latencia medida, disponibilidad y costo; cambiar la región de una base con volumen requiere plan de migración y respaldo. La cercanía geográfica no garantiza la menor latencia desde todas las redes.
 
-Frontend público: `https://frontend-staging-f50c4d1d.up.railway.app`. Backend público: `https://backend-staging-c2e45865.up.railway.app`. Las plantillas conservan referencias dinámicas al nombre exacto de cada servicio; Backend y Worker usan el mismo `FRONTEND_ORIGIN`.
+El Frontend y el Backend reciben hostnames generados por Railway. Usa las referencias dinámicas del servicio para `FRONTEND_ORIGIN`; no copies un hostname resuelto de un entorno a otro.
 
 Las siguientes secciones dan el orden de configuración, las plantillas por servicio y cómo corregir fallos frecuentes.
 
-### Valores actuales de PostgreSQL
+### Variables de conexión de PostgreSQL
 
-Railway genera las variables de conexión y las contraseñas al crear el servicio. Conserva esos valores; no los copies entre entornos ni al repositorio. Los valores no secretos del servicio `postgres` de Staging son:
+Railway genera las variables de conexión y contraseñas al crear el servicio. Usa referencias entre servicios y mantén PostgreSQL privado. No copies DSN, contraseñas ni valores resueltos entre entornos o al repositorio.
 
 | Variable | Valor |
 |---|---|
-| `PGDATA` | `/var/lib/postgresql/data/pgdata` |
-| `PGDATABASE` y `POSTGRES_DB` | `railway` |
-| `PGHOST` y `RAILWAY_PRIVATE_DOMAIN` | `postgres.railway.internal` |
-| `PGPORT` | `5432` |
-| `PGUSER` y `POSTGRES_USER` | `postgres` |
-| `RAILWAY_DEPLOYMENT_DRAINING_SECONDS` | `60` |
-| `SSL_CERT_DAYS` | `820` |
+| `PGDATA` | Ruta de datos configurada por la imagen y el volumen persistente |
+| `PGDATABASE` y `POSTGRES_DB` | Nombre de la base creada para el entorno |
+| `PGHOST` y `RAILWAY_PRIVATE_DOMAIN` | Host privado generado para el servicio |
+| `PGPORT` | Puerto privado de PostgreSQL |
+| `PGUSER` y `POSTGRES_USER` | Usuario generado/configurado para la base |
+| `POSTGRES_PASSWORD` | Contraseña secreta generada para el entorno |
 
 `DATABASE_URL`, `PGPASSWORD` y `POSTGRES_PASSWORD` contienen credenciales generadas; la aplicación construye su DSN con referencias de Railway y no necesita que copies ni reveles esos valores.
 
 ## 1. Preparar Staging y seguir el orden de arranque
 
-En este Staging, los nombres de servicio son `postgres`, `Backend`, `worker` y `Frontend`. Las referencias `${{servicio.VARIABLE}}` deben usar el nombre exacto, incluida la capitalización. Por eso las plantillas de esta guía usan `${{Backend.RAILWAY_PRIVATE_DOMAIN}}`, `${{Frontend.RAILWAY_PUBLIC_DOMAIN}}` y `${{postgres.DATABASE_URL}}`. No es obligatorio renombrar `Backend` como `api`: es el nombre visible del servicio que ejecuta la API. Al crear otro entorno puedes elegir otros nombres, pero debes adaptar todas sus referencias. Selecciona **Staging** antes de cada operación. Production se prepara después, según la sección 6; no dupliques todavía secretos ni recursos productivos.
+Para los ejemplos, esta guía usa los nombres de servicio `postgres`, `Backend`, `worker` y `Frontend`. Las referencias `${{servicio.VARIABLE}}` deben usar el nombre exacto, incluida la capitalización. Por eso las plantillas usan `${{Backend.RAILWAY_PRIVATE_DOMAIN}}`, `${{Frontend.RAILWAY_PUBLIC_DOMAIN}}` y `${{postgres.DATABASE_URL}}`. Puedes elegir otros nombres, pero adapta todas las referencias en cada entorno. Selecciona el entorno correspondiente antes de cada operación y mantén recursos y secretos separados.
 
 ### 1.1 Preparar código y servicios sin iniciar la aplicación
 
 1. Comprueba que la rama elegida en GitHub contiene los Dockerfiles de producción, migraciones y cambios que se van a desplegar. Railway no recibe los cambios locales sin publicar. Anota el commit objetivo y comprueba CI y build antes de continuar.
-2. Crea el proyecto y el entorno Staging. Añade PostgreSQL desde la plantilla, renombra el servicio a `postgres` y conserva su volumen y variables generadas. **Antes de desplegarlo**, abre Settings → Scale → Regions y selecciona `US West (California, USA)` (ID `us-west2`) con una réplica. Verifica región y réplicas antes de continuar. Espera a que esté activo. No pegues credenciales locales ni reemplaces las contraseñas que genera Railway.
-3. Crea los servicios vacíos `Backend`, `worker` y `Frontend`. En Settings → Scale → Regions coloca cada uno en la misma región `US West (California, USA; us-west2)` y deja una réplica para el primer levantamiento. Configura repositorio, rama, Root Directory y Dockerfile según las secciones 2–4 antes de desplegar. Si conectar el repositorio dispara un intento automático incompleto, no lo uses como evidencia de fallo de la aplicación: completa configuración y vuelve a desplegar. Revisa los cambios pendientes antes de aplicarlos. Railway describe esta ubicación y el ajuste de réplicas en [Regions](https://docs.railway.com/deployments/regions) y [Optimize Performance](https://docs.railway.com/deployments/optimize-performance).
+2. Crea el proyecto y el entorno Staging. Añade PostgreSQL desde la plantilla, renombra el servicio a `postgres` y conserva su volumen y variables generadas. **Antes de desplegarlo**, selecciona la región más adecuada para usuarios y servicios, y comienza con una réplica. Verifica región y escala antes de continuar. No pegues credenciales locales ni reemplaces las contraseñas que genera Railway.
+3. Crea los servicios vacíos `Backend`, `worker` y `Frontend`. Colócalos inicialmente en la misma región que PostgreSQL y comienza con una réplica por servicio. Configura repositorio, rama, Root Directory y Dockerfile según las secciones 2–4 antes de desplegar. Si conectar el repositorio dispara un intento automático incompleto, no lo uses como evidencia de fallo de la aplicación: completa configuración y vuelve a desplegar. Revisa los cambios pendientes antes de aplicarlos. Compara la latencia real y el costo de región/escala con [Regions](https://docs.railway.com/deployments/regions) y [Optimize Performance](https://docs.railway.com/deployments/optimize-performance).
 4. En Networking genera un dominio público para API y frontend, con **Target Port 3000**. Las plantillas fijan `PORT=3000` en ambos. Si el panel todavía no ofrece generar un dominio, completa el arranque inicial descrito abajo antes de configurar las referencias que dependen de él.
 5. Anota los dos dominios. Antes de desplegar API, comprueba que el hostname de frontend ya existe y que `FRONTEND_ORIGIN` se resuelve como una URL completa (`https://<hostname>`), no como `https://`. El servicio, su dominio y la referencia deben pertenecer al mismo entorno Staging.
 
@@ -78,7 +88,7 @@ La red privada sólo conecta servicios del mismo proyecto y entorno. Esta aplica
 
 ### 1.3 Pegar las plantillas del Raw Editor
 
-En **cada servicio → Variables → Raw Editor**, pega su bloque completo. Usa formato `.env`, una línea `CLAVE=VALOR`, y conserva literalmente `${{…}}`, la sintaxis de referencias de Railway. Los valores públicos de Staging reflejan la configuración actual. Sustituye los valores con `EJEMPLO_NO_VALIDO` por secretos propios: son ejemplos ficticios y no permiten desplegar. Conserva las comillas de los remitentes. No pegues variables de distintos servicios en un bloque compartido.
+En **cada servicio → Variables → Raw Editor**, pega su bloque completo. Usa formato `.env`, una línea `CLAVE=VALOR`, y conserva literalmente `${{…}}`, la sintaxis de referencias de Railway. Los valores que incluyen `EJEMPLO_NO_VALIDO` y el identificador R2 `pub-47df7d3a7dd94d268c1661b2c36e0ae5` son artificiales: ilustran el formato y el tipo de variable, pero no son claves ni un origen utilizable. Sustituye todos los ejemplos por valores generados para el entorno seleccionado; no despliegues mientras quede alguno. Conserva las comillas de los remitentes. No pegues variables de distintos servicios en un bloque compartido.
 
 No despliegues una plantilla parcial. Antes de pulsar **Update Variables**, confirma que no quede ningún valor `EJEMPLO_NO_VALIDO` y que los nombres, el modo y las referencias estén completos. No compartas capturas del Raw Editor con claves o secretos legibles.
 
@@ -114,7 +124,7 @@ En el servicio `Backend` (la API), selecciona el repositorio y configura:
 
 El pre-deploy ejecuta las migraciones existentes antes de arrancar la API. El Dockerfile instala Prisma CLI para que ese comando esté disponible. No pongas la migración también en `worker`: se ejecuta una vez en `Backend` para evitar que ambos procesos compitan al iniciar.
 
-El bloque incluye los valores vigentes de Staging y sus referencias a PostgreSQL y Frontend. `CHECKOUT_ENABLED=true` y `STRIPE_MODE=test` habilitan las pruebas de compra; en Producción el Checkout permanece deshabilitado hasta la autorización de salida. La API refleja el estado en `/api/public-config`; cuando está deshabilitado, la tienda desactiva agregar al carrito y muestra “Próximamente”.
+Esta plantilla muestra la configuración de referencia para Staging, incluidas las referencias a PostgreSQL y Frontend; no es un volcado de valores actuales de una cuenta. `CHECKOUT_ENABLED=true` y `STRIPE_MODE=test` permiten recorridos de compra con credenciales sandbox. En Production, conserva Checkout deshabilitado durante la preparación y usa credenciales separadas. La API refleja el estado en `/api/public-config`; cuando está deshabilitado, la tienda desactiva agregar al carrito y muestra “Próximamente”.
 
 ### Plantilla API — Raw Editor
 
@@ -131,10 +141,10 @@ CHECKOUT_ENABLED=true
 STRIPE_MODE=test
 STRIPE_SECRET_KEY=sk_test_EJEMPLO_NO_VALIDO
 STRIPE_WEBHOOK_SECRET=whsec_EJEMPLO_NO_VALIDO
-TURNSTILE_SECRET_KEY=0x4AAAAAEJEMPLO_NO_VALIDO
+TURNSTILE_SECRET_KEY=0x4AAAAA_SECRET_EJEMPLO_NO_VALIDO
 ```
 
-Ambas URL de medios deben coincidir. La API no necesita clave de Resend, site key pública de Turnstile ni credenciales de escritura R2.
+`pub-47df7d3a7dd94d268c1661b2c36e0ae5.r2.dev` es un identificador artificial que ilustra el formato de una URL pública de desarrollo; no corresponde a un bucket utilizable. Sustitúyelo por el origen aprobado para el entorno. Ambas URL de medios deben coincidir. La API no necesita clave de Resend, site key pública de Turnstile ni credenciales de escritura R2.
 
 ### Cómo se construye `DATABASE_URL`
 
@@ -175,7 +185,7 @@ En el servicio `worker`, selecciona el mismo repositorio y configura:
 - **Dominio público:** no.
 - **Pre-deploy Command:** ninguno.
 
-El bloque contiene la configuración vigente de Worker. La clave de Resend se guarda sólo aquí; Backend no envía correo.
+La plantilla muestra las variables que requiere Worker en el entorno configurado. La clave de Resend se guarda sólo aquí; Backend no envía correo.
 
 ### Plantilla Worker — Raw Editor
 
@@ -187,13 +197,46 @@ DATABASE_URL=postgresql://${{postgres.PGUSER}}:${{postgres.POSTGRES_PASSWORD}}@$
 FRONTEND_ORIGIN=https://${{Frontend.RAILWAY_PUBLIC_DOMAIN}}
 EMAIL_TRANSPORT=resend
 RESEND_API_KEY=re_EJEMPLO_NO_VALIDO
-MAIL_FROM="Señor del Mictlán <cuentas@mail.srmictlan.com>"
-RESEND_FROM="Señor del Mictlán <pedidos@mail.srmictlan.com>"
+HEALTHCHECKS_WORKER_PING_URL=https://hc-ping.com/00000000-0000-0000-0000-000000000000
+MAIL_FROM="<nombre-visible> <cuentas@<dominio-remitente-verificado>>"
+RESEND_FROM="<nombre-visible> <pedidos@<dominio-remitente-verificado>>"
 ```
 
-`MAIL_FROM` envía confirmación, recuperación y cambios de cuenta; `RESEND_FROM` envía confirmaciones de compra con PDF. Cada valor debe conservar el formato `Nombre visible <dirección@dominio-verificado>` y las comillas exteriores del Raw Editor. Estas direcciones identifican al remitente; no crean buzones para recibir respuestas. El subdominio `mail.srmictlan.com` es el dominio de envío documentado en [Resend](RESEND.md). No añadas `PORT`, Stripe ni secretos Turnstile al Worker.
+`MAIL_FROM` envía confirmación, recuperación y cambios de cuenta; `RESEND_FROM` envía confirmaciones de compra con PDF. Cada valor debe conservar el formato `Nombre visible <dirección@dominio-verificado>` y las comillas exteriores del Raw Editor. Estas direcciones identifican al remitente; no crean buzones para recibir respuestas. `HEALTHCHECKS_WORKER_PING_URL` es opcional: usa la URL secreta del control configurado para el latido del Worker; el ejemplo artificial no es una URL operativa. No añadas `PORT`, Stripe ni secretos Turnstile al Worker.
 
 En Railway, el código envía por la API HTTPS de Resend los correos de compra y los de cuenta (registro, confirmación y recuperación de contraseña). Así funciona también en los planes de Railway que bloquean conexiones SMTP salientes. Mailpit y SMTP sólo se usan en Compose para desarrollo local; no configures variables `SMTP_*` en Railway.
+
+### Servicio Cron de respaldo PostgreSQL
+
+Configura un servicio `database-backup` independiente para cada entorno donde deban generarse copias. Conéctalo al repositorio del proyecto y usa:
+
+- **Root Directory:** `/backend`.
+- **Dockerfile Path:** `Dockerfile.backup.production` mediante `RAILWAY_DOCKERFILE_PATH`.
+- **Start Command:** sin sobrescribir; el `ENTRYPOINT` del Dockerfile ejecuta el job y termina al acabar.
+- **Cron Schedule:** `0 8 * * *` (08:00 UTC cada día); Railway puede variar unos minutos y omite una nueva ejecución si la anterior sigue activa.
+- **Dominio público:** ninguno.
+- **Red:** conexión privada al servicio `postgres` del mismo entorno.
+
+El job requiere una credencial R2 de mínimo privilegio para un bucket privado dedicado y la clave pública de `age`. Mantén la clave privada de descifrado fuera del repositorio, Railway y R2; resguárdala en un gestor de secretos externo con acceso de recuperación. Conserva los recursos y valores separados entre entornos. Consulta [Respaldo y restauración](POSTGRES-BACKUPS.md) para costos, retención, validación y simulacro.
+
+#### Plantilla `database-backup` — Raw Editor
+
+```env
+RAILWAY_DOCKERFILE_PATH=Dockerfile.backup.production
+DATABASE_URL=postgresql://${{postgres.PGUSER}}:${{postgres.POSTGRES_PASSWORD}}@${{postgres.RAILWAY_PRIVATE_DOMAIN}}:5432/${{postgres.PGDATABASE}}
+BACKUP_ENVIRONMENT=production
+BACKUP_AGE_RECIPIENT=age1EJEMPLO_PUBLICO_NO_VALIDO
+R2_BACKUP_BUCKET=srmictlan-backups-<entorno>
+R2_ACCOUNT_ID=00000000000000000000000000000000
+R2_ENDPOINT_URL=https://00000000000000000000000000000000.r2.cloudflarestorage.com
+R2_REGION=auto
+R2_ACCESS_KEY_ID=R2_ACCESS_KEY_EJEMPLO_NO_VALIDO
+R2_SECRET_ACCESS_KEY=R2_SECRET_EJEMPLO_NO_VALIDO
+AWS_EC2_METADATA_DISABLED=true
+HEALTHCHECKS_BACKUP_PING_URL=https://hc-ping.com/00000000-0000-0000-0000-000000000000
+```
+
+Los valores artificiales identifican la forma de cada dato y no autentican ni cifran una copia. Sustituye el nombre del entorno, crea el bucket/token en Cloudflare y genera `BACKUP_AGE_RECIPIENT` fuera del servicio. `HEALTHCHECKS_BACKUP_PING_URL` es opcional hasta que exista el control de alertas; el ejemplo no es una URL operativa. No agregues un dominio público, acceso público al bucket ni credenciales de medios a este job.
 
 ## 4. Configurar frontend
 
@@ -206,7 +249,7 @@ En `Frontend`, selecciona el mismo repositorio y configura:
 - **Pre-deploy Command:** ninguno.
 - **Dominio público:** sí; Target Port `3000`.
 
-El bloque contiene la configuración vigente de Frontend. `INTERNAL_API_URL` resuelve a `http://backend.railway.internal:3000`; medios y site key son valores públicos incorporados al build.
+La plantilla usa una referencia privada entre servicios para `INTERNAL_API_URL`. El origen de medios y la site key son valores públicos del entorno que se incorporan al build.
 
 ### Plantilla frontend — Raw Editor
 
@@ -216,7 +259,7 @@ PORT=3000
 RAILWAY_DOCKERFILE_PATH=Dockerfile.production
 INTERNAL_API_URL=http://${{Backend.RAILWAY_PRIVATE_DOMAIN}}:${{Backend.PORT}}
 MEDIA_BASE_URL=https://pub-47df7d3a7dd94d268c1661b2c36e0ae5.r2.dev
-NEXT_PUBLIC_TURNSTILE_SITE_KEY=0x4AAAAAAF8VZwuGYRWxvFOn
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=0x4AAAAA_SITE_EJEMPLO_NO_VALIDO
 ROBOTS_INDEXABLE=false
 ```
 
@@ -226,9 +269,9 @@ Define `MEDIA_BASE_URL` y `NEXT_PUBLIC_TURNSTILE_SITE_KEY` antes del build: el D
 
 `ROBOTS_INDEXABLE` es una variable de runtime: mantenla en `false` en Staging para enviar `X-Robots-Tag: noindex, nofollow`. Sólo la landing puede indexarse si se establece en `true` para Producción tras aprobar la indexación del dominio público; las rutas de cuenta y cualquier otra ruta conservan `noindex`.
 
-`INTERNAL_API_URL` se usa en solicitudes del servidor Next.js y en el proxy `/api/backend/*`; debe apuntar a la red privada de Railway. El Dockerfile de producción envía las llamadas del navegador por ese proxy, bajo el mismo dominio del frontend. Así las cookies de sesión son propias del frontend y no dependen de cookies entre dominios. `NEXT_PUBLIC_API_URL` no se necesita con este proxy; el código sólo lo usa como origen directo alternativo en configuraciones que no usan el proxy. `MEDIA_BASE_URL` debe estar disponible al construir y ejecutar el frontend; `NEXT_PUBLIC_TURNSTILE_SITE_KEY` se incorpora al bundle durante el build. Son valores públicos, no secretos. Si cambian, vuelve a construir y desplegar el frontend.
+`INTERNAL_API_URL` se usa en solicitudes del servidor Next.js y en el proxy `/api/backend/*`; debe apuntar a la red privada de Railway. El Dockerfile de producción envía las llamadas del navegador por ese proxy, bajo el mismo dominio del frontend. Así las cookies de sesión son propias del frontend y no dependen de cookies entre dominios. `NEXT_PUBLIC_API_URL` no se necesita con este proxy; el código sólo lo usa como origen directo alternativo en configuraciones que no usan el proxy. `MEDIA_BASE_URL` debe estar disponible al construir y ejecutar el frontend; `NEXT_PUBLIC_TURNSTILE_SITE_KEY` se incorpora al bundle durante el build. Son valores públicos, no secretos. El origen R2 del bloque es artificial y no debe desplegarse. Si cambian los valores reales, vuelve a construir y desplegar el frontend.
 
-Las cookies de sesión de producción usan `SameSite=Lax; Secure`. El proxy actual conserva `Origin` y la cookie HttpOnly. El límite de intentos del backend usa `request.ip`, pero el proxy de Next.js actual no reenvía `X-Real-IP`; por eso la guía no da por comprobada la identificación por IP de cada cliente detrás de Railway. Revísala durante la aceptación de staging antes de atribuirle ese efecto.
+Las cookies de sesión de producción usan `SameSite=Lax; Secure`. Verifica cómo se conserva la IP de origen a través de cada proxy antes de depender de `request.ip` para limitar intentos por cliente. No confíes en un encabezado reenviado por el cliente sin configurar explícitamente la cadena de proxies de confianza; si todas las solicitudes llegan con la dirección del mismo proxy, el límite puede agrupar a todos los visitantes.
 
 Configura `MEDIA_BASE_URL` del frontend y backend, más `STRIPE_MEDIA_BASE_URL` de la API, para que apunten a un bucket exclusivo de staging. No compartas objetos ni credenciales con producción. El bucket y hostname de producción se preparan por separado; para producción se requiere un dominio personalizado de R2, no la URL de desarrollo `r2.dev`.
 
@@ -250,7 +293,7 @@ Después de guardar variables, reconstruye y despliega `Backend` y `Frontend`. D
 
 ### Diagnosticar y corregir consumo de memoria
 
-Frontend ejecuta `next start` en producción (Next.js 16.4.6, Node.js 24.21.0); el build ocurre antes y no comparte el proceso de runtime. Su configuración activa `cacheComponents` y `partialPrefetching`. `next/image` permite el origen definido por `MEDIA_BASE_URL` y se optimiza en Staging porque el origen R2 usa HTTPS; sólo se omite esa optimización en desarrollo para medios HTTP de localhost o de una IPv4 privada. La optimización transforma imágenes solicitadas y puede explicar actividad asociada a solicitudes de imágenes, pero por sí sola no demuestra el origen de un consumo alto en reposo. El Dockerfile instala dependencias de desarrollo para compilar y arranca `next start`; reducir el tamaño de la imagen no prueba que baje la memoria de runtime.
+Frontend ejecuta `next start` en producción; el build ocurre antes y no comparte el proceso de runtime. Antes de comparar métricas, identifica las versiones de Next.js del lockfile y de Node.js de los Dockerfiles correspondientes al commit desplegado. La configuración de Next.js activa `cacheComponents` y `partialPrefetching`. `next/image` permite el origen definido por `MEDIA_BASE_URL` y se optimiza cuando el origen de medios usa HTTPS; sólo se omite esa optimización en desarrollo para medios HTTP de localhost o de una IPv4 privada. La optimización transforma imágenes solicitadas y puede explicar actividad asociada a solicitudes de imágenes, pero por sí sola no demuestra el origen de un consumo alto en reposo. El Dockerfile instala dependencias de desarrollo para compilar y arranca `next start`; reducir el tamaño de la imagen no prueba que baje la memoria de runtime.
 
 Para separar heap, resto del proceso y contenedor, usa estas métricas técnicas. Sus valores se solapan: **no sumes** `heapUsed`, `external`, `arrayBuffers` y RSS como si fueran partes independientes.
 
@@ -336,9 +379,20 @@ Railway ofrece límites para el consumo de **cómputo a nivel de workspace**, no
 
 [Control de costos de Railway](https://docs.railway.com/pricing/cost-control).
 
-## 6. Promover a producción
+## 6. Preparar Production
 
-Prepara `Production` sólo después de aceptar staging. Mantén deshabilitado el inicio de Checkout con `CHECKOUT_ENABLED=false` (o sin definir) y `STRIPE_MODE=test` hasta recibir autorización explícita. Usa sólo claves `sk_test_…` durante la preparación y no registres un webhook live. No habilites `CHECKOUT_ENABLED=true`, claves `sk_live_…` ni pagos reales antes de esa autorización.
+Prepara `Production` después de aceptar Staging y completar los requisitos del plan de lanzamiento. Mantén deshabilitado Checkout con `CHECKOUT_ENABLED=false` (o sin definir) y `STRIPE_MODE=test` durante la preparación. Usa sólo claves `sk_test_…` y no registres un webhook live antes de la autorización de salida. No habilites `CHECKOUT_ENABLED=true`, claves `sk_live_…` ni pagos reales antes de esa autorización.
+
+| Área | Requisito de Production |
+|---|---|---|
+| Recursos | Proyecto/entorno y PostgreSQL independientes de Staging; Frontend, Backend y Worker separados |
+| Red | PostgreSQL privado; Backend público sólo para rutas necesarias, incluido webhook; Frontend usa proxy a API privada |
+| Variables | Configuración por servicio; sin referencias a servicios o secretos de Staging |
+| Dominio | Hostname aprobado de Frontend y hostname HTTPS del Backend; `FRONTEND_ORIGIN` consistente |
+| Checkout | Test separado durante la preparación; live sólo tras autorización explícita |
+| Respaldo | Plan de [pg_dump](POSTGRES-BACKUPS.md), credenciales de mínimo privilegio y restauración aislada |
+
+Usa el [runbook maestro de Producción](../../operations/PRODUCTION-RUNBOOK.md) para el orden entre Railway, DNS, R2, Resend y Stripe.
 
 - PostgreSQL independiente, migraciones revisadas y copias de seguridad/restauración comprobadas.
 - Dominios definitivos con TLS, `FRONTEND_ORIGIN`, URLs de API y URLs de medios de producción correctas.
@@ -361,7 +415,7 @@ Mantén `ROBOTS_INDEXABLE=false` durante la preparación. Cámbiala a `true` só
 
 ### Respaldos y recuperación
 
-Antes de Producción, comprueba qué respaldo automático y PITR permite el plan de Railway. Si no cubre la recuperación requerida, configura un volcado lógico automatizado en almacenamiento separado con acceso restringido. Prueba una restauración en una base aislada antes de depender del respaldo. Railway restaura respaldos de volumen dentro del mismo proyecto y entorno. Consulta [respaldos de volumen](https://docs.railway.com/volumes/backups), [PITR](https://docs.railway.com/volumes/point-in-time-recovery) y [respaldo/restauración PostgreSQL](https://docs.railway.com/guides/postgres-backups-restores).
+El repositorio contiene el job Cron que genera `pg_dump`, cifra cada archivo y valida su carga/descarga; la prueba aislada restaura datos sintéticos, pero no crea una copia real en R2. Configura bucket, credenciales, clave y horario por separado en cada entorno, confirma costos y ejecuta una restauración completa antes de respaldar datos reales. Los snapshots nativos pueden complementar la estrategia si el plan y el presupuesto lo permiten. Consulta la [guía de respaldo PostgreSQL](POSTGRES-BACKUPS.md), [respaldos de volumen](https://docs.railway.com/volumes/backups), [Cron](https://docs.railway.com/cron-jobs) y [respaldo/restauración PostgreSQL](https://railway.com/guides/postgres-backups-restores).
 
 ## Referencias
 

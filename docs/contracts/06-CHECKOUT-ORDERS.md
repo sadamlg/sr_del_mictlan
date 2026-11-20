@@ -1,12 +1,12 @@
 # Contrato 06: Stripe Checkout y pedidos
 
 **Estado:** completada — 16 de noviembre de 2026.
-**Base de implementación:** `9df14c28899f4dc1a320b01ddb7df00e249bab89`, ancestro del merge `3bc2b0813c376b6458c204c6c54782d3c0d312fc` del PR #13 en `develop`.
-**Integración aceptada:** el commit `23eba2027f3a02dd5c3b101d9c0338cd35784d08` se fusionó mediante el PR #14; merge commit `47e8b5ae33a3567845469b57a479781c1f9a9360` en `develop`. Evidencia de aceptación C06-12 y límites de configuración externa: [roadmap de Fase 06](../ROADMAP.md).
 
 ## Objetivo y recorrido
 
 Permitir que una persona con sesión confirme una compra mediante Stripe Checkout alojado y consultar pedidos pagados desde su cuenta. La orden conserva una instantánea independiente del catálogo y del perfil; sólo un webhook de Stripe con firma válida confirma el pago.
+
+La [guía de Stripe](../architecture/services/STRIPE.md) detalla el recorrido local de prueba, la separación de credenciales y el webhook de Staging.
 
 1. El carrito ofrece acceso al resumen de compra. Una persona invitada inicia sesión o se registra; la intención `continuar=checkout` sobrevive la autenticación y la confirmación del correo.
 2. `/cuenta/checkout` muestra primero los productos editables con sus imágenes; después, el destinatario y domicilio de esta compra; las tarjetas guardadas que Stripe permite mostrar; y al final el subtotal y la acción morada para continuar a Stripe.
@@ -104,6 +104,4 @@ Referencias oficiales: [crear Checkout Sessions](https://docs.stripe.com/api/che
 
 Una transición válida a `PAID` encola en la misma transacción un solo trabajo persistido `PURCHASE_CONFIRMATION`, asociado de forma única a la orden. Un webhook repetido no duplica el trabajo. El Worker vuelve a cargar la instantánea de una orden pagada y envía al correo de destinatario guardado un mensaje de compra con exactamente un PDF adjunto. El PDF contiene los artículos, importes, fecha de pago y datos de entrega de esa orden; esos datos nunca se escriben en logs. `RESEND_FROM` es el remitente de compras; los correos de cuenta usan `MAIL_FROM`.
 
-Compose dirige el SMTP a Mailpit. Railway utilizará la API HTTPS de Resend desde el Worker cuando Staging se configure. Para compras se envía la clave estable `purchase/<order UUID>`; la deduplicación de Resend dura 24 horas y no es garantía de exactamente una entrega ante cualquier fallo o reintento posterior. La guía y los pasos externos pendientes están en [`docs/architecture/services/RESEND.md`](../architecture/services/RESEND.md).
-
-El 16 de noviembre de 2026, la integración local en Compose aislado aprobó checkout con webhook Stripe de prueba firmado, persistencia de un trabajo, correo a Mailpit con PDF único y reintento recuperable después de un fallo de transporte. Resend, dominio/DNS, Staging y Producción permanecen pendientes; la evidencia de comandos, entorno y revisión de migraciones está en [`docs/ROADMAP.md`](../ROADMAP.md).
+Compose dirige el SMTP a Mailpit por defecto; el Worker local puede usar Resend de forma opcional. En Railway, el Worker usa la API HTTPS de Resend. Para compras enviamos la clave estable `purchase/<order UUID>`; la deduplicación de Resend dura 24 horas y no garantiza exactamente una entrega ante cualquier fallo o reintento posterior. La [guía de Resend](../architecture/services/RESEND.md) explica la configuración por entorno.

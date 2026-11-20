@@ -12,6 +12,7 @@ const securityHeaders = [
 const nextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
+  ...(process.env.NEXT_BUILD_ID ? { generateBuildId: async () => process.env.NEXT_BUILD_ID } : {}),
   poweredByHeader: false,
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];

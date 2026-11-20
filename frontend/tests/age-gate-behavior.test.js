@@ -5,6 +5,7 @@ const test = require('node:test');
 const {
   AGE_GATE_PHASES,
   getShowcaseObserverOptions,
+  lockAgeGateScroll,
   nextAgeGatePhase,
   observeShowcase,
 } = require('../src/components/age-gate/age-gate-behavior');
@@ -59,6 +60,18 @@ test('confirming age permanently clears the gate for the current render', () => 
     nextAgeGatePhase(AGE_GATE_PHASES.VERIFIED, 'showcase-entered'),
     AGE_GATE_PHASES.VERIFIED,
   );
+});
+
+test('el diálogo de edad bloquea el scroll con una clase que se retira al cerrarse', () => {
+  const classes = new Set();
+  const body = { classList: {
+    add: (name) => classes.add(name),
+    remove: (name) => classes.delete(name),
+  } };
+  const restore = lockAgeGateScroll(body);
+  assert.equal(classes.has('age-gate-open'), true);
+  restore();
+  assert.equal(classes.has('age-gate-open'), false);
 });
 
 test('the showcase observer opens the gate shortly after the section starts appearing', () => {

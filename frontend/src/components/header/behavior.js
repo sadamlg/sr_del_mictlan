@@ -21,9 +21,6 @@ export function getMobileNavigationProps(isOpen) {
 }
 
 export function lockBodyScroll(body) {
-  const previousOverflow = body.style.overflow;
-  const previousTouchAction = body.style.touchAction;
-  body.style.overflow = 'hidden';
-  body.style.touchAction = 'none';
-  return () => { body.style.overflow = previousOverflow; body.style.touchAction = previousTouchAction; };
+  body.classList.add('mobile-menu-open');
+  return () => body.classList.remove('mobile-menu-open');
 }

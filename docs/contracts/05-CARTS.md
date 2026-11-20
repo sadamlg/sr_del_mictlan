@@ -71,11 +71,3 @@ El panel debe conservar su jerarquía, proporciones, tipografía, espaciado, con
 | C05-08 | Escritorio y móvil conservan la distribución y los controles descritos, el carrito y el menú móvil no se abren a la vez, Escape cierra, el foco vuelve al encabezado y el panel no produce desbordamiento horizontal. |
 | C05-09 | No se agrega Checkout, Stripe, webhooks, órdenes, correo de compra ni cambios de contenido o rutas de la fase 04. |
 | C05-10 | La revisión visual final cubre escritorio y móvil con carrito vacío y con productos, más carga, error y producto no disponible, según los criterios de presentación de este contrato. |
-
-## Evidencia histórica de revisión visual
-
-- Revisados en navegador el encabezado, el escaparate con tres productos y el carrito vacío en escritorio y móvil.
-- En escritorio y móvil se añadió Calios, se observaron la línea, imagen, nombre, descriptor, precio, subtotal y controles con cantidades 1 y 2; al final se quitó la línea temporal y el carrito quedó vacío.
-- Revisados en fuente los estados de carga/error, el reintento, la línea no disponible, su eliminación y el aviso del carrito de cuenta. La verificación final de esos estados se hará en el proyecto cuando la implementación cuente con datos de prueba adecuados.
-- La interfaz revisada se abrió tras confirmar una vez el aviso local de mayoría de edad.
-- El 16 de noviembre de 2026 se verificaron en una instancia aislada con datos sintéticos las transferencias tras iniciar sesión y confirmar correo, el producto desactivado, su retirada y la recuperación tras interrumpir la API. Se corrigieron la presentación engañosa de carrito vacío durante un error y la identificación de productos no disponibles en conflictos de fusión.

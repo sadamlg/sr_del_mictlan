@@ -13,6 +13,7 @@ secrets/
 # Dependencies and generated output
 node_modules/
 .next/
+.generated/
 dist/
 coverage/
 backend/generated/prisma/
