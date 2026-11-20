@@ -1,14 +1,8 @@
 # Resend · correo transaccional
 
-## Estado
+Esta guía explica el envío con Resend desde el Worker, la autenticación DNS del dominio remitente y la separación entre Local, Staging y Production. Usa los valores que el proveedor genere para el dominio elegido; no guardes secretos ni el estado de una cuenta en el manual. Para distinguir registrador y DNS autoritativo, consulta [NEUBOX.md](NEUBOX.md).
 
-La integración de código está preparada. El responsable confirma que los registros DNS de Resend ya se cargaron en Neubox/cPanel. El panel de Resend mostró `mail.srmictlan.com` como verificado el 16 de noviembre de 2026; los valores DNS no se copiaron al repositorio. No volver a crear registros antes de comparar la zona actual con **Domains → Records**.
-
-El dominio del proyecto es `srmictlan.com` y el subdominio elegido para envío es `mail.srmictlan.com`. Antes de aplicar cambios, confirma que el dominio sigue bajo control del proyecto y que la zona DNS autoritativa sigue en Neubox/cPanel; los valores DNS generados por la cuenta de Resend no se registran en esta guía.
-
-La tienda no necesita estar publicada para verificar este subdominio. Hace falta controlar el dominio y poder editar su zona DNS autoritativa; por eso la configuración puede hacerse antes de que el hostname web apunte a la tienda.
-
-El Worker usa Resend por HTTPS en los entornos que lo configuren. La API no necesita ni recibe `RESEND_API_KEY`. Compose usa SMTP hacia Mailpit.
+El Worker usa Resend por HTTPS en los entornos que lo configuren. La API no necesita ni recibe `RESEND_API_KEY`. Compose usa SMTP hacia Mailpit por defecto y permite activar Resend localmente de forma opcional.
 
 ## Minicurso: cómo funciona el correo en esta aplicación
 
@@ -28,15 +22,29 @@ Navegador → API → PostgreSQL (trabajo de correo)
 
 SMTP es un protocolo para entregar mensajes a un servidor de correo. En el código, `smtp-transport.js` usa Nodemailer y `EMAIL_TRANSPORT=smtp`; Compose conecta el Worker al servicio `mailpit` por el puerto interno `1025`. Mailpit recibe el mensaje y lo deja visible en su interfaz local en `http://localhost:8025`. No lo reenvía a Gmail ni a Internet.
 
-El transporte de Resend no usa SMTP. `resend-transport.js` hace `POST https://api.resend.com/emails` con HTTPS y la clave en `Authorization: Bearer …`; también convierte el PDF adjunto a Base64 y, para compras, transmite la clave de idempotencia. El servidor de Resend acepta la solicitud y luego intenta entregarla al destinatario. Por eso una compra local en la configuración Compose actual aparece en Mailpit, mientras una compra procesada por un Worker configurado con `EMAIL_TRANSPORT=resend` puede llegar a una bandeja real.
+El transporte de Resend no usa SMTP. `resend-transport.js` hace `POST https://api.resend.com/emails` con HTTPS y la clave en `Authorization: Bearer …`; también convierte el PDF adjunto a Base64 y, para compras, transmite la clave de idempotencia. El servidor de Resend acepta la solicitud y luego intenta entregarla al destinatario. La configuración Compose predeterminada entrega a Mailpit; al seleccionar `EMAIL_TRANSPORT=resend`, el Worker local puede enviar a una bandeja real controlada.
 
-Compose fija `EMAIL_TRANSPORT=smtp` en `compose.yaml`; establecer `EMAIL_TRANSPORT=resend` solo en `.env` no cambia ese valor. Mantén el recorrido local con SMTP y Mailpit: permite revisar el mensaje sin enviar correo a destinatarios externos ni instalar una clave Resend. La primera prueba de entrega real corresponde a Staging.
+Compose usa `EMAIL_TRANSPORT=smtp` por defecto. Mailpit permite revisar el mensaje sin enviar correo a destinatarios externos ni configurar una clave Resend. Para validar la llamada real a Resend desde el Worker local, sigue el procedimiento opcional de abajo; Staging sigue siendo necesario para comprobar remitentes, dominio y configuración de ese entorno.
+
+### Probar Resend localmente (opcional)
+
+El código del Worker admite ambos transportes. Para probar la integración HTTPS desde Compose, configura en `.env` `EMAIL_TRANSPORT=resend`, `RESEND_API_KEY` con una clave local de alcance mínimo y remitentes `MAIL_FROM` y `RESEND_FROM` autorizados en un dominio verificado de Resend. No reutilices la clave de Staging o Producción. La API key sólo se entrega al Worker.
+
+Mantén `FRONTEND_ORIGIN` apuntando a `http://localhost:3000` para que los enlaces de confirmación y recuperación regresen al entorno local. Usa una bandeja de control propia y autorizada: esta opción envía correo real, consume los límites de la cuenta y puede generar cargos. No la uses para destinatarios de clientes ni con datos personales de producción.
+
+Recrea el Worker para aplicar la selección y las credenciales:
+
+```bash
+docker compose up --detach --force-recreate worker
+```
+
+Para volver a la ruta aislada, cambia `EMAIL_TRANSPORT=smtp`, deja `RESEND_API_KEY` vacía y recrea el Worker. El mensaje vuelve a aparecer en Mailpit en `http://localhost:8025`.
 
 ### Dominio de la tienda, subdominio de envío y DNS
 
-`srmictlan.com` identifica el dominio de la tienda. `mail.srmictlan.com` es el subdominio separado elegido para los remitentes de correo. Verificarlo en Resend no publica la web, no crea una cuenta de correo y no cambia por sí solo el destino del dominio web. Son rutas DNS independientes.
+El dominio de la tienda y el subdominio remitente (`mail.<dominio>`, por ejemplo) son identidades DNS distintas. Verificar un dominio remitente en Resend no publica la web, no crea una cuenta de correo y no cambia el destino del dominio web.
 
-Los registros se editan en el proveedor que sirve los nameservers autoritativos del dominio. El panel de Neubox/cPanel puede mostrar una zona editable aunque no sea la zona pública activa; por eso primero se comprueba la delegación. Si los nameservers apuntan a Neubox, se usa `cPanel → Zone Editor`; si apuntan a otro proveedor, se edita ahí. Los registros concretos que se deben publicar son los que la cuenta de Resend muestra para ese dominio: no se deducen ni se copian de otra cuenta.
+Los registros se editan en el proveedor que sirve los nameservers autoritativos del dominio. Un panel de registrador puede mostrar una zona editable aunque no sea la pública; comprueba la delegación antes de editar. Los registros concretos que se deben publicar son los que la cuenta de Resend muestra para el dominio configurado: no se deducen ni se copian de otra cuenta.
 
 Los términos DNS más comunes en la autenticación de correo son:
 
@@ -52,9 +60,9 @@ El encabezado `From` visible para quien recibe el mensaje y la dirección `To` c
 
 - `MAIL_FROM` para confirmación de cuenta, cambio de correo y recuperación de contraseña.
 - `RESEND_FROM` para confirmación de compra con su PDF adjunto.
-- La dirección del cliente o destinatario guardada en la cuenta o pedido como `To`; puede ser una dirección Gmail, por ejemplo `juan+prueba@gmail.com`.
+- La dirección del cliente o destinatario guardada en la cuenta o pedido como `To`; en pruebas usa una bandeja controlada y autorizada.
 
-El dominio del remitente debe estar autorizado en Resend. Los ejemplos propuestos (`cuentas@mail.srmictlan.com` y `pedidos@mail.srmictlan.com`) son identidades de envío, no prueba de que existan buzones que reciban respuestas. La clave se crea en Resend y se instala como secreto `RESEND_API_KEY` en el Worker que use la API; no se introduce en cPanel, en registros DNS, en el navegador ni en la API. En cambio, cPanel recibe los valores de registros DNS, nunca la clave API.
+El dominio del remitente debe estar autorizado en Resend. Identidades como `cuentas@mail.<dominio>` y `pedidos@mail.<dominio>` son ejemplos, no prueba de que existan buzones para recibir respuestas. La clave se crea en Resend y se instala como secreto `RESEND_API_KEY` sólo en el Worker; no se introduce en DNS, navegador ni API. El proveedor DNS recibe los valores de registros, nunca la clave API.
 
 ### Quién crea y valida los enlaces
 
@@ -68,11 +76,11 @@ La página del frontend lee el token de la URL y lo envía al API. El API busca 
 
 `FRONTEND_ORIGIN` define el origen público de ese frontend en cada entorno, sin ruta, query ni fragmento. El Worker lo usa como base para los enlaces anteriores y para la imagen de marca incluida en los correos. El API valida el mismo origen para CORS, el hostname de Turnstile y las URLs de retorno de Stripe Checkout. Debe coincidir con el frontend del entorno: si se deja el valor local en Railway, los enlaces llevarán a `localhost`; si se copia un origen de Staging en Producción, los mensajes dirigirán al entorno equivocado. Valores de referencia:
 
-| Entorno | Ejemplo de `FRONTEND_ORIGIN` | Estado en esta guía |
-|---|---|---|
-| Local | `http://localhost:3000` | Valor predeterminado de Compose y `.env.example`. |
-| Staging | `https://<host-del-frontend-de-staging>` | Debe sustituirse por el hostname real del frontend de este repositorio y comprobarse. |
-| Producción | `https://srmictlan.com` | Valor objetivo; confirmar cuando se prepare y publique el frontend de Producción. |
+| Entorno | Forma de `FRONTEND_ORIGIN` |
+|---|---|
+| Local | `http://localhost:<puerto-frontend>` |
+| Staging | `https://<hostname-frontend-staging>` |
+| Producción | `https://<dominio-frontend-produccion>` |
 
 ### Cola de correo, pedido y PDF
 
@@ -88,30 +96,28 @@ Los fallos se persisten con estado e intentos. Se permiten hasta cinco intentos;
 
 1. Seleccionar la cuenta y el equipo de Resend existentes del proyecto. No crear otra cuenta ni volver a registrar el dominio hasta comprobarlo. Activar MFA y limitar el acceso administrativo.
 2. Antes de habilitar uso, revisar en el panel el plan vigente, volumen permitido, límites diarios, cargos por excedentes, método de pago y alertas. Confirmar un presupuesto aprobado. No habilitar sobreconsumo ni añadir un medio de pago sin esa aprobación. Los precios y límites pueden cambiar; consultar la [página vigente de precios](https://resend.com/pricing).
-3. Usar el subdominio elegido, `mail.srmictlan.com`, si el dominio continúa vigente. Resend recomienda enviar desde un subdominio; si cambió el dominio o la decisión, actualizar esta guía antes de registrar nada. Consultar la [guía oficial para añadir un dominio](https://resend.com/docs/add-a-domain).
-4. En Resend, abrir **Domains → mail.srmictlan.com** y revisar su estado y pestaña **Records**. Copiar los valores exactos que muestre el panel: tipo, nombre/host, valor, TTL y prioridad cuando aplique. Si el dominio no aparece en la cuenta o Resend no lo reconoce, confirmar la cuenta/equipo correcto antes de volver a añadirlo. Esta guía no inventa valores DNS.
-5. Comparar esos registros con los que ya están en Neubox/cPanel. Si coinciden y Resend lo marca verificado, no cambiar DNS. Si falta o difiere alguno, seguir la ruta concreta de Neubox/cPanel más abajo y editar sólo ese registro. Si los nameservers actuales apuntan a otro proveedor, cPanel no es autoritativo y los registros se deben revisar en el proveedor indicado por esos nameservers.
+3. Elegir un subdominio remitente dedicado, si la arquitectura y política de correo lo permiten. Consultar la [guía oficial para añadir un dominio](https://resend.com/docs/add-a-domain).
+4. En Resend, abrir **Domains → <dominio-remitente> → Records** y copiar los valores exactos que muestre el panel: tipo, nombre/host, valor, TTL y prioridad cuando aplique. Si el dominio no aparece en la cuenta, confirmar el equipo correcto antes de volver a añadirlo.
+5. Comparar esos registros con la zona DNS autoritativa. Si coinciden y Resend lo marca verificado, no cambiar DNS. Si falta o difiere alguno, editar sólo el registro indicado en el proveedor autoritativo.
 6. No crear registros desde **Child Nameservers**, no registrar glue records y no cambiar ni delegar los nameservers de la zona para verificar TXT, CNAME o MX. La verificación requiere registros en la zona DNS autoritativa actual; no una migración de DNS.
 7. Esperar a que el panel de Resend marque el dominio como verificado. La propagación puede tardar; contrastar en el panel los registros publicados con los valores exactos generados y corregir sólo el registro correspondiente. No se considera verificado por haber guardado cambios en el proveedor DNS.
-8. En Resend, crear una clave API con el menor alcance de envío disponible. La clave se genera en Resend y se configura como secreto del Worker de Railway en los entornos que usan Resend: primero Staging y, cuando se autorice, Producción. No se introduce en el API, cPanel ni como registro DNS. El Worker local de Compose usa SMTP hacia Mailpit y no necesita una clave Resend. Crear claves distintas por entorno; nunca incluir su valor en `.env.example`, Git, logs, tickets o mensajes, y rotarla/revocarla si se expone.
-9. Configurar la identidad de remitente autorizada en ese dominio. El remitente de cuenta va en `MAIL_FROM`; el remitente de compras va en `RESEND_FROM`. Los remitentes propuestos son `Señor del Mictlán <cuentas@mail.srmictlan.com>` y `Señor del Mictlán <pedidos@mail.srmictlan.com>`, respectivamente; usarlos sólo después de que Resend acepte el dominio. La verificación de envío no crea un buzón para recibir respuestas. No asumir que cualquier dirección queda autorizada automáticamente.
+8. En Resend, crear una clave API con el menor alcance de envío disponible. La clave se configura como secreto del Worker de Railway en los entornos que usan Resend y, sólo si se elige la prueba opcional local, en el `.env` ignorado por Git. No se introduce en el API, cPanel ni como registro DNS. Crear claves distintas por entorno; nunca incluir su valor en `.env.example`, Git, logs, tickets o mensajes, y rotarla/revocarla si se expone.
+9. Configurar remitentes autorizados en ese dominio. El remitente de cuenta va en `MAIL_FROM`; el remitente de compras va en `RESEND_FROM`. Por ejemplo: `Nombre del comercio <cuentas@mail.<dominio>>` y `Nombre del comercio <pedidos@mail.<dominio>>`. La verificación de envío no crea buzones para recibir respuestas.
 
-### Ruta concreta: Neubox y cPanel
+### Publicar registros en la zona autoritativa
 
-1. Comprueba quién sirve la zona autoritativa: revisa los nameservers del dominio en Neubox o ejecuta `dig NS srmictlan.com +short`. Si no apuntan a Neubox, no edites la copia de la zona que aparezca en cPanel; usa el DNS del proveedor autoritativo actual.
-2. Si la zona está en el hosting de Neubox, abre **cPanel → Zone Editor → Manage** junto a `srmictlan.com`. La documentación de cPanel confirma que **Manage** permite añadir y editar registros DNS; consulta [Zone Editor de cPanel](https://docs.cpanel.net/cpanel/domains/zone-editor/).
-3. Antes de editar, guarda una captura o exportación de los registros existentes A/AAAA, CNAME, MX, TXT (incluidos SPF, DKIM y DMARC) y verificaciones. Identifica cuáles sostienen la web y el servicio de correo actual.
-4. En Resend, abre **Domains → mail.srmictlan.com → Records** y copia los campos que muestre. No se conoce ni se inventa aquí el contenido: los valores exactos deben salir de esa cuenta y de ese dominio.
-5. Compara tipo, nombre/host, valor/destino, TTL y prioridad (si aplica) contra los registros actuales en cPanel. Si ya coinciden, no hagas nada. Si necesitas agregar o corregir una entrada, pulsa **Add Record** y cambia sólo ese registro. cPanel puede completar el sufijo de la zona en el nombre; revisa el nombre final antes de guardar para evitar duplicar `.srmictlan.com`.
-6. No reemplaces ni borres el MX raíz del buzón existente, ni reescribas SPF/DKIM/DMARC de otros servicios. Si Resend muestra un MX, verifica el hostname completo que indica (incluido el Return-Path, si aplica); no lo sustituyas por el dominio raíz.
-7. No uses en el panel de Neubox **Nameservers**, **Servidores DNS privados** ni **Registrar NameServer** para añadir TXT/CNAME/MX. Esas opciones cambian la delegación o crean child nameservers; para estos registros se usa la zona autoritativa en **Zone Editor**.
-8. Guarda cada entrada, compara la tabla con la captura previa y vuelve a Resend para ejecutar **Verify**. Si falla, revisa el tipo y nombre final, valor, prioridad y propagación; corrige sólo el registro indicado. No cambies nameservers para reparar un registro individual.
+1. Consulta los nameservers delegados del dominio y determina qué proveedor sirve la zona activa. El registrador y el editor DNS pueden ser servicios distintos.
+2. Guarda un inventario de los registros A/AAAA, CNAME, MX, TXT (SPF, DKIM, DMARC) y verificaciones actuales, especialmente los que sostienen web y correo.
+3. En Resend, abre **Domains → <dominio-remitente> → Records** y copia los registros solicitados.
+4. Compara tipo, nombre/host, valor/destino, TTL y prioridad con la zona activa. Si coinciden, no los dupliques; si falta uno, edita sólo ese registro en el proveedor autoritativo.
+5. No borres ni reemplaces MX, SPF, DKIM o DMARC de otros servicios. Si Resend solicita un MX de retorno, conserva el hostname exacto que muestra el proveedor; no lo sustituyas por el dominio raíz.
+6. Vuelve a Resend y ejecuta **Verify**. Si no pasa, revisa nombre final, valor, prioridad y propagación. No cambies nameservers para corregir un registro individual.
 
-Hoja para comparar los valores de Resend con la zona existente. Agrega una fila por cada entrada que muestre **Records**; esta tabla no presupone cuántos registros o tipos habrá. Los valores actuales todavía no están documentados aquí.
+Hoja reproducible para comparar los valores de Resend con la zona existente. Agrega una fila por cada entrada que muestre **Records**.
 
-| # | Tipo | Nombre/host mostrado por Resend | Valor/destino | TTL | Prioridad | Nombre final en cPanel | Verificado |
+| # | Tipo | Nombre/host mostrado por Resend | Valor/destino | TTL | Prioridad | Nombre final en la zona DNS | Verificado |
 |---|---|---|---|---|---|---|---|
-| 1 | Pendiente del panel | Pendiente del panel | Pendiente del panel | Pendiente del panel | Si aplica | Pendiente | No |
+| 1 | `<tipo>` | `<nombre/host>` | `<valor/destino>` | `<TTL>` | Si aplica | `<nombre final en DNS>` | `<pendiente/verificado>` |
 
 ## Variables por entorno
 
@@ -125,47 +131,43 @@ Configurar las variables en el servicio **Worker** de cada entorno Railway, no e
 | `RESEND_FROM` | Remitente de confirmación de compra con PDF. |
 | `FRONTEND_ORIGIN` | Origen público del mismo entorno para enlaces de cuenta. |
 
-Staging y Producción deben usar variables, claves, remitentes, dominios (o subdominios) y límites revisados por separado. En el Worker de Staging actual se observaron `EMAIL_TRANSPORT`, `RESEND_API_KEY`, `MAIL_FROM` y `RESEND_FROM`; los valores se mantienen fuera de la documentación. La presencia de esas variables no acredita que la clave sea válida ni que Resend acepte los remitentes. Producción queda apagada hasta la Fase 10 y una autorización expresa. Nunca reutilizar claves entre entornos.
+Staging y Producción deben usar variables, claves, remitentes, dominios (o subdominios) y límites separados. Nunca reutilices claves entre entornos; la presencia de una variable no acredita que la clave sea válida ni que Resend acepte los remitentes.
 
 El Worker debe recibir `DATABASE_URL`, además de las variables anteriores. No colocar `RESEND_API_KEY` en el servicio API, configuración compartida de todo el proyecto, build args, imagen Docker o variables públicas. La integración hace `POST https://api.resend.com/emails` por HTTPS con `RESEND_API_KEY` en `Authorization`; no usa SMTP ni `SMTP_PASSWORD` para Resend.
 
-En Compose local se usa `EMAIL_TRANSPORT=smtp` hacia Mailpit. La verificación de Resend con una bandeja real se realizará en Staging; no hace falta configurar una clave en el entorno local.
+En Compose local se usa `EMAIL_TRANSPORT=smtp` hacia Mailpit si no se cambia la selección. La prueba opcional de Resend configura la clave sólo en el Worker local; la guía anterior describe ese recorrido. Staging debe verificarse por separado con su propia clave, dominio, remitentes y destinatarios de control.
 
 ## Recorrido por entorno
 
 ### Local
 
 1. El navegador local habla con el API local. El API escribe en PostgreSQL un trabajo para la confirmación de cuenta, la recuperación, el cambio de correo o la compra pagada.
-2. El Worker de Compose reclama el trabajo y usa SMTP hacia Mailpit. Revisa el mensaje en `http://localhost:8025`; no aparecerá en la cuenta Gmail real del destinatario.
+2. Con la configuración predeterminada, el Worker de Compose reclama el trabajo y usa SMTP hacia Mailpit. Revisa el mensaje en `http://localhost:8025`; no aparecerá en la cuenta Gmail real del destinatario. Si se activa Resend local, el Worker envía a la bandeja real controlada que se configuró.
 3. Para activación o recuperación, abre desde el navegador local el enlace a `http://localhost:3000`, y la página envía el token al API local para validarlo y consumirlo.
-4. Para una compra, usa Stripe en modo de prueba y entrega el webhook de prueba al API local. Solo después de que el API valide el webhook y confirme el pedido se crea el trabajo de correo. El Worker genera el PDF en memoria y lo adjunta al mensaje visible en Mailpit.
-5. Si falla el transporte, PostgreSQL conserva el trabajo para los reintentos configurados. El recorrido local permite revisar contenido, enlaces, PDF y recuperación del trabajo; por usar Mailpit no prueba autenticación DNS ni entrega externa.
+4. Para una compra, usa Stripe en modo de prueba y entrega el webhook de prueba al API local. Sólo después de que el API valide el webhook y confirme el pedido se crea el trabajo de correo. El Worker genera el PDF en memoria y lo adjunta al mensaje visible en Mailpit, o lo envía a la bandeja controlada si se selecciona Resend.
+5. Si falla el transporte, PostgreSQL conserva el trabajo para los reintentos configurados. Mailpit permite revisar contenido y recuperación sin entrega externa; Resend local valida la llamada externa, pero no sustituye la verificación de configuración de Staging.
 
 ### Staging
 
-El recorrido previsto para el repositorio actual separa los servicios frontend, API y Worker, y conecta API y Worker a la base PostgreSQL del mismo entorno. Configura `FRONTEND_ORIGIN` en API y Worker con el hostname exacto de este frontend de Staging. En el Worker se selecciona `EMAIL_TRANSPORT=resend` y se ponen, como secretos/variables del servicio, una clave exclusiva de Staging, `MAIL_FROM`, `RESEND_FROM` y `DATABASE_URL`. El API recibe su configuración de aplicación y base de datos, pero no `RESEND_API_KEY`.
+El siguiente recorrido describe cómo configurar y verificar el envío externo en Staging.
 
-Con esa configuración, registro, recuperación y cambio de correo generan trabajo y el Worker envía enlaces que regresan al frontend de Staging. Para compras, usa Stripe de prueba; el webhook recibido por el API confirma el pago, persiste el único trabajo, y el Worker genera y adjunta el PDF a la solicitud HTTPS de Resend. Resend intenta entregarlo a una dirección controlada y válida, por ejemplo `juan+prueba@gmail.com`. Revisa tanto el mensaje/estado en Resend como el mensaje recibido, que el enlace abra Staging, que exista un PDF adjunto legible, los reintentos ante un fallo controlado y la idempotencia ante la repetición del webhook.
+En Staging, separa Frontend, API y Worker y conecta API y Worker a la base PostgreSQL del mismo entorno. Configura `FRONTEND_ORIGIN` en API y Worker con el hostname del Frontend de ese entorno. En Worker selecciona `EMAIL_TRANSPORT=resend` y configura una clave exclusiva de Staging, `MAIL_FROM`, `RESEND_FROM` y `DATABASE_URL`. El API recibe su configuración de aplicación y base de datos, pero no `RESEND_API_KEY`.
 
-El Worker usa Resend para las notificaciones de Staging. Valida la entrega de cuenta y compra con destinatarios de prueba antes de aceptar el entorno; no uses claves ni remitentes productivos. Los nombres y valores de referencia están en la [guía de Railway](RAILWAY.md#configuracion-de-referencia-de-staging).
+Con esa configuración, registro, recuperación y cambio de correo generan trabajo y el Worker envía enlaces que regresan al frontend de Staging. Para compras, usa Stripe de prueba; el webhook recibido por el API confirma el pago, persiste el único trabajo, y el Worker genera y adjunta el PDF a la solicitud HTTPS de Resend. Resend intenta entregarlo a una bandeja controlada y autorizada. Revisa el estado de entrega, el enlace al entorno, el PDF, los reintentos ante un fallo controlado y la idempotencia ante la repetición del webhook.
+
+El Worker usa Resend para notificaciones de Staging. Valida la entrega de cuenta y compra con destinatarios de prueba antes de aceptar el entorno; usa clave y remitente distintos de Production. Las variables por servicio se describen en la [guía de Railway](RAILWAY.md).
 
 ### Producción
 
-El mismo flujo se habilita cuando el entorno de Producción esté preparado y aprobado: `FRONTEND_ORIGIN=https://srmictlan.com`, `EMAIL_TRANSPORT=resend`, clave de Producción separada de la de Staging, remitentes autorizados bajo `mail.srmictlan.com`, y API/Worker conectados a la base de Producción. La clave vive solamente como secreto del Worker. La API persiste los trabajos; el Worker genera los enlaces o el PDF y entrega los mensajes a Resend por HTTPS. Los enlaces deben regresar al sitio público y la imagen de marca del correo debe cargar desde el mismo origen.
+El mismo flujo se configura en Production con `FRONTEND_ORIGIN=https://<dominio-produccion>`, `EMAIL_TRANSPORT=resend`, una clave separada de Staging, remitentes autorizados en el dominio elegido y API/Worker conectados a la base de Production. La clave vive sólo como secreto del Worker. Los enlaces deben regresar al sitio público y la imagen de marca del correo debe cargar desde un origen accesible.
 
 Un pedido solo produce confirmación después de que el API acepta el webhook de pago y guarda `PAID`; el PDF se genera en memoria, se adjunta al correo y no se almacena en PostgreSQL. Los mismos reintentos e idempotencia aplican, pero los mensajes se dirigen a destinatarios reales. Hasta que se autorice esa activación, la integración de Producción permanece apagada; una prueba de Staging no sustituye la verificación de variables, claves, DNS, remitentes, destinatarios y límites de Producción.
 
-### Estado: código, configuración y comprobación
+### Rendimiento, seguridad y costos
 
-| Categoría | Estado conocido |
-|---|---|
-| Implementado en el código | Transportes SMTP y Resend HTTPS; cola PostgreSQL procesada por Worker; mensajes de cuenta y compra; tokens de un solo uso; PDF de compra generado en memoria; reintentos acotados; protección contra trabajos de compra duplicados y clave idempotente para Resend. Hay pruebas unitarias y una prueba de integración con PostgreSQL/Mailpit en el repositorio. |
-| Configurado en local | `compose.yaml` fija SMTP → Mailpit; `.env.example` define `FRONTEND_ORIGIN=http://localhost:3000` y remitentes locales de ejemplo. No requiere clave Resend ni envía a bandejas externas. |
-| Configuración externa reportada | Esta guía registra que el responsable cargó registros en Neubox/cPanel y que el panel de Resend mostró `mail.srmictlan.com` verificado el 16 de noviembre de 2026. Los valores no están guardados aquí y el estado no se volvió a consultar durante esta actualización. |
-| Observado en Staging | Railway muestra `EMAIL_TRANSPORT`, `RESEND_API_KEY`, `MAIL_FROM` y `RESEND_FROM` en el servicio `worker`; los valores secretos no se inspeccionaron ni copiaron. El Worker está en línea. |
-| Pendiente de verificar | Que Neubox/cPanel siga siendo autoritativo y que la zona coincida con **Domains → Records**; que la clave presente sea válida, tenga el alcance esperado y los remitentes estén aceptados; el envío Resend→bandeja en Staging, incluida compra, PDF, enlaces y reintentos; y la configuración separada de Producción. |
-
-La presencia de `RESEND_API_KEY` en Variables confirma que el Worker recibió un valor, pero no muestra si la clave es válida, qué permisos tiene ni si el recorrido se completó. Esta distinción debe mantenerse al registrar evidencia de cada entorno.
+- **Rendimiento:** la API encola el correo y el Worker lo envía fuera de la solicitud del usuario. Vigila el tiempo que el trabajo permanece en cola, los reintentos, límites de envío y tamaño de los adjuntos.
+- **Seguridad:** guarda la API key como secreto exclusivo del Worker, limita su alcance, rótala si se expone y evita registrar destinatarios, tokens, claves, cuerpo o adjuntos. Publica SPF/DKIM y adopta una política DMARC compatible con el dominio existente.
+- **Costos:** considera volumen enviado, nivel del plan, adjuntos y reintentos. Revisa límites y [precios vigentes](https://resend.com/pricing) antes de activar envíos reales; no deduzcas costo sólo por tener una API key.
 
 ## Cola, reintentos y límites de idempotencia
 

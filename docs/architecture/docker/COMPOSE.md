@@ -2,6 +2,8 @@
 
 Compose ejecuta PostgreSQL, Mailpit, la API Express, un worker Node.js y el frontend Next.js en la red bridge del proyecto. Dentro de Compose, los servicios se resuelven por nombre; los puertos publicados conectan el anfitrión con esos servicios. Los puertos publicados usan localhost por defecto. El script `scripts/dev-lan.sh` habilita y revierte el acceso desde la red local.
 
+El correo local usa Mailpit por defecto. Para enviar correo real desde el Worker como prueba opcional, sigue la [guía de Resend](../services/RESEND.md); requiere una clave local y una bandeja de control autorizada.
+
 ## Requisitos y convenciones
 
 - Docker Engine 28 o posterior en ejecución, Docker CLI y el plugin Docker Compose 2.17.0 o posterior, invocado como `docker compose`. Compose 2.17.0 incorporó `--wait-timeout`, que se usa al iniciar el entorno. En Docker Engine anterior a 28, otros equipos del mismo segmento de red podían alcanzar puertos publicados en localhost. Consulta la [referencia de Compose](https://docs.docker.com/compose/install/), las [notas de Compose 2.17.0](https://github.com/docker/compose/releases/tag/v2.17.0) y la documentación de [publicación de puertos de Docker](https://docs.docker.com/engine/network/port-publishing/).
@@ -41,7 +43,7 @@ flowchart LR
 | PostgreSQL | `localhost:5432` | `postgres:5432` | Base local con volumen persistente |
 | Mailpit | [http://localhost:8025](http://localhost:8025) | `mailpit:8025` | Bandeja web de correo de desarrollo |
 | SMTP de Mailpit | No publicado al anfitrión | `mailpit:1025` | Envío desde el worker |
-| Worker | Sin puerto publicado | PostgreSQL y Mailpit en la red privada | Escribe un latido; `worker:mail-smoke` comprueba el envío SMTP |
+| Worker | Sin puerto publicado | PostgreSQL y Mailpit en la red privada | Escribe un latido; `worker:mail-smoke` comprueba SMTP a Mailpit, el transporte predeterminado |
 
 El frontend consulta la API durante el render del servidor mediante `http://backend:3000`. El navegador no necesita resolver nombres internos de Compose. La red bridge y la dirección de publicación del puerto en el anfitrión son configuraciones distintas.
 
