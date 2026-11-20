@@ -2,6 +2,8 @@
 
 Esta guía recoge la estrategia prevista para el MVP. La fase 03 implementa y verifica el renderizado y la caché del catálogo; los preparativos del dominio y de indexación corresponden a la fase 10.
 
+Como resguardo mientras se prepara Producción, el Frontend envía `X-Robots-Tag: noindex, nofollow` por defecto en runtime. Sólo la landing pública del MVP puede indexarse con `ROBOTS_INDEXABLE=true`; el valor debe ser explícito y Staging conserva `false`. Las rutas de cuenta y cualquier otra ruta permanecen excluidas. Este control no sustituye la configuración SEO del dominio final.
+
 ## Decisión
 
 Se conserva Next.js App Router para servir la landing y el catálogo con HTML generado en el servidor, y para usar Server Components en los datos públicos y Client Components sólo donde hacen falta interacciones del navegador. React con Express también puede implementar SSR, pero requeriría construir y mantener por separado el enrutado, el renderizado y la hidratación que Next.js ya integra.
@@ -21,6 +23,8 @@ SSR ayuda a que el HTML inicial incluya el contenido público antes de ejecutar 
 
 La superficie indexable del MVP es la landing con su escaparate. El alcance aprobado no incluye páginas independientes para cada producto ni para categorías, así que no se crean URLs SEO por producto hasta que esa capacidad se agregue al alcance.
 
-El layout debe definir título, descripción y `lang="es"`. Antes del dominio público definitivo, completar la configuración de descubrimiento y vistas previas con la URL canónica, `metadataBase`, Open Graph y Twitter Cards, `robots.txt` y `sitemap.xml`. Las rutas de cuenta, checkout y demás páginas no públicas deben excluirse de indexación al definir sus metadatos. Next.js expone estas piezas a través de su Metadata API ([Metadata y Open Graph](https://nextjs.org/docs/app/getting-started/metadata-and-og-images)).
+El layout debe definir título, descripción y `lang="es"`. Antes del dominio público definitivo, completar la configuración de descubrimiento y vistas previas con la URL canónica, `metadataBase`, Open Graph y Twitter Cards, `robots.txt` y `sitemap.xml`. Las rutas de cuenta, checkout y demás páginas no públicas deben excluirse de indexación al definir sus metadatos. Next.js expone estas piezas a través de su Metadata API ([Metadata y Open Graph](https://nextjs.org/docs/app/getting-started/metadata-and-og-images)). La política de respuesta usa el archivo [Proxy de Next.js](https://nextjs.org/docs/app/api-reference/file-conventions/proxy), que corre en el servidor antes de renderizar la ruta.
+
+Cloudflare puede responder con su política genérica de *Content Signals* cuando el origen no tiene `robots.txt`; los comentarios de esa política no indican `noindex` ni bloquean el rastreo. Staging mantiene el rastreo permitido para que los buscadores puedan leer `X-Robots-Tag`; Google descarta la regla `noindex` si `robots.txt` impide rastrear la página ([robots administrado por Cloudflare](https://developers.cloudflare.com/bots/additional-configurations/managed-robots-txt/), [reglas `X-Robots-Tag` de Google](https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag)).
 
 SEO no depende únicamente de SSR: también requiere contenido útil, metadatos correctos, enlaces rastreables, buen rendimiento y la configuración del dominio. Mantener los productos en HTML inicial no sustituye esas tareas.

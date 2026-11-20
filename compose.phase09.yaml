@@ -1,0 +1,4 @@
+# Reuse the base development image while -p scopes the test database and network.
+services:
+  backend:
+    image: sr-del-mictlan-backend:dev

@@ -97,7 +97,16 @@ function monthIndex(date) {
   return date.getUTCFullYear() * 12 + date.getUTCMonth();
 }
 
+function requiredFieldLabel(label) {
+  return <>
+    {label}
+    <span aria-hidden="true"> *</span>
+    <span className="sr-only"> (campo obligatorio)</span>
+  </>;
+}
+
 export default function AccountDatePicker(props) {
+  const requiredLabel = requiredFieldLabel(props.label);
   const mounted = useSyncExternalStore(
     subscribeToHydration,
     getHydratedSnapshot,
@@ -107,14 +116,13 @@ export default function AccountDatePicker(props) {
   if (!mounted) {
     const selectedDate = parseISODate(props.value);
     return (
-      <AccountField id={props.id} label={props.label} error={props.error}>
+      <AccountField id={props.id} label={requiredLabel} error={props.error}>
         <button
           id={props.id}
           type="button"
           className={`${ACCOUNT_INPUT_CLASS} flex items-center justify-between gap-3 text-left focus:border-mictlan-teal focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mictlan-teal ${props.error ? 'border-mictlan-red/70' : ''}`}
           aria-haspopup="dialog"
           aria-expanded="false"
-          aria-required="true"
           aria-invalid={Boolean(props.error)}
           aria-describedby={props.error ? `${props.id}-error` : undefined}
         >
@@ -131,6 +139,7 @@ export default function AccountDatePicker(props) {
 }
 
 function InteractiveDatePicker({ id, label, value, onChange, error }) {
+  const requiredLabel = requiredFieldLabel(label);
   const selectedDate = parseISODate(value);
   const maximumDate = latestAdultBirthDate();
   const minimumYear = Math.min(1900, selectedDate?.getUTCFullYear() ?? 1900);
@@ -235,7 +244,7 @@ function InteractiveDatePicker({ id, label, value, onChange, error }) {
 
   return (
     <div ref={containerRef}>
-      <AccountField id={id} label={label} error={error}>
+      <AccountField id={id} label={requiredLabel} error={error}>
         <button
           ref={triggerRef}
           id={id}
@@ -243,7 +252,6 @@ function InteractiveDatePicker({ id, label, value, onChange, error }) {
           className={`${ACCOUNT_INPUT_CLASS} flex items-center justify-between gap-3 text-left focus:border-mictlan-teal focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mictlan-teal ${error ? 'border-mictlan-red/70' : ''}`}
           aria-haspopup="dialog"
           aria-expanded={open}
-          aria-required="true"
           aria-invalid={Boolean(error)}
           aria-describedby={errorId}
           onClick={toggleCalendar}

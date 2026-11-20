@@ -36,6 +36,17 @@ jobs:
       - name: Run ESLint
         run: npm run lint
         working-directory: frontend
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Run browser and accessibility smoke tests
+        run: npm run test:e2e
+        working-directory: frontend
+      - name: Verify explicit public indexing opt-in
+        env:
+          ROBOTS_INDEXABLE: true
+        run: npm run test:e2e -- --grep='indexación: sólo se permite con opt-in'
+        working-directory: frontend
       - name: Build frontend
         run: npm run build
         working-directory: frontend
