@@ -144,6 +144,19 @@ test('landing: tamaños aprobados sin desbordamiento horizontal', async ({ safeP
   }
 });
 
+test('landing móvil: fondo principal usa WebP y prioridad alta', async ({ safePage }) => {
+  const { page } = safePage;
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openAsGuest(page, '/');
+
+  const collection = page.locator('#coleccion');
+  const mobileWebp = collection.locator('picture source[type="image/webp"]');
+  const background = collection.locator('picture img');
+
+  await expect(mobileWebp).toHaveAttribute('srcset', /mezcal-showcase-background-mobile\.webp/);
+  await expect(background).toHaveAttribute('fetchpriority', 'high');
+});
+
 test('navegación móvil: abrir y cerrar el menú', async ({ safePage }, testInfo) => {
   const { page } = safePage;
   await page.setViewportSize({ width: 390, height: 844 });
