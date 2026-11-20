@@ -299,7 +299,7 @@ export default function SiteHeader({ mediaBaseUrl }) {
           </div>
           <Link
             href="/"
-            className={`order-2 flex items-center lg:order-1 ${brandImageReady ? 'motion-safe:animate-[blurredFadeIn_0.9s_ease-in-out_both]' : 'motion-safe:opacity-0'}`}
+            className={`order-2 flex items-center lg:order-1 ${brandImageReady ? 'motion-safe:animate-[fadeIn_0.9s_ease-in-out_both]' : 'motion-safe:opacity-0'}`}
             onClick={closeMenu}
             aria-label="Señor del Mictlán, inicio"
           >
