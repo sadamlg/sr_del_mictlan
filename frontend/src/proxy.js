@@ -29,8 +29,15 @@ export function proxy(request) {
   const isApprovedPublicPage = pathname === '/';
   if (isRobotsFile) return NextResponse.next();
 
-  const acceptsHtml = request.headers.get('accept')?.includes('text/html');
-  const isDocumentRequest = acceptsHtml && ['GET', 'HEAD'].includes(request.method);
+  const isApiRequest = pathname === '/api' || pathname.startsWith('/api/');
+  const isNextAsset = pathname === '/_next' || pathname.startsWith('/_next/');
+  const isVercelAsset = pathname.startsWith('/_vercel/');
+  const isFileRequest = /\.[^/]+$/.test(pathname);
+  const isDocumentRequest = ['GET', 'HEAD'].includes(request.method)
+    && !isApiRequest
+    && !isNextAsset
+    && !isVercelAsset
+    && !isFileRequest;
   const requestHeaders = new Headers(request.headers);
   let response;
 

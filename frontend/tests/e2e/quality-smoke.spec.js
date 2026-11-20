@@ -197,6 +197,21 @@ test('CSP: Turnstile se carga desde el origen autorizado', async ({ safePage }) 
   expect(cspConsoleErrors).toEqual([]);
 });
 
+test('CSP: las páginas HTML conservan la política con Accept */*', async ({ safePage }) => {
+  test.skip(
+    !process.env.PLAYWRIGHT_BASE_URL && process.env.PLAYWRIGHT_USE_PRODUCTION !== 'true',
+    'La CSP sólo se aplica en producción; usa un build de producción para probarla.',
+  );
+  const { page } = safePage;
+
+  for (const path of ['/', '/cuenta/iniciar-sesion']) {
+    const response = await page.request.get(path, { headers: { accept: '*/*' } });
+    expect(response.status(), `${path} debe responder correctamente`).toBe(200);
+    expect(response.headers()['content-type']).toContain('text/html');
+    expect(response.headers()['content-security-policy']).toContain("default-src 'self'");
+  }
+});
+
 test('indexación: sólo se permite con opt-in explícito del entorno', async ({ safePage }) => {
   const { page } = safePage;
   const response = await page.goto('/');
