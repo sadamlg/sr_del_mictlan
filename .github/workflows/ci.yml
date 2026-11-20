@@ -44,6 +44,14 @@ jobs:
         env:
           NEXT_PUBLIC_TURNSTILE_SITE_KEY: phase09-ci-mock-turnstile-site-key
         working-directory: frontend
+      - name: Build production frontend image
+        run: >-
+          docker build
+          --file frontend/Dockerfile.production
+          --tag phase09-frontend-production-check
+          --build-arg MEDIA_BASE_URL=https://media.example.test
+          --build-arg NEXT_PUBLIC_TURNSTILE_SITE_KEY=phase09-ci-mock-turnstile-site-key
+          frontend
       - name: Install Chromium for Playwright
         run: npx playwright install --with-deps chromium
         working-directory: frontend

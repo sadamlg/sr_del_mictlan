@@ -9,7 +9,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --include=dev
 
 COPY --chown=node:node . .
-RUN mkdir -p .next && chown node:node .next
+RUN mkdir -p .next .generated && chown node:node .next .generated
 
 ARG MEDIA_BASE_URL
 ARG NEXT_PUBLIC_TURNSTILE_SITE_KEY
