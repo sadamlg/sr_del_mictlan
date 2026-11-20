@@ -1,4 +1,29 @@
 import { isIP } from 'node:net';
+import { createHmac, randomBytes } from 'node:crypto';
+import { readSessionCookie } from './session-cookie.js';
+
+function requestIdentity(request) {
+  const body = request.body && typeof request.body === 'object' && !Array.isArray(request.body)
+    ? request.body
+    : {};
+  const session = readSessionCookie(request);
+  if (session) return `session:${session}`;
+
+  const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+  if (email) return `email:${email}`;
+
+  const token = typeof body.token === 'string' ? body.token : '';
+  if (token) return `token:${token}`;
+
+  const address = typeof request.ip === 'string' && isIP(request.ip)
+    ? request.ip
+    : isIP(request.socket?.remoteAddress ?? '') ? request.socket.remoteAddress : 'unknown';
+  return `address:${address}`;
+}
+
+function opaqueIdentity(value, key) {
+  return createHmac('sha256', key).update(value).digest('hex');
+}
 
 export function createAccountRateLimit({
   limit = 30,
@@ -7,6 +32,7 @@ export function createAccountRateLimit({
   now = Date.now,
 } = {}) {
   const attempts = new Map();
+  const identityKey = randomBytes(32);
   let nextCleanupAt = 0;
 
   function reject(response, retryAfterSeconds) {
@@ -26,16 +52,17 @@ export function createAccountRateLimit({
       nextCleanupAt = timestamp + Math.min(windowMs, 60_000);
     }
 
-    const address = typeof request.ip === 'string' && isIP(request.ip)
-      ? request.ip
-      : isIP(request.socket?.remoteAddress ?? '') ? request.socket.remoteAddress : 'unknown';
-    const key = `${address}:${request.path}`;
+    const key = `${opaqueIdentity(requestIdentity(request), identityKey)}:${request.path}`;
     const entry = attempts.get(key);
-    if (!entry && attempts.size >= maxEntries) return reject(response, Math.ceil(Math.min(windowMs, 60_000) / 1000));
+    if (!entry && attempts.size >= maxEntries) {
+      attempts.delete(attempts.keys().next().value);
+    }
     if (!entry || entry.startedAt + windowMs <= timestamp) {
       attempts.set(key, { startedAt: timestamp, count: 1 });
       return next();
     }
+    attempts.delete(key);
+    attempts.set(key, entry);
     if (entry.count >= limit) return reject(response, Math.ceil((entry.startedAt + windowMs - timestamp) / 1000));
     entry.count += 1;
     return next();
