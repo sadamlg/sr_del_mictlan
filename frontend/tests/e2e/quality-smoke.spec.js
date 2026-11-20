@@ -12,6 +12,11 @@ const test = base.extend({
       const url = new URL(request.url());
       const method = request.method().toUpperCase();
 
+      if (url.hostname === 'media.example.test') {
+        await route.abort();
+        return;
+      }
+
       if (url.hostname === 'challenges.cloudflare.com') {
         await route.abort();
         return;
@@ -79,8 +84,12 @@ test('landing anticipa la conexión al origen externo de medios', async ({ safeP
   const backgroundSrc = await page.locator('#coleccion picture img').getAttribute('src');
   expect(backgroundSrc).toBeTruthy();
 
-  const mediaOrigin = new URL(backgroundSrc).origin;
+  const mediaOrigin = new URL(backgroundSrc, page.url()).origin;
   const pageOrigin = new URL(page.url()).origin;
+  const configuredMediaOrigin = process.env.MEDIA_BASE_URL
+    ? new URL(process.env.MEDIA_BASE_URL).origin
+    : pageOrigin;
+  expect(mediaOrigin).toBe(configuredMediaOrigin);
   if (mediaOrigin === pageOrigin) return;
 
   const preconnectOrigins = await page.locator('head link[rel="preconnect"]').evaluateAll((links) =>
