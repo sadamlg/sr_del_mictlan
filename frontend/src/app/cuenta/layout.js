@@ -1,5 +1,12 @@
 import SiteHeader from '../../components/header/header.js';
 
+export const metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
+
 export default function AccountLayout({ children }) {
   const mediaBaseUrl = process.env.MEDIA_BASE_URL || '';
   return (

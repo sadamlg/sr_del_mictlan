@@ -217,11 +217,14 @@ RAILWAY_DOCKERFILE_PATH=Dockerfile.production
 INTERNAL_API_URL=http://${{Backend.RAILWAY_PRIVATE_DOMAIN}}:${{Backend.PORT}}
 MEDIA_BASE_URL=https://pub-47df7d3a7dd94d268c1661b2c36e0ae5.r2.dev
 NEXT_PUBLIC_TURNSTILE_SITE_KEY=0x4AAAAAAF8VZwuGYRWxvFOn
+ROBOTS_INDEXABLE=false
 ```
 
 No definas `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_API_PROXY_PATH`, `NEXT_ALLOWED_DEV_ORIGIN` ni valores LAN para este despliegue: producción usa el proxy del mismo origen automáticamente. Nunca pegues secretos de Stripe, Resend o Turnstile en frontend.
 
 Define `MEDIA_BASE_URL` y `NEXT_PUBLIC_TURNSTILE_SITE_KEY` antes del build: el Dockerfile las exige como argumentos Docker.
+
+`ROBOTS_INDEXABLE` es una variable de runtime: mantenla en `false` en Staging para enviar `X-Robots-Tag: noindex, nofollow`. Sólo la landing puede indexarse si se establece en `true` para Producción tras aprobar la indexación del dominio público; las rutas de cuenta y cualquier otra ruta conservan `noindex`.
 
 `INTERNAL_API_URL` se usa en solicitudes del servidor Next.js y en el proxy `/api/backend/*`; debe apuntar a la red privada de Railway. El Dockerfile de producción envía las llamadas del navegador por ese proxy, bajo el mismo dominio del frontend. Así las cookies de sesión son propias del frontend y no dependen de cookies entre dominios. `NEXT_PUBLIC_API_URL` no se necesita con este proxy; el código sólo lo usa como origen directo alternativo en configuraciones que no usan el proxy. `MEDIA_BASE_URL` debe estar disponible al construir y ejecutar el frontend; `NEXT_PUBLIC_TURNSTILE_SITE_KEY` se incorpora al bundle durante el build. Son valores públicos, no secretos. Si cambian, vuelve a construir y desplegar el frontend.
 
@@ -353,6 +356,8 @@ Haz un primer pago real sólo después de autorizar explícitamente la salida a 
 3. Cambia `FRONTEND_ORIGIN` en Backend y Worker al mismo origen definitivo `https://<dominio>`, sin ruta ni barra final. La referencia `Frontend.RAILWAY_PUBLIC_DOMAIN` representa el dominio generado por Railway; no presupongas que cambia al añadir un dominio personalizado. Aplica las variables y redespliega ambos servicios.
 4. Autoriza el nuevo hostname en el widget Turnstile de Producción. Conserva el proxy y `INTERNAL_API_URL` privados. El destino Stripe continúa usando el dominio público de Backend; sólo actualízalo si éste cambia.
 5. Comprueba registro, login, enlaces de correo, recuperación y retorno de Checkout desde el dominio definitivo. Las sesiones del hostname anterior no se transfieren al nuevo: inicia sesión de nuevo.
+
+Mantén `ROBOTS_INDEXABLE=false` durante la preparación. Cámbiala a `true` sólo al aprobar la salida pública y completar la configuración canónica, `robots.txt`, `sitemap.xml` y metadatos de la fase 10.
 
 ### Respaldos y recuperación
 
