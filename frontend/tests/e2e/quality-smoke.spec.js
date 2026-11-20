@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test as base } from '@playwright/test';
+import { createHash } from 'node:crypto';
 
 const test = base.extend({
   safePage: async ({ page, baseURL }, provide) => {
@@ -94,7 +95,17 @@ test('landing: edad, foco del diálogo y accesibilidad', async ({ safePage }, te
 });
 
 test('respuestas web: encabezados de seguridad base', async ({ safePage }) => {
+  test.skip(
+    !process.env.PLAYWRIGHT_BASE_URL && process.env.PLAYWRIGHT_USE_PRODUCTION !== 'true',
+    'La CSP sólo se aplica en producción; usa un build de producción para probarla.',
+  );
   const { page } = safePage;
+  const cspConsoleErrors = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error' && /content security policy|violates the following/i.test(message.text())) {
+      cspConsoleErrors.push(message.text());
+    }
+  });
   const response = await page.goto('/');
   const headers = response?.headers();
 
@@ -105,9 +116,85 @@ test('respuestas web: encabezados de seguridad base', async ({ safePage }) => {
     'referrer-policy': 'strict-origin-when-cross-origin',
     'permissions-policy': 'camera=(), microphone=(), geolocation=()',
   });
-  expect(headers['content-security-policy-report-only']).toContain("default-src 'self'");
-  expect(headers['content-security-policy-report-only']).toContain('https://challenges.cloudflare.com');
+  const csp = headers['content-security-policy'] || '';
+  expect(csp).toContain("default-src 'self'");
+  expect(csp).toContain('https://challenges.cloudflare.com');
+  const scriptSource = csp.match(/(?:^|;\s*)script-src ([^;]+)/)?.[1] || '';
+  const styleSource = csp.match(/(?:^|;\s*)style-src ([^;]+)/)?.[1] || '';
+  const styleAttributeSource = csp.match(/(?:^|;\s*)style-src-attr ([^;]+)/)?.[1] || '';
+  expect(styleSource).toContain("'self'");
+  expect(scriptSource).not.toContain("'unsafe-inline'");
+  expect(styleSource).not.toContain("'unsafe-inline'");
+  expect(csp).toContain("script-src-attr 'none'");
+  expect(styleAttributeSource).toContain("'unsafe-hashes'");
+  expect(styleAttributeSource).not.toContain("'unsafe-inline'");
+  expect(headers).not.toHaveProperty('content-security-policy-report-only');
+  expect(cspConsoleErrors).toEqual([]);
+  const html = await response.text();
+  const nonce = csp.match(/'nonce-([^']+)'/)?.[1];
+  expect(nonce).toBeTruthy();
+  const inlineScripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)]
+    .filter(([, attributes]) => !/\bsrc=/.test(attributes));
+  expect(inlineScripts.length).toBeGreaterThan(0);
+  for (const [, attributes, body] of inlineScripts) {
+    if (attributes.includes(`nonce="${nonce}"`)) continue;
+    const hash = `'sha256-${createHash('sha256').update(body).digest('base64')}'`;
+    expect(scriptSource).toContain(hash);
+  }
+  const inlineStyles = [...html.matchAll(/\bstyle=(?:"([^"]*)"|'([^']*)')/g)];
+  expect(inlineStyles.length).toBeGreaterThan(0);
+  for (const [, doubleQuoted, singleQuoted] of inlineStyles) {
+    const style = doubleQuoted ?? singleQuoted;
+    const hash = `'sha256-${createHash('sha256').update(style).digest('base64')}'`;
+    expect(styleAttributeSource).toContain(hash);
+  }
+  const secondResponse = await page.request.get('/', { headers: { accept: 'text/html' } });
+  const secondNonce = secondResponse.headers()['content-security-policy']?.match(/'nonce-([^']+)'/)?.[1];
+  expect(secondNonce).toBeTruthy();
+  expect(secondNonce).not.toBe(nonce);
   expect(headers).not.toHaveProperty('x-powered-by');
+});
+
+test('CSP: Turnstile se carga desde el origen autorizado', async ({ safePage }) => {
+  test.skip(
+    !process.env.PLAYWRIGHT_BASE_URL && process.env.PLAYWRIGHT_USE_PRODUCTION !== 'true',
+    'La CSP sólo se aplica en producción; usa un build de producción para probarla.',
+  );
+  const { page } = safePage;
+  const cspConsoleErrors = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error' && /content security policy|violates the following/i.test(message.text())) {
+      cspConsoleErrors.push(message.text());
+    }
+  });
+  await page.route(/^https:\/\/challenges\.cloudflare\.com\/turnstile\/v0\/api\.js/, (route) => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/javascript',
+      body: 'window.turnstile = { render: () => "phase09-mock-widget", remove: () => {} };',
+    });
+  });
+
+  const response = await page.goto('/cuenta/registro');
+  expect(response?.status()).toBe(200);
+  const csp = response?.headers()['content-security-policy'] || '';
+  const nonce = csp.match(/'nonce-([^']+)'/)?.[1];
+  const scriptSource = csp.match(/(?:^|;\s*)script-src ([^;]+)/)?.[1] || '';
+  const styleSource = csp.match(/(?:^|;\s*)style-src ([^;]+)/)?.[1] || '';
+  const styleAttributeSource = csp.match(/(?:^|;\s*)style-src-attr ([^;]+)/)?.[1] || '';
+  expect(styleSource).toContain("'self'");
+  expect(nonce).toBeTruthy();
+  expect(scriptSource).toContain('https://challenges.cloudflare.com');
+  expect(csp).toContain("script-src-attr 'none'");
+  expect(scriptSource).not.toContain("'unsafe-inline'");
+  expect(styleSource).not.toContain("'unsafe-inline'");
+  expect(styleAttributeSource).toContain("'unsafe-hashes'");
+  expect(styleAttributeSource).not.toContain("'unsafe-inline'");
+
+  const turnstileScript = page.locator('#cloudflare-turnstile-script');
+  await expect(turnstileScript).toHaveAttribute('src', /^https:\/\/challenges\.cloudflare\.com\/turnstile\/v0\/api\.js/);
+  await expect.poll(() => page.evaluate(() => typeof window.turnstile?.render)).toBe('function');
+  expect(cspConsoleErrors).toEqual([]);
 });
 
 test('indexación: sólo se permite con opt-in explícito del entorno', async ({ safePage }) => {
@@ -152,8 +239,8 @@ test('landing móvil: fondo principal usa WebP y prioridad alta', async ({ safeP
   await openAsGuest(page, '/');
 
   const collection = page.locator('#coleccion');
-  const mobileWebp = collection.locator('picture source[type="image/webp"]');
-  const background = collection.locator('picture img');
+  const mobileWebp = collection.locator('picture source[type="image/webp"]').first();
+  const background = collection.locator('picture img').first();
 
   await expect(mobileWebp).toHaveAttribute('srcset', /mezcal-showcase-background-mobile\.webp/);
   await expect(background).toHaveAttribute('fetchpriority', 'high');

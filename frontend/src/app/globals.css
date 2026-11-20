@@ -171,6 +171,15 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+body.age-gate-open,
+body.mobile-menu-open {
+  overflow: hidden;
+}
+
+body.mobile-menu-open {
+  touch-action: none;
+}
+
 .money-detail {
   font-family: var(--mictlan-font-ui);
   font-size: 0.875rem;

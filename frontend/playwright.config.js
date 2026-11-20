@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:3100';
 const remoteTarget = Boolean(process.env.PLAYWRIGHT_BASE_URL);
+const useProductionBuild = process.env.PLAYWRIGHT_USE_PRODUCTION === 'true';
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -23,7 +24,7 @@ export default defineConfig({
   },
   ...(remoteTarget ? {} : {
     webServer: {
-      command: 'npm run dev -- --port 3100',
+      command: useProductionBuild ? 'npm run start -- --port 3100' : 'npm run dev -- --port 3100',
       url: baseURL,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,

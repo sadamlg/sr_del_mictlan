@@ -17,10 +17,14 @@ test('el menú se cierra al navegar o entrar a escritorio y expone su estado acc
   assert.deepEqual(getMobileNavigationProps(false), { 'aria-hidden': true, inert: true });
 });
 
-test('el bloqueo del desplazamiento restaura los valores anteriores', () => {
-  const body = { style: { overflow: 'auto', touchAction: 'pan-y' } };
+test('el bloqueo del menú móvil usa una clase y la quita al cerrar', () => {
+  const classes = new Set();
+  const body = { classList: {
+    add: (name) => classes.add(name),
+    remove: (name) => classes.delete(name),
+  } };
   const restore = lockBodyScroll(body);
-  assert.deepEqual(body.style, { overflow: 'hidden', touchAction: 'none' });
+  assert.deepEqual([...classes], ['mobile-menu-open']);
   restore();
-  assert.deepEqual(body.style, { overflow: 'auto', touchAction: 'pan-y' });
+  assert.equal(classes.has('mobile-menu-open'), false);
 });

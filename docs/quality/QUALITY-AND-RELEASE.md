@@ -15,7 +15,7 @@ Aceptar un candidato identificado de Staging mediante:
 - lint, pruebas y build del mismo commit;
 - recorridos críticos reproducibles en Staging, en escritorio y móvil;
 - axe y revisión manual de accesibilidad;
-- Lighthouse para rendimiento y SEO, con objetivos acordados antes de usarlos como bloqueo;
+- Lighthouse en móvil: mediana de rendimiento de al menos 90/100 y mediana de LCP de 2.5 s o menos;
 - ZAP Baseline en modo pasivo y revisión de seguridad que reproduzca y confirme los hallazgos;
 - revisión de dependencias y configuración;
 - respaldo y restauración en un destino aislado;
@@ -28,7 +28,7 @@ La superficie indexable definida para el MVP es la landing y su escaparate; cons
 
 | Responsable | Preparación previa | Resultado necesario |
 |---|---|---|
-| Responsable del proyecto | Aprobar los objetivos de rendimiento y SEO, presupuesto de ejecución, destinatarios de prueba, cuentas sintéticas, datos que se pueden crear y ventana para la revisión | Criterios, recursos de prueba y límites aprobados antes de bloquear o generar actividad externa |
+| Responsable del proyecto | Aprobar presupuesto de ejecución, destinatarios de prueba, cuentas sintéticas, datos que se pueden crear y ventana para la revisión | Recursos y límites de actividad externa aprobados antes de bloquear o generar actividad |
 | Responsable de Railway | Confirmar entorno, servicios, dominios, commit desplegado de Frontend/Backend/worker, estado de `/health`, Checkout `test`, variables requeridas y plan/costos de respaldos y monitores | Identidad del candidato y configuración vigente verificadas en Railway; secretos comprobados sin copiarlos a logs o evidencias |
 | Desarrollo/QA | Preparar dependencias fijadas, lockfile, configuración Playwright/axe, recorridos, navegador y almacenamiento de informes | Instalación con `npm ci` y comandos reproducibles desde el repositorio |
 | Responsable de correo | Autorizar un buzón de pruebas | Confirmaciones y recibos de prueba recibidos sin exponer datos personales reales |
@@ -129,11 +129,12 @@ docker run --rm \
     cd phase09-frontend &&
     npm ci &&
     npx playwright install --with-deps chromium &&
-    npm run test:e2e
+    NEXT_PUBLIC_TURNSTILE_SITE_KEY=phase09-local-test-key npm run build &&
+    PLAYWRIGHT_USE_PRODUCTION=true npm run test:e2e
   '
 ```
 
-Para correr los mismos casos contra Staging, agrega `PLAYWRIGHT_BASE_URL="$STAGING_FRONTEND_URL"` antes de `docker run` y `-e PLAYWRIGHT_BASE_URL="$STAGING_FRONTEND_URL"` a sus argumentos. La suite no inicia un servidor local si esa variable está presente; mantiene activa la barrera contra escrituras.
+Los dos casos de CSP requieren un build de producción; Playwright los omite al probar el servidor de desarrollo. CI y la aceptación de Staging usan el build de producción. Para Staging, agrega `PLAYWRIGHT_BASE_URL="$STAGING_FRONTEND_URL"` antes de `docker run` y `-e PLAYWRIGHT_BASE_URL="$STAGING_FRONTEND_URL"` a sus argumentos: la suite no inicia un servidor local y conserva la barrera contra escrituras.
 
 Las pruebas de base de datos son optativas y escriben registros sintéticos que limpian al terminar. `backend/package.json` define `npm run test:db`; sin los flags, deja esos casos omitidos. Para ejecutarlas se requieren `CART_DATABASE_TEST=1`, `CHECKOUT_DATABASE_TEST=1` y `EMAIL_DELIVERY_DATABASE_TEST=1`, PostgreSQL con migraciones aplicadas y Mailpit. La composición de [Phase 09](../../compose.phase09.yaml) fija la imagen Backend y deja que `-p` cree una red y volumen exclusivos; no uses el volumen persistente `postgres_data` de desarrollo ni una base remota.
 
@@ -189,7 +190,7 @@ La revisión visual de correos en iPhone queda fuera de esta fase. En los recorr
 
 ### 5. Medir rendimiento y SEO
 
-Ejecuta Lighthouse sobre la landing pública de Staging. Repite tres veces por perfil móvil y escritorio en condiciones comparables y compara medianas; guarda informes JSON, versión de Chrome, Lighthouse, fecha, commit y URL. El perfil predeterminado de Lighthouse es móvil; indica `--preset=desktop` para escritorio.
+Ejecuta Lighthouse sobre la landing pública de Staging. Repite tres veces por perfil móvil y escritorio en condiciones comparables y compara medianas; guarda informes JSON, versión de Chrome, Lighthouse, fecha, commit y URL. El perfil predeterminado de Lighthouse es móvil; indica `--preset=desktop` para escritorio. La aceptación móvil requiere mediana de Performance ≥90/100 y mediana de LCP ≤2.5 s; el objetivo de 90 corresponde a la banda “Good” de Lighthouse y 2.5 s es el umbral de LCP recomendado para una buena experiencia. Son mediciones de laboratorio, no una garantía de resultados de campo; la puntuación varía con el entorno.
 
 ```bash
 npx --yes lighthouse@13.6.0 "$STAGING_FRONTEND_URL/" \
@@ -202,13 +203,13 @@ npx --yes lighthouse@13.6.0 "$STAGING_FRONTEND_URL/" \
 
 Repite con nombres `-02` y `-03`. Compara las categorías y las métricas del informe, explica variación o causa antes de proponer una corrección y evalúa la superficie permitida por el MVP. Confirma que la landing de Staging responde con `X-Robots-Tag: noindex` y que la ruta de cuenta conserva `noindex`. Revisa `robots.txt` y verifica que no bloquee `/`, pues el crawler debe poder leer la cabecera; los comentarios genéricos de Content Signals de Cloudflare no son una regla de no indexación. No agregues URLs de cuenta/checkout al objetivo SEO ni publiques informes con sesiones.
 
-Compara con los objetivos acordados en el paso 1. Sin objetivos firmados previamente, registra la línea base como informativa y deja la puerta de bloqueo pendiente de acuerdo. Lighthouse por sí solo no certifica rendimiento de usuarios reales ni SEO.
+Compara contra los objetivos de aceptación móvil establecidos aquí. Si no se alcanzan, revisa la oportunidad de mayor impacto y perfila el LCP antes de elegir otra optimización; vuelve a medir con los mismos perfiles. El resultado de escritorio y la categoría SEO son informativos. Lighthouse por sí solo no certifica rendimiento de usuarios reales ni SEO.
 
 ### 6. Analizar seguridad de Staging y configuración
 
 Ejecuta ZAP Baseline **sólo en modo pasivo** contra los hostnames públicos propios de Staging previamente aprobados. No uses ZAP Full Scan, active scan, fuzzing, brute force, pruebas de carga ni objetivos de Stripe, Cloudflare o Resend. El spider genera solicitudes HTTP y puede consumir recursos del entorno; confirma presupuesto y ventana antes de iniciarlo.
 
-La resistencia a intentos repetidos de acceso se verifica aparte con pruebas deterministas de los límites de autenticación: datos sintéticos, número acotado de solicitudes, respuesta `429`, identidades separadas detrás del proxy y recuperación después de la ventana. El limitador usa un hash de correo normalizado, token o cookie de sesión; no confía en cabeceras de IP que el cliente pueda enviar y no conserva esos identificadores en sus claves. La prueba se prepara primero en local aislado; cualquier ejecución remota se acota a Staging y no usa cuentas de terceros. ZAP Baseline no cubre este caso y un ataque de fuerza bruta masivo no es criterio de cierre. El contador vive en memoria del proceso: antes de servir Backend con más de una réplica, se requiere un almacén compartido o un control distribuido equivalente.
+La resistencia a intentos repetidos de acceso se verifica aparte con pruebas deterministas de los límites de autenticación: datos sintéticos, número acotado de solicitudes, respuesta `429`, identidades separadas detrás del proxy y recuperación después de la ventana. El limitador usa un HMAC de correo normalizado, token o cookie de sesión; no confía en cabeceras de IP que el cliente pueda enviar y no conserva esos identificadores en sus claves. En hostnames servidos por Cloudflare, comprueba también una regla de rate limiting por IP limitada a las rutas de cuenta; el procedimiento reproducible está en [Cloudflare](../architecture/services/CLOUDFLARE.md#rendimiento-seguridad-y-costos). La prueba se prepara primero en local aislado; cualquier ejecución remota se acota a Staging y no usa cuentas de terceros. ZAP Baseline no cubre este caso y un ataque de fuerza bruta masivo no es criterio de cierre. El contador vive en memoria del proceso: antes de servir Backend con más de una réplica, se requiere un almacén compartido o un control distribuido equivalente.
 
 ```bash
 mkdir -p reports/zap
@@ -220,11 +221,11 @@ docker run --rm -v "$PWD/reports/zap:/zap/wrk/:rw" -t \
 
 No uses `-I` ni conviertas advertencias en exclusiones generales. Revisa alertas contra evidencia reproducible y los contratos/código de autenticación, autorización, cookies, proxy/orígenes, Turnstile, Stripe webhooks, manejo de errores, límites, secretos y dependencias. Para cada hallazgo, verifica impacto y ruta, separa falsos positivos con evidencia y asigna seguimiento a los restantes. No se considera una auditoría completa sólo porque ZAP no reporte alertas.
 
-Verificamos encabezados en la respuesta HTML y en recursos estáticos. El candidato debe enviar HSTS sin `includeSubDomains`, `X-Content-Type-Options`, protección contra framing, `Referrer-Policy` y `Permissions-Policy`, y no exponer `X-Powered-By`. Revisamos CSP y las políticas COEP/COOP/CORP por separado antes de activarlas: comprobamos scripts, mapas, medios externos y los demás orígenes que usa nuestro sistema. En Next.js, la CSP con nonce exige renderizado dinámico y puede desactivar prerenderizado y caché parcial; Turnstile requiere permitir sus scripts, iframes y conexiones. No copiamos una política genérica sin probar los recorridos y la consola.
+Verificamos encabezados en la respuesta HTML y en recursos estáticos. El candidato debe enviar HSTS sin `includeSubDomains`, `X-Content-Type-Options`, protección contra framing, `Referrer-Policy` y `Permissions-Policy`, y no exponer `X-Powered-By`. Revisamos CSP y las políticas COEP/COOP/CORP por separado antes de activarlas: comprobamos scripts, mapas, medios externos y los demás orígenes que usa nuestro sistema. Un nonce de CSP puede hacer dinámico el renderizado en Next.js; por eso la política de este proyecto combina nonces por respuesta con hashes calculados durante el build para conservar las rutas estáticas y el prerenderizado parcial. Turnstile requiere permitir sus scripts, iframes y conexiones. No copiamos una política genérica sin probar los recorridos y la consola.
 
-La política inicial vive en `Content-Security-Policy-Report-Only` dentro de `frontend/next.config.mjs`; este encabezado observa y registra violaciones, pero **no bloquea** recursos ni protege frente a su ejecución. Recorre landing, cuenta, mapas, Turnstile y Checkout; captura los eventos `securitypolicyviolation` o los avisos CSP de la consola y ajusta únicamente orígenes que el sistema realmente use.
+`frontend/src/proxy.js` aplica `Content-Security-Policy` a solicitudes HTML `GET` y `HEAD` en producción. Cada respuesta recibe un nonce nuevo; `frontend/scripts/build-with-csp.mjs`, llamado por `npm run build`, calcula los hashes de los scripts inline emitidos por Next.js, reconstruye la aplicación y verifica que todos los scripts prerenderizados queden cubiertos. `style-src-attr` permite mediante hash sólo el conjunto explícito de valores inline fijos que Next.js genera para imágenes y sus páginas globales de error. El build falla si aparece otro atributo de estilo inline. La política no permite `'unsafe-inline'` en `script-src` ni `style-src`, bloquea atributos de script inline y autoriza los orígenes que el sistema usa, incluido Cloudflare Turnstile. El flujo mantiene el prerenderizado parcial; el build falla si los hashes no cubren el HTML final.
 
-Antes de pasarla a `Content-Security-Policy`, prueba el recorrido completo con la política efectiva. Una CSP estricta con nonce requiere renderizado dinámico en Next.js; eso desactiva el prerenderizado parcial y puede cambiar la caché, el rendimiento y el costo. Si se elige ese camino, compara Lighthouse y los recursos del servicio antes y después. Si se conserva el prerenderizado parcial, no agregues `unsafe-inline` a `script-src` sólo para silenciar los avisos: decide si una política con hashes es viable para el build y verifica su soporte y mantenimiento en la versión fijada. No adoptes una función experimental de SRI sin validarla en todos los recorridos. CSP no se considera cerrada mientras permanezca sólo en Report-Only.
+La prueba de producción local verifica los encabezados, la cobertura de hashes, la variación de nonces entre respuestas, la ausencia de errores CSP del navegador y la carga de un script Turnstile simulado desde su origen permitido. Esa simulación valida la política del navegador, no el servicio real de CAPTCHA. Después del despliegue, repite la verificación contra el SHA de Staging, recorre landing, cuenta, mapas, Turnstile real y Checkout, y revisa la consola. No llames a esta política una CSP estricta: usa hashes/nonces para scripts inline y también permite scripts del mismo origen y el origen de Turnstile. La aceptación remota sigue pendiente hasta probar el candidato desplegado.
 
 Antes de aceptar, no debe quedar un hallazgo crítico o alto confirmado y reproducible sin corregir. Cambios de código/configuración requieren su propia revisión y una nueva validación del candidato correspondiente.
 
@@ -247,6 +248,7 @@ Acepta fase 09 sólo cuando:
 - axe y la revisión manual cumplen sus criterios; la entrega funcional de correo y PDF está comprobada, sin condicionar el cierre a su presentación visual en iPhone;
 - Lighthouse tiene objetivos aprobados antes de aplicar bloqueos y los resultados se compararon en condiciones repetibles;
 - ZAP fue pasivo, se revisaron hallazgos reproducibles y no quedan hallazgos críticos/altos confirmados sin resolver;
+- CSP efectiva pasa el build y los recorridos de navegador sin violaciones; Staging se valida con el SHA candidato y Turnstile real;
 - dependencias y configuración están revisadas; respaldo/restauración aislada, alertas y ensayo de rollback tienen evidencia;
 - el responsable del proyecto acepta la evidencia y los seguimientos pendientes.
 
@@ -278,13 +280,13 @@ No subas secretos, tokens, cookies, datos personales, cuerpo de correos ni expor
 ## Referencias oficiales
 
 - [GitHub Security Lab: gh-secure](https://github.com/GitHubSecurityLab/gh-secure) · [Cloudflare: Security Audit Skill](https://github.com/cloudflare/security-audit-skill) · [Sentry para Next.js](https://docs.sentry.io/platforms/javascript/guides/nextjs/) · [TestSprite: capacidades y cuotas](https://www.testsprite.com/pricing)
-- [Next.js: encabezados](https://nextjs.org/docs/app/api-reference/config/next-config-js/headers) · [Next.js: CSP](https://nextjs.org/docs/app/guides/content-security-policy) · [Next.js: desactivar `X-Powered-By`](https://nextjs.org/docs/app/api-reference/config/next-config-js/poweredByHeader) · [Cloudflare Turnstile: CSP](https://developers.cloudflare.com/turnstile/reference/content-security-policy/)
+- [Next.js: encabezados](https://nextjs.org/docs/app/api-reference/config/next-config-js/headers) · [Next.js: CSP](https://nextjs.org/docs/app/guides/content-security-policy) · [W3C: CSP Level 3 y hashes para atributos](https://www.w3.org/TR/CSP3/#unsafe-hashes-usage) · [Next.js: desactivar `X-Powered-By`](https://nextjs.org/docs/app/api-reference/config/next-config-js/poweredByHeader) · [Cloudflare Turnstile: CSP](https://developers.cloudflare.com/turnstile/reference/content-security-policy/)
 - [Cloudflare: endpoint `/cdn-cgi/`](https://developers.cloudflare.com/fundamentals/reference/cdn-cgi-endpoint/) · [Cloudflare: RUM beacon](https://developers.cloudflare.com/speed/observatory/rum-beacon/)
 - [npm: audit, firmas y atestaciones](https://docs.npmjs.com/cli/npm-audit/)
 
 - [Playwright: instalación y ejecución](https://playwright.dev/docs/intro) · [Accesibilidad con Playwright](https://playwright.dev/docs/accessibility-testing) · [Navegadores de Playwright](https://playwright.dev/docs/browsers)
 - [Versiones de `@playwright/test`](https://www.npmjs.com/package/%40playwright/test?activeTab=versions) · [Versiones de `@axe-core/playwright`](https://www.npmjs.com/package/%40axe-core/playwright?activeTab=versions) · [Versión de Lighthouse](https://www.npmjs.com/package/lighthouse)
-- [Lighthouse: CLI e informes](https://developer.chrome.com/docs/lighthouse/overview) · [Puntuación y variación](https://developer.chrome.com/docs/lighthouse/performance/performance-scoring)
+- [Lighthouse: CLI e informes](https://developer.chrome.com/docs/lighthouse/overview) · [Puntuación y variación](https://developer.chrome.com/docs/lighthouse/performance/performance-scoring) · [web.dev: objetivo de LCP](https://web.dev/articles/lcp)
 - [ZAP Baseline Scan](https://www.zaproxy.org/docs/docker/baseline-scan/) · [Imágenes Docker de ZAP](https://www.zaproxy.org/docs/docker/about/)
 - [Railway: respaldos de volumen](https://docs.railway.com/volumes/backups) · [PITR y costos](https://docs.railway.com/volumes/point-in-time-recovery) · [métricas](https://docs.railway.com/observability/metrics) · [monitores](https://docs.railway.com/observability) · [rollback](https://docs.railway.com/deployments/deployment-actions)
 - [Railway: autodespliegue y Wait for CI](https://docs.railway.com/deployments/github-autodeploys) · [Healthchecks.io: señales y alertas](https://healthchecks.io/docs/) · [Healthchecks.io: plan gratuito](https://healthchecks.io/pricing/)

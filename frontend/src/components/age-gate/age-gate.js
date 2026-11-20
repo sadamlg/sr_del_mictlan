@@ -7,6 +7,7 @@ import { mediaObjectUrl } from '../../lib/media-url';
 import { useAccountSession } from '../account/account-session.js';
 import {
   AGE_GATE_PHASES,
+  lockAgeGateScroll,
   nextAgeGatePhase,
   observeShowcase,
 } from './age-gate-behavior';
@@ -50,12 +51,11 @@ export default function AgeGate({ children, mediaBaseUrl }) {
     window.dispatchEvent(new Event('mictlan:age-gate-visible'));
     hasOpenedRef.current = true;
     previousFocusRef.current = document.activeElement;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const restoreScroll = lockAgeGateScroll(document.body);
     yesButtonRef.current?.focus({ preventScroll: true });
 
     return () => {
-      document.body.style.overflow = previousOverflow;
+      restoreScroll();
     };
   }, [isVisible]);
 

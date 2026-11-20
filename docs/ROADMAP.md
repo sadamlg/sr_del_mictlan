@@ -72,12 +72,13 @@ flowchart LR
 
 ### 09. Validación previa a Producción — en curso
 
-**Resultado de fase:** CI y las pruebas locales cubren controles funcionales, accesibilidad, auditoría de dependencias, integración de base de datos y la restauración cifrada de un respaldo sintético. Las correcciones de encabezados e indexación están en el código; falta aceptar el candidato desplegado y cerrar los controles operativos externos.
+**Resultado de fase:** El pipeline de CI cubre controles funcionales, accesibilidad automatizada, auditoría de dependencias, integración de base de datos y la restauración cifrada de un respaldo sintético. La validación local de producción confirma CSP, navegación, indexación y estilos móviles; falta que los checks del commit candidato pasen y aceptar ese candidato en Staging, además de cerrar los controles operativos externos.
 
 - Staging conserva pagos en modo de prueba y requiere no indexación. Antes de aceptar el dominio, verificamos que los cuatro servicios estén disponibles y que la respuesta efectiva mantenga esa política.
-- La revisión identificó fallos de encabezados y accesibilidad que ya corregimos en el código. La revisión pasiva no confirmó hallazgos críticos o altos; antes de Production quedan la revalidación del candidato y los controles de confianza del proxy, Cloudflare y GitHub. Este análisis no sustituye una prueba de penetración completa.
-- La línea base de Lighthouse es 70/100 en rendimiento móvil y 14.25 s de LCP. Acordamos un umbral de aceptación y perfilamos el LCP antes de elegir optimizaciones.
-- El job `pg_dump` cifra y valida copias con una prueba aislada de restauración sintética. Configurar el Cron, bucket/credenciales R2, alertas, retención y medir el RTO queda pendiente antes de respaldar datos reales.
+- CI ejecuta auditoría de dependencias, pruebas, lint, build, Playwright/axe, integración PostgreSQL y restauración cifrada sintética. El límite de cuentas se separa por identidad mediante HMAC para que clientes detrás del proxy interno no compartan cuota; Cloudflare aplica además un límite breve por IP a las rutas de cuenta. Backend usa una réplica; si escala, el contador en memoria requiere almacenamiento compartido.
+- La revisión pasiva no confirmó hallazgos críticos o altos; queda revalidar el candidato desplegado. CI aplica CSP y el build local confirma hashes/nonces sin perder prerenderizado; la prueba de navegador verifica la política y un Turnstile simulado. Falta validar el SHA desplegado de Staging con el CAPTCHA real. La revisión pasiva no sustituye una prueba de penetración completa.
+- La línea base móvil de Lighthouse es 69/100 y 14.31 s de LCP. El recurso principal móvil bajó de 2.24 MB a 167 KB en WebP, con PNG de respaldo. La meta de aceptación es mediana ≥90/100 y LCP mediano ≤2.5 s; falta medir tres ejecuciones del candidato desplegado.
+- El job `pg_dump` cifra, sube, vuelve a descargar y restaura un dataset sintético en R2/S3Mock. Antes de respaldar datos reales faltan el Cron diario, un bucket privado y credenciales acotadas, la retención, la alerta de Healthchecks.io y medir el RTO.
 - La aceptación de accesibilidad requiere completar zoom real al 200% y navegación con lector de pantalla.
 
 ### 10. Producción — planeada
