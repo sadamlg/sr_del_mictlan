@@ -7,6 +7,9 @@ workdir="$(mktemp -d)"
 project_name="phase09-backup-${RANDOM}-${RANDOM}"
 env_file="$workdir/compose.env"
 identity_file="$workdir/age-identity"
+# The CI integration stack exports a fixed PostgreSQL host port. Keep this
+# second, independent Compose project on an OS-assigned ephemeral port.
+export POSTGRES_PORT=0
 compose=(docker compose --project-name "$project_name" --env-file "$env_file" -f "$repo_root/compose.yaml" -f "$repo_root/compose.phase09.yaml")
 
 cleanup() {
