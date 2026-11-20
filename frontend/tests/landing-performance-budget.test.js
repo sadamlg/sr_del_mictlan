@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { statSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
@@ -9,6 +9,8 @@ const mobileShowcaseImage = join(
   repositoryRoot,
   '../public/images/mezcal-showcase-background-mobile.webp',
 );
+const landingStylesheet = join(repositoryRoot, '../src/app/globals.css');
+const siteHeader = join(repositoryRoot, '../src/components/header/header.js');
 
 test('mobile showcase WebP stays within the 100 KiB transfer budget', () => {
   const sizeInBytes = statSync(mobileShowcaseImage).size;
@@ -17,4 +19,24 @@ test('mobile showcase WebP stays within the 100 KiB transfer budget', () => {
     sizeInBytes <= 100 * 1024,
     `Expected mobile showcase WebP to stay under 100 KiB; received ${Math.ceil(sizeInBytes / 1024)} KiB`,
   );
+});
+
+test('first-visit entrance animations avoid non-composited filter effects', () => {
+  const css = readFileSync(landingStylesheet, 'utf8');
+  const header = readFileSync(siteHeader, 'utf8');
+
+  for (const animationName of [
+    'age-gate-enter',
+    'age-gate-content-enter',
+    'age-gate-emblem-enter',
+    'fadeIn',
+  ]) {
+    const keyframes = css.match(new RegExp(`@keyframes ${animationName}\\s*\\{([\\s\\S]*?)\\n\\}`));
+
+    assert.ok(keyframes, `Expected the ${animationName} keyframes to exist`);
+    assert.doesNotMatch(keyframes[1], /\bfilter\s*:/, `${animationName} must not animate filter`);
+  }
+
+  assert.match(header, /animate-\[fadeIn_0\.9s_/);
+  assert.doesNotMatch(header, /blurredFadeIn/);
 });
