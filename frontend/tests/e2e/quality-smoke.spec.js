@@ -6,15 +6,26 @@ const test = base.extend({
   safePage: async ({ page, baseURL }, provide) => {
     const blockedWrites = [];
     const sameOrigin = new URL(baseURL).origin;
+    const testMediaOrigin = process.env.MEDIA_BASE_URL
+      ? new URL(process.env.MEDIA_BASE_URL).origin
+      : null;
 
     await page.route('**/*', async (route) => {
       const request = route.request();
       const url = new URL(request.url());
       const method = request.method().toUpperCase();
 
-      if (url.hostname === 'media.example.test') {
+      if (testMediaOrigin && url.origin === testMediaOrigin) {
         await route.abort();
         return;
+      }
+
+      if (testMediaOrigin && url.origin === sameOrigin && url.pathname === '/_next/image') {
+        const sourceUrl = url.searchParams.get('url');
+        if (sourceUrl && new URL(sourceUrl, url.origin).origin === testMediaOrigin) {
+          await route.abort();
+          return;
+        }
       }
 
       if (url.hostname === 'challenges.cloudflare.com') {
