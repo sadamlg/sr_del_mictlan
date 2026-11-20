@@ -1,6 +1,24 @@
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
 const SAFE_KEY_SEGMENT = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
+export function mediaOrigin(mediaBaseUrl) {
+  const baseUrl = typeof mediaBaseUrl === 'string' ? mediaBaseUrl.trim() : '';
+  if (!baseUrl) return null;
+
+  let parsedBaseUrl;
+  try {
+    parsedBaseUrl = new URL(baseUrl);
+  } catch {
+    return null;
+  }
+
+  if (parsedBaseUrl.protocol !== 'https:' || parsedBaseUrl.username || parsedBaseUrl.password || parsedBaseUrl.search || parsedBaseUrl.hash) {
+    return null;
+  }
+
+  return parsedBaseUrl.origin;
+}
+
 function isPrivateIpv4(hostname) {
   const octets = hostname.split('.').map(Number);
   if (octets.length !== 4 || octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)) {

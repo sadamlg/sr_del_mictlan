@@ -6,11 +6,27 @@ const test = base.extend({
   safePage: async ({ page, baseURL }, provide) => {
     const blockedWrites = [];
     const sameOrigin = new URL(baseURL).origin;
+    const testMediaOrigin = process.env.MEDIA_BASE_URL
+      ? new URL(process.env.MEDIA_BASE_URL).origin
+      : null;
 
     await page.route('**/*', async (route) => {
       const request = route.request();
       const url = new URL(request.url());
       const method = request.method().toUpperCase();
+
+      if (testMediaOrigin && url.origin === testMediaOrigin) {
+        await route.abort();
+        return;
+      }
+
+      if (testMediaOrigin && url.origin === sameOrigin && url.pathname === '/_next/image') {
+        const sourceUrl = url.searchParams.get('url');
+        if (sourceUrl && new URL(sourceUrl, url.origin).origin === testMediaOrigin) {
+          await route.abort();
+          return;
+        }
+      }
 
       if (url.hostname === 'challenges.cloudflare.com') {
         await route.abort();
@@ -71,6 +87,27 @@ async function scrollToCollection(page) {
   await expect(collection).toHaveCount(1);
   await collection.scrollIntoViewIfNeeded();
 }
+
+test('landing anticipa la conexión al origen externo de medios', async ({ safePage }) => {
+  const { page } = safePage;
+  await page.goto('/');
+
+  const backgroundSrc = await page.locator('#coleccion picture img').getAttribute('src');
+  expect(backgroundSrc).toBeTruthy();
+
+  const mediaOrigin = new URL(backgroundSrc, page.url()).origin;
+  const pageOrigin = new URL(page.url()).origin;
+  const configuredMediaOrigin = process.env.MEDIA_BASE_URL
+    ? new URL(process.env.MEDIA_BASE_URL).origin
+    : pageOrigin;
+  expect(mediaOrigin).toBe(configuredMediaOrigin);
+  if (mediaOrigin === pageOrigin) return;
+
+  const preconnectOrigins = await page.locator('head link[rel="preconnect"]').evaluateAll((links) =>
+    links.map((link) => new URL(link.href).origin),
+  );
+  expect(preconnectOrigins).toContain(mediaOrigin);
+});
 
 test('landing: edad, foco del diálogo y accesibilidad', async ({ safePage }, testInfo) => {
   const { page } = safePage;
