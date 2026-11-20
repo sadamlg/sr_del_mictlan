@@ -4,7 +4,7 @@
 
 Esta guía define la preparación, el orden y los criterios de la fase **09 · Validación previa a Producción**. Su existencia no demuestra que una herramienta esté instalada, que Staging tenga una configuración vigente ni que una comprobación haya pasado. El estado y la evidencia resumida de la fase se mantienen en el [roadmap](../ROADMAP.md); esta guía no es una bitácora de incidentes.
 
-La fase requiere que la [fase 08](../ROADMAP.md#08-staging--completada) esté aceptada y que Staging esté operativo. La aceptación funcional registrada el **2026-11-18** corresponde al candidato `cb5a64d` (merge del PR #20), según el roadmap. Antes de asociar resultados nuevos a ese u otro candidato, hay que leer los despliegues activos de Railway y confirmar el commit de `Frontend`, `Backend` y `worker`. El historial local de Git o esta guía no prueban qué está desplegado hoy.
+La fase requiere que la [fase 08](../ROADMAP.md#08-staging--completada) esté aceptada y que Staging esté operativo. Antes de cada validación remota, comprueba despliegues, hostnames y SHA de `Frontend`, `Backend` y `worker`. Para la entrega externa de correo, sigue la [guía de Resend](../architecture/services/RESEND.md); la configuración del Worker en Railway está en [RAILWAY.md](../architecture/services/RAILWAY.md). Registra la evidencia resumida en el roadmap; esta guía contiene el procedimiento, no resultados de ejecuciones.
 
 El flujo existente ejecuta pruebas con `node:test`, ESLint, build de Frontend y validación/generación de Prisma mediante GitHub Actions. Esta preparación agrega Playwright y axe con versiones exactas, una suite corta de navegador y su ejecución en CI; CI también ejecuta el caso de indexación con `ROBOTS_INDEXABLE=true` para cubrir el opt-in. Lighthouse y ZAP siguen siendo herramientas puntuales de auditoría, no checks de cada PR. Las pruebas opcionales de base de datos se ejecutan sólo mediante una composición aislada.
 
@@ -36,21 +36,19 @@ La superficie indexable definida para el MVP es la landing y su escaparate; cons
 
 ### Candidato y configuración de Staging
 
-La [guía Railway](../architecture/services/RAILWAY.md) contiene las referencias de servicios y dominios del proyecto. En ella aparecen como referencias `Frontend` (`https://frontend-staging-f50c4d1d.up.railway.app`) y `Backend` (`https://backend-staging-c2e45865.up.railway.app`), con PostgreSQL privado. Confirma los hostnames en el panel de Railway antes de cada ejecución; no los trates como prueba de que el servicio está disponible o sigue desplegado.
+Antes de comenzar, selecciona el entorno Staging correcto y copia en la hoja de ejecución sus hostnames y SHA desplegados. Consulta [Railway](../architecture/services/RAILWAY.md) para la configuración de los servicios; no guardes hostnames resueltos en este procedimiento.
 
 Antes de empezar, registra la revisión completa de cada despliegue de aplicación y comprueba que `Frontend`, `Backend` y `worker` corresponden al mismo candidato. Revisa, sin revelar sus valores, que las variables requeridas por el código y por la guía Railway estén presentes y correspondan a Staging: `FRONTEND_ORIGIN`, `INTERNAL_API_URL`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `STRIPE_MODE`, `CHECKOUT_ENABLED`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `RESEND_API_KEY`, `MAIL_FROM` y `RESEND_FROM`. Verifica además que `ROBOTS_INDEXABLE` no sea `true` en Staging; si está ausente, la aplicación usa `false`. Checkout debe seguir en `test`; no se usarán claves live ni se cambiará la configuración para hacer pasar una prueba.
 
-Comprobaciones de solo lectura para identificar el entorno:
+Comprobaciones de solo lectura para confirmar que los hostnames elegidos responden:
 
 ```text
-GET https://<frontend-staging>/
-GET https://<backend-staging>/health
-GET https://<frontend-staging>/api/backend/public-config
+GET https://<frontend-hostname>/
+GET https://<backend-hostname>/health
+GET https://<frontend-hostname>/api/backend/public-config
 ```
 
-La API debe responder salud correcta con base conectada; la configuración pública debe mostrar Checkout de prueba habilitado según la guía vigente. Estos endpoints no identifican por sí solos el commit: la revisión del despliegue se confirma en Railway. Si no se puede confirmar el commit, no atribuyas resultados nuevos a Staging ni declares aceptado el candidato.
-
-Los flujos de registro, confirmación, Turnstile, sesión/recuperación, Checkout de prueba, webhook, pedido y correo/PDF aceptados el 2026-11-18 son evidencia previa del candidato `cb5a64d`. No vuelvas a presentarlos como una nueva ejecución. Si el candidato activo difiere, determina qué recorridos requieren repetición antes de atribuirles aceptación.
+La API debe responder con salud correcta y base conectada; la configuración pública debe mostrar el estado de Checkout previsto para ese entorno. Estos endpoints no identifican por sí solos el commit: confírmalo en Railway. Comprueba variables sólo por nombre, sin copiar valores secretos, `STRIPE_MODE=test`, Checkout de prueba y `ROBOTS_INDEXABLE` apagado en Staging. Si no se puede confirmar el commit, no atribuyas resultados ni declares aceptado el candidato.
 
 ### Versiones y herramientas
 
@@ -78,7 +76,9 @@ Se mantiene una sola suite propia y versionada. `node:test` cubre reglas, autori
 | `gh-secure` de GitHub Security Lab | No instalar para la línea base; reservar para una remediación aprobada | La API de GitHub permite leer estado de rama y funciones de seguridad sin una extensión. Usar `status` si la revisión de configuración lo amerita; `--dry-run` antes de cualquier aplicación. No instalar ni ejecutar cambios sobre reglas sin autorización. |
 | Security Audit Skill de Cloudflare | No integrar al flujo base; usar bajo demanda | Puede aportar una revisión estructurada de código si ZAP y la inspección enfocada dejan una duda concreta. Leer y fijar su revisión antes de usarlo, cumplir su aislamiento y agregar hallazgos confirmados al único reporte de fase; nunca ejecutar su flujo contra Staging. |
 | TestSprite | No incorporar al flujo base | Su generación y ejecución de pruebas se solapa con la suite propia y añade créditos, revisión y mantenimiento. Reconsiderar sólo si existe una carencia concreta que un piloto pequeño demuestre resolver. |
-| Sentry | Diferir la integración hasta cerrar la decisión de monitoreo | No es un runner de pruebas. Primero comprobar logs y alertas de aplicación/worker; si Railway no permite detectar o diagnosticar errores, elegir Sentry o un equivalente, definiendo filtrado de datos y cuota antes de Producción. El resultado operativo sí es obligatorio; Sentry es una opción para conseguirlo. |
+| Railway + Healthchecks.io | Elegir para la vigilancia mínima | Usar métricas y logs de Railway para diagnosticar. Un comprobador periódico externo recibe señales sólo tras verificar Frontend, API y actividad reciente del Worker; el job de respaldo informa éxito o fallo por separado. Probar que una señal omitida genera aviso. Los monitores configurables de Railway requieren Pro; no se contrata ese plan para repetir estas alertas. |
+| Sentry | Diferir | Sirve para agrupar excepciones y seguir errores de aplicación. Añadirlo sólo si los logs del candidato no permiten diagnosticar fallos reales, con filtrado de datos y cuota definida. No sustituye una señal de vida ni la restauración de respaldo. |
+| PostHog | No incorporar en fase 09 | Su análisis de producto, grabaciones y seguimiento de errores no son necesarios para estas puertas de calidad y exigirían otra política de captura de datos. Reconsiderarlo si se aprueba una necesidad de analítica concreta. |
 | OpenGraph.to | Fuera del flujo base | Una comprobación puntual de vistas previas puede hacerse al preparar el dominio final en fase 10. |
 
 En cada PR se ejecutan los checks locales/CI existentes y las pruebas afectadas. Al identificar un candidato de Staging se ejecutan los recorridos críticos y las auditorías de esta guía. Después de una corrección se repite el caso fallido y las comprobaciones afectadas; una nueva versión candidata requiere confirmar otra vez los checks y el recorrido crítico. Restauración, alertas y rollback se ensayan inicialmente y se repiten cuando cambia su mecanismo, esquema o configuración relevante. No repetir por rutina auditorías completas sobre el mismo candidato sin cambios ni dudas pendientes.
@@ -100,6 +100,8 @@ Antes de recorridos que creen cuentas, envíen correo, creen pedidos o cambien c
 ### 2. Validar código y dependencias del candidato
 
 El workflow vigente de [CI](../../.github/workflows/ci.yml) corre en PR y push a `develop` y `main`. Usa Node `24.21.0` y lockfiles. Frontend ejecuta `npm test`, `npm run lint` y `npm run build`; Backend ejecuta `npm test`, `npm run lint`, `npm run prisma:validate` y `npm run prisma:generate`. No existe un script `build` de Backend. Comprueba los checks del commit exacto; una ejecución de otra rama o SHA no sustituye este requisito.
+
+Railway despliega automáticamente los commits de la rama conectada cuando esa función está habilitada. Para cerrar el circuito CI/CD, comprueba en cada servicio la rama, el autodespliegue, **Wait for CI** y el SHA activo; configura protección de ramas y checks obligatorios para impedir que un merge con CI fallido llegue a `develop`. Un despliegue sano no demuestra que los checks pasaron ni que todos los servicios ejecutan el mismo candidato. [Autodespliegues de Railway](https://docs.railway.com/deployments/github-autodeploys).
 
 Para reproducir localmente, usa Compose según la [guía local](../architecture/docker/COMPOSE.md), no una instalación de Node en el anfitrión. Antes del build revisa recursos y ejecuta cargas pesadas en serie:
 
@@ -206,6 +208,8 @@ Compara con los objetivos acordados en el paso 1. Sin objetivos firmados previam
 
 Ejecuta ZAP Baseline **sólo en modo pasivo** contra los hostnames públicos propios de Staging previamente aprobados. No uses ZAP Full Scan, active scan, fuzzing, brute force, pruebas de carga ni objetivos de Stripe, Cloudflare o Resend. El spider genera solicitudes HTTP y puede consumir recursos del entorno; confirma presupuesto y ventana antes de iniciarlo.
 
+La resistencia a intentos repetidos de acceso se verifica aparte con pruebas deterministas de los límites de autenticación: cuenta y datos sintéticos, número acotado de solicitudes, respuesta `429`, aislamiento entre clientes detrás del proxy y recuperación después de la ventana. La prueba se prepara primero en local aislado; cualquier ejecución remota se acota a Staging y no usa cuentas de terceros. ZAP Baseline no cubre este caso y un ataque de fuerza bruta masivo no es criterio de cierre.
+
 ```bash
 mkdir -p reports/zap
 docker run --rm -v "$PWD/reports/zap:/zap/wrk/:rw" -t \
@@ -216,17 +220,19 @@ docker run --rm -v "$PWD/reports/zap:/zap/wrk/:rw" -t \
 
 No uses `-I` ni conviertas advertencias en exclusiones generales. Revisa alertas contra evidencia reproducible y los contratos/código de autenticación, autorización, cookies, proxy/orígenes, Turnstile, Stripe webhooks, manejo de errores, límites, secretos y dependencias. Para cada hallazgo, verifica impacto y ruta, separa falsos positivos con evidencia y asigna seguimiento a los restantes. No se considera una auditoría completa sólo porque ZAP no reporte alertas.
 
-Comprueba encabezados en la respuesta HTML y en recursos estáticos. La implementación local del candidato incluye HSTS sin `includeSubDomains`, `X-Content-Type-Options`, protección contra framing, `Referrer-Policy`, `Permissions-Policy` y desactiva `X-Powered-By`; todavía no está desplegada en Staging. CSP y las políticas COEP/COOP/CORP requieren una revisión por separado antes de activarse: confirma scripts, mapas, medios externos y otros orígenes usados. En Next.js, la CSP con nonce exige renderizado dinámico y puede desactivar prerenderizado y caché parcial; Turnstile requiere permitir sus scripts, iframes y conexiones. No copies una política genérica sin probar los recorridos y la consola.
+Verificamos encabezados en la respuesta HTML y en recursos estáticos. El candidato debe enviar HSTS sin `includeSubDomains`, `X-Content-Type-Options`, protección contra framing, `Referrer-Policy` y `Permissions-Policy`, y no exponer `X-Powered-By`. Revisamos CSP y las políticas COEP/COOP/CORP por separado antes de activarlas: comprobamos scripts, mapas, medios externos y los demás orígenes que usa nuestro sistema. En Next.js, la CSP con nonce exige renderizado dinámico y puede desactivar prerenderizado y caché parcial; Turnstile requiere permitir sus scripts, iframes y conexiones. No copiamos una política genérica sin probar los recorridos y la consola.
+
+Para cerrar CSP, prepara una política específica en `Content-Security-Policy-Report-Only`, revisa violaciones en los recorridos de tienda, cuenta, Turnstile y Checkout, y luego aplica la política efectiva compatible. Si una directiva requiere una excepción o cambia el renderizado y el rendimiento, registra la decisión y repite las comprobaciones afectadas. No declares CSP aceptada sólo por agregar el encabezado.
 
 Antes de aceptar, no debe quedar un hallazgo crítico o alto confirmado y reproducible sin corregir. Cambios de código/configuración requieren su propia revisión y una nueva validación del candidato correspondiente.
 
 ### 7. Comprobar respaldo, restauración, alertas y rollback
 
-El responsable de Railway revisa primero el plan, cuotas y costo. Los respaldos de volumen de Railway pueden tener costo por almacenamiento; PITR puede generar consumo de almacenamiento y egreso. La restauración nativa de volumen se aplica al mismo proyecto/entorno y puede cambiar el volumen montado y redesplegar el servicio. Por eso, no uses la acción Restore sobre la base compartida de Staging como ensayo aislado.
+El plan de recuperación acordado para preparar Production es independiente de los snapshots de Railway: un job diario `pg_dump` con destino privado fuera de Railway, definido en [POSTGRES-BACKUPS.md](../architecture/services/POSTGRES-BACKUPS.md). Aún no está implementado; el responsable debe comprobar tamaño, retención, egreso y costo antes de habilitarlo. Los respaldos de volumen de Railway pueden evaluarse como una capa adicional y generar costos de almacenamiento; PITR puede generar consumo de almacenamiento y egreso. La restauración nativa de volumen se aplica al mismo proyecto/entorno y puede cambiar el volumen montado y redesplegar el servicio. Por eso, no uses la acción Restore sobre una base compartida como ensayo aislado.
 
-Para aceptar recuperación, restaura una copia aprobada o datos sintéticos en PostgreSQL aislado (otro proyecto temporal o entorno local efímero), verifica migraciones, lectura de registros esperados, `/health` y una operación de aplicación segura; confirma que el origen no cambió. El responsable elimina el destino temporal sólo después de preservar la evidencia necesaria y revisar costos. No copies PII real si basta un dataset sintético.
+Para aceptar recuperación, restaura una copia aprobada o datos sintéticos en PostgreSQL aislado (otro proyecto temporal o entorno local efímero), verifica migraciones, lectura de registros esperados, `/health` y una operación de aplicación segura; confirma que el origen no cambió. El responsable elimina el destino temporal sólo después de preservar la evidencia necesaria y revisar costos. No copies PII real si basta un dataset sintético. El simulacro específico de `pg_dump`, incluido el tratamiento de copias productivas, debe seguir la guía de respaldos.
 
-Railway ofrece métricas de CPU, memoria, disco y red. Sus monitores configurables de estos recursos requieren el plan Pro; las métricas nativas no cubren por sí solas latencia ni errores de aplicación. Verifica plan, umbrales y destinatarios. Comprueba una alerta con un mecanismo controlado que no provoque caída ni envíe notificaciones reales no autorizadas.
+Railway ofrece métricas y logs para diagnosticar CPU, memoria, latencia y errores; sus monitores configurables requieren el plan Pro. Para avisos sin subir de plan, prepara un comprobador programado que consulte Frontend, `/health` de Backend y la frescura del latido del Worker, y sólo entonces envíe una señal de éxito a Healthchecks.io. El job de respaldo envía otra señal después de verificar su archivo cifrado en R2. Configura destinatarios, periodicidad y margen de alerta, y demuestra con un fallo controlado que la falta de señal produce un aviso. Ninguna señal debe incluir credenciales, datos de usuarios o URLs privadas.
 
 Ensaya rollback en un entorno aislado o en una ventana autorizada. Confirma qué versión de Frontend, Backend y worker volvería, compatibilidad de migraciones y configuración, y qué respuesta de salud se espera. Railway rollback revierte la imagen y las variables personalizadas de ese despliegue y depende de la retención del plan. No hagas rollback en el Staging compartido ni ejecutes un despliegue desde esta fase sin autorización específica.
 
@@ -265,7 +271,7 @@ Para cada bloque de aceptación conserva, como mínimo:
 | Resultado | Aprobado, pendiente o bloqueado, con el criterio concreto y responsable |
 | Artefactos | Enlaces restringidos a checks, informes, capturas y evidencia de recuperación |
 
-No subas secretos, tokens, cookies, datos personales, cuerpo de correos ni exportaciones de base de datos al repositorio. Conserva informes según la política acordada y elimina datos de prueba al cierre. El roadmap sólo resume entorno, fecha, commit y resultado de fase; los detalles de ejecución viven en los checks o artefactos restringidos. No generes un Markdown por herramienta: informa en la conversación de la fase en Codex Desktop los resultados y las correcciones por bloque; conserva los JSON técnicos como artefactos locales/restringidos.
+No subas secretos, tokens, cookies, datos personales, cuerpo de correos ni exportaciones de base de datos al repositorio. Conserva informes según la política acordada y elimina datos de prueba al cierre. El roadmap resume el resultado de fase y sólo identifica entorno, fecha o commit cuando son necesarios para explicar una aceptación o un bloqueo vigente; los detalles de ejecución viven en checks o artefactos restringidos. No generes un Markdown por herramienta: informa en la conversación de la fase en Codex Desktop los resultados y las correcciones por bloque; conserva los JSON técnicos como artefactos locales/restringidos.
 
 ## Referencias oficiales
 
@@ -279,4 +285,5 @@ No subas secretos, tokens, cookies, datos personales, cuerpo de correos ni expor
 - [Lighthouse: CLI e informes](https://developer.chrome.com/docs/lighthouse/overview) · [Puntuación y variación](https://developer.chrome.com/docs/lighthouse/performance/performance-scoring)
 - [ZAP Baseline Scan](https://www.zaproxy.org/docs/docker/baseline-scan/) · [Imágenes Docker de ZAP](https://www.zaproxy.org/docs/docker/about/)
 - [Railway: respaldos de volumen](https://docs.railway.com/volumes/backups) · [PITR y costos](https://docs.railway.com/volumes/point-in-time-recovery) · [métricas](https://docs.railway.com/observability/metrics) · [monitores](https://docs.railway.com/observability) · [rollback](https://docs.railway.com/deployments/deployment-actions)
+- [Railway: autodespliegue y Wait for CI](https://docs.railway.com/deployments/github-autodeploys) · [Healthchecks.io: señales y alertas](https://healthchecks.io/docs/) · [Healthchecks.io: plan gratuito](https://healthchecks.io/pricing/)
 - [Stripe: webhook](https://docs.stripe.com/webhooks) · [Cloudflare Turnstile: validación server-side](https://developers.cloudflare.com/turnstile/get-started/server-side-validation/)

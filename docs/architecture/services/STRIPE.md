@@ -1,4 +1,6 @@
-# Stripe Checkout: desarrollo y staging
+# Stripe Checkout: local, staging y producción
+
+Coordina la preparación entre proveedores con el [runbook maestro](../../operations/PRODUCTION-RUNBOOK.md). Esta guía describe los perfiles y procedimientos; no registra el estado de cuentas o destinos actuales.
 
 La tienda crea sesiones de Stripe Checkout desde el backend. Sólo un webhook con firma válida confirma el pedido; regresar al navegador desde Stripe únicamente consulta el estado guardado. Consulta el [contrato de Checkout y pedidos](../../contracts/06-CHECKOUT-ORDERS.md) para el modelo de datos y el alcance.
 
@@ -40,11 +42,17 @@ Los eventos `checkout.session.completed` y `checkout.session.async_payment_succe
 
 ## Separación de entornos
 
-El listener local no publica un endpoint del Dashboard. En Staging, el `Backend` público recibe los webhooks; verifica el destino y sus entregas del sandbox antes de aceptar el flujo. Producción requiere claves live, un endpoint distinto y precios comerciales aprobados. No compartas secretos entre entornos ni los copies al repositorio. Los nombres y valores de referencia de Railway están en [RAILWAY.md](RAILWAY.md#configuracion-de-referencia-de-staging).
+El listener local no publica un endpoint del Dashboard. En un entorno remoto, el Backend público recibe los webhooks; verifica el destino y sus entregas del sandbox antes de aceptar el flujo. Producción requiere claves live, un endpoint distinto y precios comerciales aprobados. No compartas secretos entre entornos ni los copies al repositorio. Las variables de Railway se describen en [RAILWAY.md](RAILWAY.md).
 
-## Webhook público de staging
+| Perfil | Modo y credenciales | Webhook |
+|---|---|---|
+| Local | `STRIPE_MODE=test`, clave `sk_test_…`, `stripe listen` | Listener local hacia API local |
+| Staging | `STRIPE_MODE=test`, claves y webhook sandbox separados | HTTPS del Backend de Staging |
+| Production | Claves live y endpoint webhook propios; Checkout apagado durante preparación | HTTPS del Backend de Production |
 
-Para crear o verificar el destino de este Staging, usa la URL `https://backend-staging-c2e45865.up.railway.app/api/webhooks/stripe` mientras ése siga siendo el dominio asignado al servicio `Backend`. El dominio público del Backend recibe el webhook; el proxy del Frontend no es el destino. Si Railway cambia el dominio, reemplázalo con el vigente que aparece en su panel. No registres una URL ficticia ni la URL local.
+## Webhook público de Staging
+
+Para crear o verificar el destino de Staging, usa `https://<dominio-publico-del-backend>/api/webhooks/stripe`. El dominio público del Backend recibe el webhook; el proxy del Frontend no es el destino. Copia el hostname que muestre Railway para el entorno seleccionado; no uses una URL de otro entorno ni la URL local.
 
 1. En Workbench, revisa los destinos existentes para evitar duplicados. Actualiza el destino existente o, si no hay uno, crea un destino de eventos **snapshot** para la cuenta del sandbox. Selecciona sólo `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed` y `checkout.session.expired`.
 2. Comprueba la versión de API del destino frente a la versión usada por el SDK de Stripe del proyecto; verifica el payload en staging antes de aceptar la integración.
@@ -62,5 +70,11 @@ El destino de Stripe conserva la URL que se registró aunque Railway asigne un d
 4. Confirma el estado del pago directamente en Stripe antes de pedir al comprador que intente pagar otra vez. Corrige el destino antes de usar **Resend** para una entrega fallida.
 
 Consulta [webhooks de Stripe](https://docs.stripe.com/webhooks) y [claves de API](https://docs.stripe.com/keys?locale=es-419).
+
+## Costos, rendimiento y seguridad
+
+- **Costos:** consulta la [tabla vigente de tarifas de Stripe](https://stripe.com/pricing) para el país, moneda y métodos de pago aplicables. Incluye comisiones de procesamiento, devoluciones/contracargos y costos de otros servicios del flujo; no fijes precios con una tarifa supuesta.
+- **Rendimiento y resiliencia:** Checkout se crea desde el Backend; el webhook es asíncrono y Stripe puede reintentar entregas. Revisa fallos y latencia desde el Dashboard, conserva la idempotencia y no marques un pedido pagado sólo por el retorno del navegador.
+- **Seguridad:** usa Checkout alojado, no recibas datos de tarjeta en la tienda, protege claves secretas por entorno, verifica la firma con el cuerpo HTTP crudo y limita los eventos al conjunto que consume la aplicación. No registres secretos ni payloads con datos personales.
 
 Si Stripe no muestra una tarjeta guardada, confirma que la persona aceptó el consentimiento para reutilizarla y que Stripe la considera visible en otro Checkout. Checkout alojado administra el formulario y los datos de pago; la tienda sólo presenta marca, últimos cuatro dígitos y vencimiento elegible. [Stripe documenta los clientes existentes y la reutilización de tarjetas](https://docs.stripe.com/payments/existing-customers?platform=web&ui=stripe-hosted).
