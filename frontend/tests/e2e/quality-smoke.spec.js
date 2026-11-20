@@ -105,6 +105,8 @@ test('respuestas web: encabezados de seguridad base', async ({ safePage }) => {
     'referrer-policy': 'strict-origin-when-cross-origin',
     'permissions-policy': 'camera=(), microphone=(), geolocation=()',
   });
+  expect(headers['content-security-policy-report-only']).toContain("default-src 'self'");
+  expect(headers['content-security-policy-report-only']).toContain('https://challenges.cloudflare.com');
   expect(headers).not.toHaveProperty('x-powered-by');
 });
 
