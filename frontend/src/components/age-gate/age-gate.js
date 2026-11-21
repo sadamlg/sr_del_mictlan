@@ -120,6 +120,7 @@ export default function AgeGate({ children, mediaBaseUrl }) {
                 fill
                 sizes="(max-width: 640px) calc(100vw - 40px), 30rem"
                 loading="eager"
+                fetchPriority="high"
                 className="age-gate-emblem translate-y-[1%] scale-[1.12] object-contain opacity-[0.11] grayscale contrast-125 mix-blend-screen"
               />
             </div>
