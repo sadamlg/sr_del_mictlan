@@ -5,6 +5,7 @@ import Script from 'next/script';
 import './globals.css';
 import { AccountSessionProvider } from '../components/account/account-session.js';
 import { CartProvider } from '../components/cart/cart-provider.js';
+import { resolveAccountRequestUrl } from '../lib/account-api.js';
 import CartDrawer from '../components/cart/cart-drawer.js';
 import { mediaOrigin } from '../lib/media-url.js';
 
@@ -20,6 +21,7 @@ export default function RootLayout({ children }) {
     <html lang="es" className="h-full antialiased" data-scroll-behavior="smooth">
       <head>
         {mediaBaseOrigin && <link rel="preconnect" href={mediaBaseOrigin} />}
+        <meta name="mictlan-session-endpoint" content={resolveAccountRequestUrl('auth/session')} />
         <Script src="/account-session-bootstrap.js" strategy="beforeInteractive" />
       </head>
       <body className="min-h-full font-sans">

@@ -56,16 +56,19 @@ test('first-visit entrance animations avoid non-composited filter effects', () =
   assert.doesNotMatch(header, /blurredFadeIn/);
 });
 
-test('account session starts before hydration and the provider can reuse its response', () => {
+test('account session starts before hydration using the configured API URL and is reused', () => {
   const layout = readFileSync(rootLayout, 'utf8');
   const bootstrap = readFileSync(sessionBootstrap, 'utf8');
   const accountApi = readFileSync(join(repositoryRoot, '../src/lib/account-api.js'), 'utf8');
 
   assert.match(layout, /<Script src="\/account-session-bootstrap\.js" strategy="beforeInteractive"\s*\/>/);
-  assert.match(bootstrap, /fetch\('\/api\/backend\/auth\/session'/);
+  assert.match(layout, /name="mictlan-session-endpoint" content=\{resolveAccountRequestUrl\('auth\/session'\)\}/);
+  assert.match(bootstrap, /document\.querySelector\('meta\[name="mictlan-session-endpoint"\]'\)/);
+  assert.match(bootstrap, /fetch\(endpoint,/);
   assert.match(bootstrap, /credentials:\s*'include'/);
   assert.match(bootstrap, /new AbortController\(\)/);
   assert.match(accountApi, /consumeSessionBootstrapResponse\(normalizedPath, method\)/);
+  assert.doesNotMatch(bootstrap, /fetch\('\/api\/backend\/auth\/session'/);
 });
 
 test('product-card secondary photos reveal with opacity while remaining lazy-loaded', () => {
