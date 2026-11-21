@@ -40,7 +40,7 @@ function MezcalCard({ product, className = '' }) {
           decoding="async"
           referrerPolicy="no-referrer"
           sizes="(min-width: 1024px) 360px, (min-width: 640px) 45vw, min(100vw, 340px)"
-          className="absolute inset-0 h-full w-full object-cover opacity-0 [clip-path:inset(0_50%_0_50%)] transition-[clip-path,opacity] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none group-hover/visual:opacity-100 group-hover/visual:[clip-path:inset(0_0_0_0)] group-focus/visual:opacity-100 group-focus/visual:[clip-path:inset(0_0_0_0)]"
+          className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none group-hover/visual:opacity-100 group-focus/visual:opacity-100"
         />
       </div>
 
