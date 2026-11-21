@@ -34,6 +34,33 @@ test('account requests include credentials, avoid caching, and serialize JSON bo
   assert.equal(captured.options.body, JSON.stringify({ email: 'ana@example.mx' }));
 });
 
+test('the hydrated session provider reuses the request started before hydration', async (context) => {
+  const originalFetch = globalThis.fetch;
+  const originalWindow = globalThis.window;
+  const response = { status: 200, ok: true, json: async () => ({ account: null }) };
+  globalThis.window = { __mictlanSessionBootstrapResponse: Promise.resolve(response) };
+  globalThis.fetch = async () => assert.fail('no debe duplicar la consulta de sesión');
+  context.after(() => { globalThis.fetch = originalFetch; globalThis.window = originalWindow; });
+
+  assert.deepEqual(await accountRequest('auth/session'), { account: null });
+  assert.equal(globalThis.window.__mictlanSessionBootstrapResponse, undefined);
+});
+
+test('a timed out pre-hydration session request keeps the timeout error for the account UI', async (context) => {
+  const originalFetch = globalThis.fetch;
+  const originalWindow = globalThis.window;
+  const timeoutError = new Error('timed out');
+  timeoutError.name = 'TimeoutError';
+  globalThis.window = { __mictlanSessionBootstrapResponse: Promise.reject(timeoutError) };
+  globalThis.fetch = async () => assert.fail('no debe repetir una consulta que ya excedió el tiempo');
+  context.after(() => { globalThis.fetch = originalFetch; globalThis.window = originalWindow; });
+
+  await assert.rejects(accountRequest('auth/session'), (error) => {
+    assert.equal(error.code, 'REQUEST_TIMEOUT');
+    return true;
+  });
+});
+
 test('structured API errors preserve field validation and status for form views', async (context) => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => ({

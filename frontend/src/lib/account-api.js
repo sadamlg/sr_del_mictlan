@@ -11,6 +11,14 @@ export class AccountApiError extends Error {
   }
 }
 
+function consumeSessionBootstrapResponse(path, method) {
+  if (path !== 'auth/session' || method !== 'GET' || typeof window === 'undefined') return null;
+  const response = window.__mictlanSessionBootstrapResponse;
+  if (!response) return null;
+  delete window.__mictlanSessionBootstrapResponse;
+  return response;
+}
+
 export function resolveAccountRequestUrl(path, {
   apiBaseUrl = process.env.NEXT_PUBLIC_API_URL,
   apiProxyPath = process.env.NEXT_PUBLIC_API_PROXY_PATH,
@@ -60,16 +68,19 @@ export async function accountRequest(path, { method = 'GET', body, signal } = {}
   let response;
   let payload;
   try {
-    response = await fetch(resolveAccountRequestUrl(normalizedPath), {
-      method,
-      credentials: 'include',
-      cache: 'no-store',
-      headers: body === undefined
-        ? { Accept: 'application/json' }
-        : { Accept: 'application/json', 'Content-Type': 'application/json' },
-      body: body === undefined ? undefined : JSON.stringify(body),
-      signal: controller.signal,
-    });
+    const bootstrapResponse = consumeSessionBootstrapResponse(normalizedPath, method);
+    response = bootstrapResponse
+      ? await bootstrapResponse
+      : await fetch(resolveAccountRequestUrl(normalizedPath), {
+        method,
+        credentials: 'include',
+        cache: 'no-store',
+        headers: body === undefined
+          ? { Accept: 'application/json' }
+          : { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: body === undefined ? undefined : JSON.stringify(body),
+        signal: controller.signal,
+      });
     if (response.status !== 204) {
       try {
         payload = await response.json();
@@ -77,10 +88,10 @@ export async function accountRequest(path, { method = 'GET', body, signal } = {}
         payload = null;
       }
     }
-  } catch {
+  } catch (error) {
     throw new AccountApiError({
       status: 0,
-      error: timedOut
+      error: timedOut || error?.name === 'TimeoutError'
         ? { code: 'REQUEST_TIMEOUT', message: 'El servidor tardó demasiado en responder. Inténtalo de nuevo.' }
         : { code: 'NETWORK_ERROR', message: 'No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.' },
     });
