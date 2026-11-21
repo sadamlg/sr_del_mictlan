@@ -91,7 +91,7 @@ Ejecuta los pasos en orden. Un paso pendiente que sea requisito de aceptación d
 
 ### 1. Acordar criterios, presupuesto y datos
 
-Antes de medir, el responsable aprueba umbrales de rendimiento y SEO para móvil y escritorio, páginas, condiciones de medición y si algún umbral bloquea. A la fecha de esta guía no hay valores numéricos aprobados. Hasta que se acuerden, Lighthouse genera una línea base informativa y ninguna puntuación aislada bloquea.
+Los umbrales numéricos bloqueantes aprobados son para móvil: mediana de Performance ≥90/100 y mediana de LCP ≤2.5 s. No hay un umbral bloqueante para escritorio ni para la categoría SEO; esos resultados son informativos. Mantén iguales la URL, el perfil del dispositivo y la red al comparar candidatos, y documenta cualquier cambio de condiciones.
 
 La accesibilidad sí tiene una condición de aceptación definida: no debe quedar una violación axe crítica o seria reproducible sin corregir o sin excepción explícita y aceptada por el responsable; además se completa la revisión manual. Los umbrales de rendimiento/SEO no sustituyen revisar defectos funcionales confirmados.
 
