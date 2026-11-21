@@ -6,13 +6,17 @@ function requestIdentity(request) {
   const body = request.body && typeof request.body === 'object' && !Array.isArray(request.body)
     ? request.body
     : {};
+  const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+  const token = typeof body.token === 'string' ? body.token : '';
+  if (request.path.endsWith('/login') || request.path.endsWith('/register')
+    || request.path.endsWith('/password-reset-requests')) {
+    if (email) return `email:${email}`;
+  } else if (token) {
+    return `token:${token}`;
+  }
+
   const session = readSessionCookie(request);
   if (session) return `session:${session}`;
-
-  const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
-  if (email) return `email:${email}`;
-
-  const token = typeof body.token === 'string' ? body.token : '';
   if (token) return `token:${token}`;
 
   const address = typeof request.ip === 'string' && isIP(request.ip)
