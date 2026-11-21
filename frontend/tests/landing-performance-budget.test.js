@@ -12,6 +12,7 @@ const mobileShowcaseImage = join(
 const landingPage = join(repositoryRoot, '../src/app/page.js');
 const landingStylesheet = join(repositoryRoot, '../src/app/globals.css');
 const siteHeader = join(repositoryRoot, '../src/components/header/header.js');
+const ageGate = join(repositoryRoot, '../src/components/age-gate/age-gate.js');
 const rootLayout = join(repositoryRoot, '../src/app/layout.js');
 const sessionBootstrap = join(repositoryRoot, '../public/account-session-bootstrap.js');
 const mezcalShowcase = join(repositoryRoot, '../src/components/landing/mezcal-showcase/mezcal-showcase.js');
@@ -54,6 +55,16 @@ test('first-visit entrance animations avoid non-composited filter effects', () =
 
   assert.match(header, /animate-\[fadeIn_0\.9s_/);
   assert.doesNotMatch(header, /blurredFadeIn/);
+});
+
+test('age-gate LCP emblem is requested with high priority', () => {
+  const component = readFileSync(ageGate, 'utf8');
+  const emblem = component.match(/<Image\b[\s\S]*?className="age-gate-emblem[\s\S]*?\/>/)?.[0];
+
+  assert.ok(emblem, 'Expected the age-gate emblem image to exist');
+  assert.match(emblem, /loading="eager"/);
+  assert.match(emblem, /fetchPriority="high"/);
+  assert.doesNotMatch(emblem, /\bpreload=/);
 });
 
 test('account session starts before hydration using the configured API URL and is reused', () => {
