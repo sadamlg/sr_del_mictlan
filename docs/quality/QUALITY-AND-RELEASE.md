@@ -192,7 +192,7 @@ La revisión visual de correos en iPhone queda fuera de esta fase. En los recorr
 
 Ejecuta Lighthouse sobre la landing pública de Staging. Repite tres veces por perfil móvil y escritorio en condiciones comparables y compara medianas; guarda informes JSON, versión de Chrome, Lighthouse, fecha, commit y URL. El perfil predeterminado de Lighthouse es móvil; indica `--preset=desktop` para escritorio. La aceptación móvil requiere mediana de Performance ≥90/100 y mediana de LCP ≤2.5 s; el objetivo de 90 corresponde a la banda “Good” de Lighthouse y 2.5 s es el umbral de LCP recomendado para una buena experiencia. Son mediciones de laboratorio, no una garantía de resultados de campo; la puntuación varía con el entorno.
 
-Como presupuesto de regresión para el recurso que Lighthouse identifica como LCP en móvil, el WebP del fondo del escaparate debe pesar como máximo 100 KiB. Una prueba de Frontend mantiene este límite en CI; el presupuesto no sustituye la meta de Lighthouse ni otros análisis de carga.
+Como presupuesto de regresión para el recurso que Lighthouse identifica como LCP en móvil, el WebP del fondo del escaparate debe pesar como máximo 50 KiB. Una prueba de Frontend mantiene este límite en CI; el presupuesto no sustituye la meta de Lighthouse ni otros análisis de carga.
 
 ```bash
 npx --yes lighthouse@13.6.0 "$STAGING_FRONTEND_URL/" \
