@@ -35,6 +35,18 @@ test('separates accounts behind the same frontend proxy and limits one account a
   assert.equal(rejected.response.headers['Retry-After'], '1');
 });
 
+test('changing an unverified cookie does not reset email-route quotas', () => {
+  const rateLimit = createAccountRateLimit({ limit: 1, windowMs: 60_000, now: () => 1 });
+  for (const path of ['/api/auth/login', '/api/auth/register', '/api/auth/password-reset-requests']) {
+    const request = (cookie) => run(rateLimit, makeRequest({
+      path, body: { email: 'ana@example.mx' }, headers: { cookie: `mictlan_session=${cookie}` },
+    }));
+
+    assert.equal(request('invented-one').nextCalled, true, path);
+    assert.equal(request('invented-two').response.statusCode, 429, path);
+  }
+});
+
 test('uses opaque tokens and authenticated session cookies as account identities', () => {
   const rateLimit = createAccountRateLimit({ limit: 1, windowMs: 60_000, now: () => 1 });
   const firstToken = run(rateLimit, makeRequest({ path: '/api/auth/password-resets', body: { token: 'token-one' } }));
