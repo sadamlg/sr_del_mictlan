@@ -1,11 +1,14 @@
 (() => {
+  const endpoint = document.querySelector('meta[name="mictlan-session-endpoint"]')?.content;
+  if (!endpoint) return;
+
   const controller = new AbortController();
   let timedOut = false;
   const timeoutId = setTimeout(() => {
     timedOut = true;
     controller.abort();
   }, 15_000);
-  const response = fetch('/api/backend/auth/session', {
+  const response = fetch(endpoint, {
     method: 'GET',
     credentials: 'include',
     cache: 'no-store',
