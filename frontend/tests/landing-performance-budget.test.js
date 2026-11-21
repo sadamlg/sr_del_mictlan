@@ -13,12 +13,12 @@ const landingPage = join(repositoryRoot, '../src/app/page.js');
 const landingStylesheet = join(repositoryRoot, '../src/app/globals.css');
 const siteHeader = join(repositoryRoot, '../src/components/header/header.js');
 
-test('mobile showcase WebP stays within the 100 KiB transfer budget', () => {
+test('mobile showcase WebP stays within the 50 KiB transfer budget', () => {
   const sizeInBytes = statSync(mobileShowcaseImage).size;
 
   assert.ok(
-    sizeInBytes <= 100 * 1024,
-    `Expected mobile showcase WebP to stay under 100 KiB; received ${Math.ceil(sizeInBytes / 1024)} KiB`,
+    sizeInBytes <= 50 * 1024,
+    `Expected mobile showcase WebP to stay under 50 KiB; received ${Math.ceil(sizeInBytes / 1024)} KiB`,
   );
 });
 
