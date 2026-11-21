@@ -67,6 +67,22 @@ test('age-gate LCP emblem is requested with high priority', () => {
   assert.doesNotMatch(emblem, /\bpreload=/);
 });
 
+test('landing preloads the age-gate LCP image before rendering page content', () => {
+  const page = readFileSync(landingPage, 'utf8');
+  const component = readFileSync(ageGate, 'utf8');
+  const home = page.slice(page.indexOf('export default function Home'));
+  const preloadIndex = home.indexOf('preload(ageGateEmblem.src');
+  const renderIndex = home.indexOf('return (');
+
+  assert.ok(preloadIndex >= 0 && preloadIndex < renderIndex);
+  assert.match(home, /getImageProps/);
+  assert.match(home, /imageSrcSet:\s*ageGateEmblem\.srcSet/);
+  assert.match(home, /imageSizes:\s*ageGateEmblem\.sizes/);
+  assert.match(home, /fetchPriority:\s*'high'/);
+  assert.match(component, /AGE_GATE_EMBLEM_PATH/);
+  assert.match(component, /AGE_GATE_EMBLEM_SIZES/);
+});
+
 test('account session starts before hydration using the configured API URL and is reused', () => {
   const layout = readFileSync(rootLayout, 'utf8');
   const bootstrap = readFileSync(sessionBootstrap, 'utf8');
