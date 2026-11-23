@@ -12,6 +12,7 @@ const mobileShowcaseImage = join(
 const landingPage = join(repositoryRoot, '../src/app/page.js');
 const landingStylesheet = join(repositoryRoot, '../src/app/globals.css');
 const siteHeader = join(repositoryRoot, '../src/components/header/header.js');
+const landingHero = join(repositoryRoot, '../src/components/landing/landing-hero.js');
 const ageGate = join(repositoryRoot, '../src/components/age-gate/age-gate.js');
 const ageGateImage = join(repositoryRoot, '../src/components/age-gate/age-gate-image.js');
 const rootLayout = join(repositoryRoot, '../src/app/layout.js');
@@ -102,6 +103,18 @@ test('landing preloads the mobile showcase WebP only at mobile widths', () => {
   assert.match(page, /href=\{mediaObjectUrl\(mediaBaseUrl, MOBILE_SHOWCASE_BACKGROUND_PATH\)\}/);
   assert.match(page, /type="image\/webp"[\s\S]*?media="\(max-width: 640px\)"[\s\S]*?fetchPriority="high"/);
   assert.match(showcase, /MOBILE_SHOWCASE_BACKGROUND_PATH/);
+});
+
+test('landing gives non-LCP hero and header images low fetch priority', () => {
+  const hero = readFileSync(landingHero, 'utf8');
+  const header = readFileSync(siteHeader, 'utf8');
+  const showcase = readFileSync(mezcalShowcase, 'utf8');
+
+  assert.match(hero, /fetchPriority:\s*'low'/);
+  assert.match(header, /priority=\{!isLandingPage\}/);
+  assert.match(header, /loading=\{isLandingPage \? 'eager' : undefined\}/);
+  assert.match(header, /fetchPriority=\{isLandingPage \? 'low' : 'high'\}/);
+  assert.match(showcase, /fetchPriority="high" className="absolute inset-0 h-full w-full object-cover"/);
 });
 
 test('account session starts before hydration using the configured API URL and is reused', () => {
