@@ -115,6 +115,8 @@ test('landing gives non-LCP hero and header images low fetch priority', () => {
   assert.match(header, /loading=\{isLandingPage \? 'eager' : undefined\}/);
   assert.match(header, /fetchPriority=\{isLandingPage \? 'low' : 'high'\}/);
   assert.match(showcase, /fetchPriority="high" className="absolute inset-0 h-full w-full object-cover"/);
+  assert.match(showcase, /src=\{product\.image\.url\}[\s\S]*?fetchPriority="low"/);
+  assert.match(showcase, /src=\{product\.lifestyleImage\.url\}[\s\S]*?fetchPriority="low"/);
 });
 
 test('account session starts before hydration using the configured API URL and is reused', () => {
