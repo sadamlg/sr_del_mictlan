@@ -60,30 +60,22 @@ test('first-visit entrance animations avoid non-composited filter effects', () =
   assert.doesNotMatch(header, /blurredFadeIn/);
 });
 
-test('age-gate LCP emblem is requested with high priority', () => {
+test('age-gate decorative emblem loads eagerly without competing with the showcase LCP', () => {
   const component = readFileSync(ageGate, 'utf8');
   const emblem = component.match(/<Image\b[\s\S]*?className="age-gate-emblem[\s\S]*?\/>/)?.[0];
 
   assert.ok(emblem, 'Expected the age-gate emblem image to exist');
   assert.match(emblem, /loading="eager"/);
-  assert.match(emblem, /fetchPriority="high"/);
+  assert.match(emblem, /fetchPriority="low"/);
   assert.doesNotMatch(emblem, /\bpreload=/);
 });
 
-test('landing preloads the age-gate LCP image before rendering page content', () => {
+test('landing reserves preload for the mobile showcase background', () => {
   const page = readFileSync(landingPage, 'utf8');
   const component = readFileSync(ageGate, 'utf8');
   const imageConstants = readFileSync(ageGateImage, 'utf8');
-  const home = page.slice(page.indexOf('export default function Home'));
-  const preloadIndex = home.indexOf('preload(ageGateEmblem.src');
-  const renderIndex = home.indexOf('return (');
-
-  assert.ok(preloadIndex >= 0 && preloadIndex < renderIndex);
-  assert.match(home, /getImageProps/);
-  assert.match(home, /quality:\s*AGE_GATE_EMBLEM_QUALITY/);
-  assert.match(home, /imageSrcSet:\s*ageGateEmblem\.srcSet/);
-  assert.match(home, /imageSizes:\s*ageGateEmblem\.sizes/);
-  assert.match(home, /fetchPriority:\s*'high'/);
+  assert.doesNotMatch(page, /preload\(ageGateEmblem\.src/);
+  assert.match(page, /MOBILE_SHOWCASE_BACKGROUND_PATH/);
   assert.match(component, /AGE_GATE_EMBLEM_PATH/);
   assert.match(component, /AGE_GATE_EMBLEM_SIZES/);
   assert.match(component, /quality=\{AGE_GATE_EMBLEM_QUALITY\}/);
@@ -115,8 +107,6 @@ test('landing gives non-LCP hero and header images low fetch priority', () => {
   assert.match(header, /loading=\{isLandingPage \? 'eager' : undefined\}/);
   assert.match(header, /fetchPriority=\{isLandingPage \? 'low' : 'high'\}/);
   assert.match(showcase, /fetchPriority="high" className="absolute inset-0 h-full w-full object-cover"/);
-  assert.match(showcase, /src=\{product\.image\.url\}[\s\S]*?fetchPriority="low"/);
-  assert.match(showcase, /src=\{product\.lifestyleImage\.url\}[\s\S]*?fetchPriority="low"/);
 });
 
 test('account session starts before hydration using the configured API URL and is reused', () => {
