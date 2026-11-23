@@ -8,6 +8,7 @@ import AgeGate from '../components/age-gate/age-gate';
 import { AGE_GATE_EMBLEM_PATH, AGE_GATE_EMBLEM_SIZES } from '../components/age-gate/age-gate-image.js';
 import LandingHero from '../components/landing/landing-hero';
 import MezcalShowcase, {
+  MOBILE_SHOWCASE_BACKGROUND_PATH,
   MezcalShowcaseSection,
   MezcalShowcaseSkeleton,
 } from '../components/landing/mezcal-showcase/mezcal-showcase';
@@ -59,21 +60,31 @@ export default function Home() {
   });
 
   return (
-    <AgeGate mediaBaseUrl={mediaBaseUrl}>
-      <div className="bg-mictlan-background text-mictlan-ivory">
-        <SiteHeader mediaBaseUrl={mediaBaseUrl} />
-        <main>
-          <LandingHero mediaBaseUrl={mediaBaseUrl} />
-          <MezcalShowcaseSection mediaBaseUrl={mediaBaseUrl}>
-            <Suspense fallback={<MezcalShowcaseSkeleton />}><CatalogContent mediaBaseUrl={mediaBaseUrl} /></Suspense>
-          </MezcalShowcaseSection>
-          <LandingWhatsAppCta />
-          <LandingRitual />
-          <LandingFaq mediaBaseUrl={mediaBaseUrl} />
-          <LandingVisitorCounter />
-        </main>
-        <LandingFooter mediaBaseUrl={mediaBaseUrl} year={<Suspense fallback="…"><CurrentYear /></Suspense>} />
-      </div>
-    </AgeGate>
+    <>
+      <link
+        rel="preload"
+        as="image"
+        href={mediaObjectUrl(mediaBaseUrl, MOBILE_SHOWCASE_BACKGROUND_PATH)}
+        type="image/webp"
+        media="(max-width: 640px)"
+        fetchPriority="high"
+      />
+      <AgeGate mediaBaseUrl={mediaBaseUrl}>
+        <div className="bg-mictlan-background text-mictlan-ivory">
+          <SiteHeader mediaBaseUrl={mediaBaseUrl} />
+          <main>
+            <LandingHero mediaBaseUrl={mediaBaseUrl} />
+            <MezcalShowcaseSection mediaBaseUrl={mediaBaseUrl}>
+              <Suspense fallback={<MezcalShowcaseSkeleton />}><CatalogContent mediaBaseUrl={mediaBaseUrl} /></Suspense>
+            </MezcalShowcaseSection>
+            <LandingWhatsAppCta />
+            <LandingRitual />
+            <LandingFaq mediaBaseUrl={mediaBaseUrl} />
+            <LandingVisitorCounter />
+          </main>
+          <LandingFooter mediaBaseUrl={mediaBaseUrl} year={<Suspense fallback="…"><CurrentYear /></Suspense>} />
+        </div>
+      </AgeGate>
+    </>
   );
 }
