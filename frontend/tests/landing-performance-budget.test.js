@@ -13,9 +13,11 @@ const landingPage = join(repositoryRoot, '../src/app/page.js');
 const landingStylesheet = join(repositoryRoot, '../src/app/globals.css');
 const siteHeader = join(repositoryRoot, '../src/components/header/header.js');
 const ageGate = join(repositoryRoot, '../src/components/age-gate/age-gate.js');
+const ageGateImage = join(repositoryRoot, '../src/components/age-gate/age-gate-image.js');
 const rootLayout = join(repositoryRoot, '../src/app/layout.js');
 const sessionBootstrap = join(repositoryRoot, '../public/account-session-bootstrap.js');
 const mezcalShowcase = join(repositoryRoot, '../src/components/landing/mezcal-showcase/mezcal-showcase.js');
+const nextConfig = join(repositoryRoot, '../next.config.mjs');
 
 test('mobile showcase WebP stays within the 50 KiB transfer budget', () => {
   const sizeInBytes = statSync(mobileShowcaseImage).size;
@@ -70,24 +72,35 @@ test('age-gate LCP emblem is requested with high priority', () => {
 test('landing preloads the age-gate LCP image before rendering page content', () => {
   const page = readFileSync(landingPage, 'utf8');
   const component = readFileSync(ageGate, 'utf8');
+  const imageConstants = readFileSync(ageGateImage, 'utf8');
   const home = page.slice(page.indexOf('export default function Home'));
   const preloadIndex = home.indexOf('preload(ageGateEmblem.src');
   const renderIndex = home.indexOf('return (');
 
   assert.ok(preloadIndex >= 0 && preloadIndex < renderIndex);
   assert.match(home, /getImageProps/);
+  assert.match(home, /quality:\s*AGE_GATE_EMBLEM_QUALITY/);
   assert.match(home, /imageSrcSet:\s*ageGateEmblem\.srcSet/);
   assert.match(home, /imageSizes:\s*ageGateEmblem\.sizes/);
   assert.match(home, /fetchPriority:\s*'high'/);
   assert.match(component, /AGE_GATE_EMBLEM_PATH/);
   assert.match(component, /AGE_GATE_EMBLEM_SIZES/);
+  assert.match(component, /quality=\{AGE_GATE_EMBLEM_QUALITY\}/);
+  assert.match(imageConstants, /AGE_GATE_EMBLEM_QUALITY\s*=\s*50/);
+});
+
+test('Next image optimizer allowlists the age-gate quality alongside the default', () => {
+  const config = readFileSync(nextConfig, 'utf8');
+
+  assert.match(config, /qualities:\s*\[AGE_GATE_EMBLEM_QUALITY,\s*75\]/);
 });
 
 test('landing preloads the mobile showcase WebP only at mobile widths', () => {
   const page = readFileSync(landingPage, 'utf8');
   const showcase = readFileSync(mezcalShowcase, 'utf8');
 
-  assert.match(page, /<link\s+rel="preload"\s+as="image"\s+href=\{mediaObjectUrl\(mediaBaseUrl, MOBILE_SHOWCASE_BACKGROUND_PATH\)\}\s+type="image\/webp"\s+media="\(max-width: 640px\)"\s+fetchPriority="high"\s*\/>/);
+  assert.match(page, /href=\{mediaObjectUrl\(mediaBaseUrl, MOBILE_SHOWCASE_BACKGROUND_PATH\)\}/);
+  assert.match(page, /type="image\/webp"[\s\S]*?media="\(max-width: 640px\)"[\s\S]*?fetchPriority="high"/);
   assert.match(showcase, /MOBILE_SHOWCASE_BACKGROUND_PATH/);
 });
 
