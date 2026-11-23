@@ -9,6 +9,8 @@ const mobileShowcaseImage = join(
   repositoryRoot,
   '../public/images/mezcal-showcase-background-mobile.webp',
 );
+const mobileShowcaseAvif = join(repositoryRoot, '../public/images/mezcal-showcase-background-mobile.avif');
+const favicon = join(repositoryRoot, '../src/app/favicon.ico');
 const optimizedAgeGateImage = join(repositoryRoot, '../public/images/age-gate/skull-optimized.webp');
 const landingPage = join(repositoryRoot, '../src/app/page.js');
 const landingStylesheet = join(repositoryRoot, '../src/app/globals.css');
@@ -28,6 +30,11 @@ test('mobile showcase WebP stays within the 50 KiB transfer budget', () => {
     sizeInBytes <= 50 * 1024,
     `Expected mobile showcase WebP to stay under 50 KiB; received ${Math.ceil(sizeInBytes / 1024)} KiB`,
   );
+});
+
+test('mobile showcase AVIF and favicon stay within transfer budgets', () => {
+  assert.ok(statSync(mobileShowcaseAvif).size <= 25 * 1024);
+  assert.ok(statSync(favicon).size <= 20 * 1024);
 });
 
 test('age-gate emblem stays within the 25 KiB transfer budget', () => {
@@ -80,7 +87,7 @@ test('landing preloads the mobile age-gate emblem and showcase background', () =
   const component = readFileSync(ageGate, 'utf8');
   const imageConstants = readFileSync(ageGateImage, 'utf8');
   assert.match(page, /href=\{AGE_GATE_EMBLEM_PATH\}/);
-  assert.match(page, /MOBILE_SHOWCASE_BACKGROUND_PATH/);
+  assert.match(page, /MOBILE_SHOWCASE_BACKGROUND_AVIF_PATH/);
   assert.match(component, /AGE_GATE_EMBLEM_PATH/);
   assert.match(component, /AGE_GATE_EMBLEM_SIZES/);
   assert.match(component, /unoptimized/);
@@ -93,13 +100,13 @@ test('Next image optimizer uses its default quality', () => {
   assert.doesNotMatch(config, /AGE_GATE_EMBLEM_QUALITY/);
 });
 
-test('landing preloads the mobile showcase WebP only at mobile widths', () => {
+test('landing preloads the mobile AVIF and retains a WebP fallback', () => {
   const page = readFileSync(landingPage, 'utf8');
   const showcase = readFileSync(mezcalShowcase, 'utf8');
 
-  assert.match(page, /href=\{mediaObjectUrl\(mediaBaseUrl, MOBILE_SHOWCASE_BACKGROUND_PATH\)\}/);
-  assert.match(page, /type="image\/webp"[\s\S]*?media="\(max-width: 640px\)"[\s\S]*?fetchPriority="high"/);
-  assert.match(showcase, /MOBILE_SHOWCASE_BACKGROUND_PATH/);
+  assert.match(page, /href=\{mediaObjectUrl\(mediaBaseUrl, MOBILE_SHOWCASE_BACKGROUND_AVIF_PATH\)\}/);
+  assert.match(page, /type="image\/avif"[\s\S]*?media="\(max-width: 640px\)"[\s\S]*?fetchPriority="high"/);
+  assert.match(showcase, /type="image\/avif"[\s\S]*?type="image\/webp"/);
 });
 
 test('landing gives non-LCP hero and header images low fetch priority', () => {
