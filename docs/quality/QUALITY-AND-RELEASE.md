@@ -19,7 +19,7 @@ Aceptar un candidato identificado de Staging mediante:
 - ZAP Baseline en modo pasivo y revisión de seguridad que reproduzca y confirme los hallazgos;
 - revisión de dependencias y configuración;
 - respaldo y restauración en un destino aislado;
-- comprobación de alertas y ensayo de rollback;
+- plan de alertas y rollback que pueda comprobarse antes de la salida a Production;
 - entrega funcional de correos y PDF dentro del recorrido de compra y cuenta.
 
 La superficie indexable definida para el MVP es la landing y su escaparate; consultar [Renderizado y SEO](../architecture/RENDERING-AND-SEO.md). Staging debe conservar su política de no indexación: `ROBOTS_INDEXABLE` debe ser `false` o estar ausente; su valor predeterminado es `false`. Producción sólo habilitará la landing con un `true` explícito después de aprobar la salida. Las rutas de cuenta y cualquier otra ruta permanecen en `noindex`. No se alterará esa política para mejorar una puntuación Lighthouse.
@@ -91,7 +91,7 @@ Ejecuta los pasos en orden. Un paso pendiente que sea requisito de aceptación d
 
 ### 1. Acordar criterios, presupuesto y datos
 
-Los umbrales numéricos bloqueantes aprobados son para móvil: mediana de Performance ≥90/100 y mediana de LCP ≤2.5 s. No hay un umbral bloqueante para escritorio ni para la categoría SEO; esos resultados son informativos. Mantén iguales la URL, el perfil del dispositivo y la red al comparar candidatos, y documenta cualquier cambio de condiciones.
+Los umbrales numéricos aprobados son para móvil: mediana de Performance ≥90/100 y mediana de LCP ≤2.5 s. No hay un umbral bloqueante para escritorio ni para la categoría SEO; esos resultados son informativos. Mantén iguales la URL, el perfil del dispositivo y la red al comparar candidatos, y documenta cualquier cambio de condiciones. Una excepción al umbral sólo puede aceptarla expresamente el responsable tras conocer el resultado real, su desviación y el seguimiento; la excepción no modifica el objetivo ni cuenta como prueba aprobada.
 
 La accesibilidad sí tiene una condición de aceptación definida: no debe quedar una violación axe crítica o seria reproducible sin corregir o sin excepción explícita y aceptada por el responsable; además se completa la revisión manual. Los umbrales de rendimiento/SEO no sustituyen revisar defectos funcionales confirmados.
 
@@ -190,7 +190,7 @@ La revisión visual de correos en iPhone queda fuera de esta fase. En los recorr
 
 ### 5. Medir rendimiento y SEO
 
-Ejecuta Lighthouse sobre la landing pública de Staging. Repite tres veces por perfil móvil y escritorio en condiciones comparables y compara medianas; guarda informes JSON, versión de Chrome, Lighthouse, fecha, commit y URL. El perfil predeterminado de Lighthouse es móvil; indica `--preset=desktop` para escritorio. La aceptación móvil requiere mediana de Performance ≥90/100 y mediana de LCP ≤2.5 s; el objetivo de 90 corresponde a la banda “Good” de Lighthouse y 2.5 s es el umbral de LCP recomendado para una buena experiencia. Son mediciones de laboratorio, no una garantía de resultados de campo; la puntuación varía con el entorno.
+Ejecuta Lighthouse sobre la landing pública de Staging. Repite tres veces por perfil móvil y escritorio en condiciones comparables y compara medianas; guarda informes JSON, versión de Chrome, Lighthouse, fecha, commit y URL. El perfil predeterminado de Lighthouse es móvil; indica `--preset=desktop` para escritorio. La aceptación móvil requiere mediana de Performance ≥90/100 y mediana de LCP ≤2.5 s, salvo una excepción expresa según el paso 1; el objetivo de 90 corresponde a la banda “Good” de Lighthouse y 2.5 s es el umbral de LCP recomendado para una buena experiencia. Son mediciones de laboratorio, no una garantía de resultados de campo; la puntuación varía con el entorno.
 
 Como presupuesto de regresión para el recurso que Lighthouse identifica como LCP en móvil, el WebP del fondo del escaparate debe pesar como máximo 50 KiB. Una prueba de Frontend mantiene este límite en CI; el presupuesto no sustituye la meta de Lighthouse ni otros análisis de carga.
 
@@ -231,15 +231,15 @@ Verificamos encabezados en la respuesta HTML y en recursos estáticos. El candid
 
 `frontend/src/proxy.js` aplica `Content-Security-Policy` a solicitudes HTML `GET` y `HEAD` en producción. Cada respuesta recibe un nonce nuevo; `frontend/scripts/build-with-csp.mjs`, llamado por `npm run build`, calcula los hashes de los scripts inline emitidos por Next.js, reconstruye la aplicación y verifica que todos los scripts prerenderizados queden cubiertos. `style-src-attr` permite mediante hash sólo el conjunto explícito de valores inline fijos que Next.js genera para imágenes y sus páginas globales de error. El build falla si aparece otro atributo de estilo inline. La política no permite `'unsafe-inline'` en `script-src` ni `style-src`, bloquea atributos de script inline y autoriza los orígenes que el sistema usa, incluido Cloudflare Turnstile. El flujo mantiene el prerenderizado parcial; el build falla si los hashes no cubren el HTML final.
 
-La prueba de producción local verifica los encabezados, la cobertura de hashes, la variación de nonces entre respuestas, la ausencia de errores CSP del navegador y la carga de un script Turnstile simulado desde su origen permitido. Esa simulación valida la política del navegador, no el servicio real de CAPTCHA. Después del despliegue, repite la verificación contra el SHA de Staging, recorre landing, cuenta, mapas, Turnstile real y Checkout, y revisa la consola. No llames a esta política una CSP estricta: usa hashes/nonces para scripts inline y también permite scripts del mismo origen y el origen de Turnstile. La aceptación remota sigue pendiente hasta probar el candidato desplegado.
+La prueba de producción local verifica los encabezados, la cobertura de hashes, la variación de nonces entre respuestas, la ausencia de errores CSP del navegador y la carga de un script Turnstile simulado desde su origen permitido. Esa simulación valida la política del navegador, no el servicio real de CAPTCHA. Después del despliegue, repite la verificación contra el SHA de Staging, recorre landing, cuenta, mapas, Turnstile real y Checkout, y revisa la consola. No llames a esta política una CSP estricta: usa hashes/nonces para scripts inline y también permite scripts del mismo origen y el origen de Turnstile. Acepta la revisión remota sólo después de probar el candidato desplegado.
 
 Antes de aceptar, no debe quedar un hallazgo crítico o alto confirmado y reproducible sin corregir. Cambios de código/configuración requieren su propia revisión y una nueva validación del candidato correspondiente.
 
 ### 7. Comprobar respaldo, restauración, alertas y rollback
 
-El plan de recuperación acordado para preparar Production es independiente de los snapshots de Railway: el job `pg_dump` cifrado, su Dockerfile y la prueba local de restauración están versionados en [POSTGRES-BACKUPS.md](../architecture/services/POSTGRES-BACKUPS.md). El recorrido con datos sintéticos pasa localmente; todavía falta configurar el job Cron, bucket/credenciales R2, retención y alerta del entorno, y medir el RTO antes de respaldar datos reales. Los respaldos de volumen de Railway pueden evaluarse como una capa adicional y generar costos de almacenamiento; PITR puede generar consumo de almacenamiento y egreso. La restauración nativa de volumen se aplica al mismo proyecto/entorno y puede cambiar el volumen montado y redesplegar el servicio. Por eso, no uses la acción Restore sobre una base compartida como ensayo aislado.
+El plan de recuperación para preparar Production es independiente de los snapshots de Railway: el job `pg_dump` cifrado, su Dockerfile y la prueba local de restauración están versionados en [POSTGRES-BACKUPS.md](../architecture/services/POSTGRES-BACKUPS.md). Valida primero el recorrido con datos sintéticos; después configura el job Cron, bucket/credenciales R2, retención y alerta del entorno, y mide el RTO antes de respaldar datos reales. Los respaldos de volumen de Railway pueden evaluarse como una capa adicional y generar costos de almacenamiento; PITR puede generar consumo de almacenamiento y egreso. La restauración nativa de volumen se aplica al mismo proyecto/entorno y puede cambiar el volumen montado y redesplegar el servicio. Por eso, no uses la acción Restore sobre una base compartida como ensayo aislado.
 
-Para aceptar recuperación, restaura una copia aprobada o datos sintéticos en PostgreSQL aislado (otro proyecto temporal o entorno local efímero), verifica migraciones, lectura de registros esperados, `/health` y una operación de aplicación segura; confirma que el origen no cambió. El responsable elimina el destino temporal sólo después de preservar la evidencia necesaria y revisar costos. No copies PII real si basta un dataset sintético. El simulacro específico de `pg_dump`, incluido el tratamiento de copias productivas, debe seguir la guía de respaldos.
+Para validar el mecanismo en fase 09, restaura datos sintéticos en PostgreSQL aislado (otro proyecto temporal o entorno local efímero), verifica migraciones y lectura de registros esperados, y confirma que el origen no cambió. Antes de aceptar datos reales en Production, repite el simulacro con el destino y la configuración operativos, verifica `/health` y una operación de aplicación segura, mide RTO y confirma alertas y retención. El responsable elimina el destino temporal sólo después de preservar la evidencia necesaria y revisar costos. No copies PII real si basta un dataset sintético. El simulacro específico de `pg_dump`, incluido el tratamiento de copias productivas, debe seguir la guía de respaldos.
 
 Railway permite revisar recursos y logs desde su panel; los monitores configurables por umbral requieren el plan Pro. Healthchecks.io recibe señales de tareas y procesos, pero no consulta por sí mismo la web ni reúne métricas o logs. Para vigilar Frontend y Backend, un comprobador externo consulta sus URLs y envía éxito o fallo; el Worker envía una señal sólo después de guardar su latido en PostgreSQL, y el job de respaldo la envía tras validar el objeto cifrado en R2. Configura los intervalos y márgenes de alerta después de crear cada control en Healthchecks.io. El ping del Worker es opcional hasta que exista esa cuenta y su URL secreta. Ninguna señal debe incluir credenciales, datos de usuarios o URLs privadas.
 
@@ -251,14 +251,14 @@ Acepta fase 09 sólo cuando:
 
 - el commit candidato y el entorno están identificados, y los checks de ese mismo commit pasan;
 - los recorridos requeridos están reproducidos en el entorno y con datos autorizados;
-- axe y la revisión manual cumplen sus criterios; la entrega funcional de correo y PDF está comprobada, sin condicionar el cierre a su presentación visual en iPhone;
-- Lighthouse tiene objetivos aprobados antes de aplicar bloqueos y los resultados se compararon en condiciones repetibles;
+- axe y la revisión manual realizada cumplen sus criterios; cualquier parte manual diferida se asigna al responsable como puerta obligatoria antes de Production; la entrega funcional de correo y PDF está comprobada, sin condicionar el cierre a su presentación visual en iPhone;
+- Lighthouse tiene objetivos aprobados antes de aplicar bloqueos y los resultados se compararon en condiciones repetibles; cualquier desviación aceptada expresamente conserva su valor real y su seguimiento en el roadmap;
 - ZAP fue pasivo, se revisaron hallazgos reproducibles y no quedan hallazgos críticos/altos confirmados sin resolver;
 - CSP efectiva pasa el build y los recorridos de navegador sin violaciones; Staging se valida con el SHA candidato y Turnstile real;
-- dependencias y configuración están revisadas; respaldo/restauración aislada, alertas y ensayo de rollback tienen evidencia;
+- dependencias y configuración están revisadas; el respaldo/restauración sintético aislado tiene evidencia y las alertas, recuperación operativa y rollback quedan como puertas de Production si aún no se han ensayado;
 - el responsable del proyecto acepta la evidencia y los seguimientos pendientes.
 
-Una prueba omitida, un CAPTCHA bloqueado, un proveedor simulado, un candidato sin SHA confirmado, una operación no autorizada o un recurso no preparado se registra como pendiente, no como aprobado. La aceptación de fase 09 no autoriza merge, despliegue a Producción, ventas ni activación de Stripe live.
+Una prueba omitida, un CAPTCHA bloqueado, un proveedor simulado, un candidato sin SHA confirmado, una operación no autorizada o un recurso no preparado se registra como pendiente, no como aprobado. La fase puede cerrarse técnicamente con una excepción o un control operativo diferido sólo cuando el responsable lo acepta expresamente y el roadmap conserva el riesgo y la puerta de Production correspondiente. La aceptación de fase 09 no autoriza merge, despliegue a Producción, ventas ni activación de Stripe live.
 
 ## Límites de operación
 

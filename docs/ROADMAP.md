@@ -15,8 +15,8 @@ El alcance aprobado está en [MVP_SCOPE.md](MVP_SCOPE.md), las decisiones transv
 | 06 · Checkout y pedidos | Pagos Stripe y órdenes confirmadas por webhook | Completada |
 | 07 · Correo y PDF | Worker y mensajes transaccionales | Implementación local completada; integración externa validada en fase 08 |
 | 08 · Staging | Despliegue e integración de proveedores | Completada; Railway Staging activo |
-| 09 · Validación previa a Producción | Aceptación de calidad, seguridad y recuperación | En curso |
-| 10 · Producción | Entorno público y salida autorizada | Planeada |
+| 09 · Validación previa a Producción | Validación técnica de Staging | Completada con excepción de LCP |
+| 10 · Producción | Preparación operativa y salida autorizada | Planeada |
 
 ## Secuencia
 
@@ -70,17 +70,16 @@ flowchart LR
 - Railway integra PostgreSQL, Backend, Worker y Frontend con los proveedores externos. En Staging aceptamos registro, correo, Turnstile, sesión, recuperación de contraseña y compra de prueba con Stripe; no se procesan pagos reales. La [guía de Railway](architecture/services/RAILWAY.md) contiene el procedimiento de despliegue.
 - `srmictlan.com` conecta el dominio al Frontend de Staging y no representa Production. Antes de validar, confirmamos que el dominio y el despliegue pertenecen al entorno elegido.
 
-### 09. Validación previa a Producción — en curso
+### 09. Validación previa a Producción — completada con excepción de LCP
 
-**Resultado de fase:** El candidato `68e8f27` pasa los checks de CI y está desplegado correctamente en Frontend de Staging; los cuatro servicios están en línea. `/health`, la no indexación, los encabezados y CSP se verificaron. Playwright/axe pasó con escrituras de prueba bloqueadas; en Chrome se comprobaron Turnstile real, registro, activación, recuperación, inicio de sesión y una compra de prueba con su recibo y PDF. La fase sigue abierta por rendimiento móvil y evidencia operativa.
+**Resultado de fase:** El candidato de Frontend desplegado en Staging pasa CI; los cuatro servicios están en línea. `/health`, la no indexación, los encabezados y CSP se verificaron. Playwright/axe pasó con escrituras de prueba bloqueadas; en Chrome se comprobaron Turnstile real, registro, activación, recuperación, inicio de sesión y una compra de prueba con su recibo y PDF. La salida a Production sigue condicionada a los controles operativos y manuales indicados en la fase 10.
 
 - Staging mantiene pagos en modo de prueba y `noindex`. CI ejecuta auditoría de dependencias, pruebas, lint, build, Playwright/axe, integración PostgreSQL y una restauración cifrada sintética. El límite por correo usa HMAC, por lo que rotar cookies no permite evadir la cuota; Cloudflare agrega el límite breve por IP a las rutas de cuenta. Backend tiene una réplica; al escalar, el contador en memoria requerirá almacenamiento compartido.
 - La consulta de sesión empieza antes de hidratar, reutiliza una sola petición y respeta la URL de API configurada. Las fotos secundarias del catálogo conservan carga diferida y se revelan con transición de opacidad, eliminando el desfase del primer hover observado.
 - ZAP revisó pasivamente 117 URL y no confirmó hallazgos críticos o altos. La revisión señaló cabeceras de aislamiento entre orígenes ausentes y CSP en respuestas 404 malformadas; la política efectiva de la landing y los recorridos pasan. Esta revisión pasiva no equivale a una prueba de penetración completa.
-- El WebP móvil de R2 pesa 41,936 bytes frente a los 2,238,680 bytes del PNG local y conserva el encuadre de la calavera y el agave. Tras desplegar `68e8f27`, cinco mediciones móviles de PageSpeed en Moto G Power/4G lenta dan medianas de 92/100 y LCP de 3.30 s (rangos: 84–97 y 2.55–4.43 s; CLS 0). La meta de puntuación se alcanza, pero LCP aún supera 2.5 s. Lighthouse identifica como LCP tanto el emblema de edad como el fondo del escaparate según la ejecución; hace falta aislar esa variación antes de justificar otra optimización.
-- El respaldo `pg_dump` cifra, carga, descarga, valida y restaura datos sintéticos en CI. La operación diaria aún requiere Cron, bucket privado, credenciales restringidas, retención, alertas de Healthchecks.io y medir el RTO. No se activan recursos mientras el límite autorizado sea $0; se requiere autorización del responsable antes de configurar el flujo real.
-- Axe y la revisión manual de teclado en pedidos no encontraron bloqueo de foco. El responsable aún debe completar lector de pantalla y zoom al 200%. También faltan evidencia de alertas y un ensayo de rollback aislado; no se ejecuta rollback sobre el Staging compartido.
+- El WebP móvil de 27,656 bytes conserva el encuadre del escaparate; el dominio propio de R2 entrega las imágenes actuales de Staging con caché y sin indexación. Cinco mediciones móviles comparables de Lighthouse dan medianas de 96/100 y LCP de 2.68 s. El responsable acepta expresamente la desviación de 0.18 s respecto al objetivo de 2.5 s para cerrar esta validación; el seguimiento queda en Production. Las imágenes siguen visibles y las variantes que deterioraban su presentación no se conservan.
+- El respaldo `pg_dump` cifra, transfiere, valida y restaura datos sintéticos en CI. Axe y la revisión manual de teclado en pedidos no encontraron bloqueo de foco. La revisión con lector de pantalla y zoom al 200% queda a cargo del responsable antes de la salida a Production.
 
 ### 10. Producción — planeada
 
-Preparar Production con recursos, base, credenciales y medios independientes; completar la restauración demostrada y aceptar los controles de calidad. Seguir el [runbook maestro de Producción](operations/PRODUCTION-RUNBOOK.md). Habilitar dominio, indexación y pagos reales sólo después de las puertas de salida y la autorización correspondiente.
+Preparar Production con recursos, base, credenciales y medios independientes. Configurar y probar el respaldo diario `pg_dump` cifrado en bucket privado de R2, retención, alertas y restauración aislada; medir RTO y ensayar rollback sin tocar Staging compartido. Completar la revisión manual de accesibilidad y repetir Lighthouse en el dominio final, dando seguimiento al LCP de 2.68 s aceptado como excepción en Staging. Seguir el [runbook maestro de Producción](operations/PRODUCTION-RUNBOOK.md). Habilitar indexación y pagos reales sólo después de las puertas de salida y la autorización correspondiente.

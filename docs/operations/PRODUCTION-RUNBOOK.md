@@ -95,6 +95,8 @@ Implementar el plan de [pg_dump externo](../architecture/services/POSTGRES-BACKU
 
 Seguir el flujo definido en [QUALITY-AND-RELEASE.md](../quality/QUALITY-AND-RELEASE.md): checks del mismo SHA, recorridos funcionales autorizados, accesibilidad, rendimiento, seguridad pasiva, monitoreo, respaldo y recuperación. No condicionar la aceptación a una revisión visual de correo en iPhone.
 
+Repetir Lighthouse móvil con el dominio final y condiciones comparables. La excepción aceptada en Staging para el LCP no acredita por sí sola el rendimiento de Production: comparar la nueva mediana con el objetivo de 2.5 s y resolver la desviación o solicitar una aceptación expresa para ese entorno antes de la salida.
+
 **Puerta:** no hay hallazgos críticos/altos confirmados sin resolver; hay evidencia del commit y ambiente evaluados, restauración, rollback y aprobación del responsable.
 
 ### 8. Abrir al público
