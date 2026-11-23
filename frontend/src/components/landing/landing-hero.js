@@ -25,7 +25,7 @@ export default function LandingHero({ mediaBaseUrl }) {
     height: 941,
     sizes: '100vw',
     loading: 'eager',
-    fetchPriority: 'high',
+    fetchPriority: 'low',
   });
 
   return (

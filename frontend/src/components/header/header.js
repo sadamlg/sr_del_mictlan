@@ -23,6 +23,7 @@ import { useCart } from '../cart/cart-provider.js';
 
 export default function SiteHeader({ mediaBaseUrl }) {
   const pathname = usePathname();
+  const isLandingPage = pathname === '/';
   const { activePanel, closeMenu, toggleMenu: toggleMenuPanel } = useCart();
   const menuOpen = activePanel === 'menu';
   const cartOpen = activePanel === 'cart';
@@ -311,7 +312,9 @@ export default function SiteHeader({ mediaBaseUrl }) {
               width={1774}
               height={887}
               sizes="(min-width: 1024px) 140px, 160px"
-              priority
+              priority={!isLandingPage}
+              loading={isLandingPage ? 'eager' : undefined}
+              fetchPriority={isLandingPage ? 'low' : 'high'}
               onLoad={() => setBrandImageReady(true)}
               onError={() => setBrandImageReady(true)}
             />
