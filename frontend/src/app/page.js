@@ -69,7 +69,7 @@ export default function Home() {
       <link
         rel="preload"
         as="image"
-        href={MOBILE_SHOWCASE_BACKGROUND_PATH}
+        href={mediaObjectUrl(mediaBaseUrl, MOBILE_SHOWCASE_BACKGROUND_PATH)}
         type="image/webp"
         media="(max-width: 640px)"
         fetchPriority="high"
