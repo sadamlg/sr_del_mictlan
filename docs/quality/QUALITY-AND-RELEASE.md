@@ -195,15 +195,19 @@ Ejecuta Lighthouse sobre la landing pública de Staging. Repite tres veces por p
 Como presupuesto de regresión para el recurso que Lighthouse identifica como LCP en móvil, el WebP del fondo del escaparate debe pesar como máximo 50 KiB. Una prueba de Frontend mantiene este límite en CI; el presupuesto no sustituye la meta de Lighthouse ni otros análisis de carga.
 
 ```bash
-npx --yes lighthouse@13.6.0 "$STAGING_FRONTEND_URL/" \
-  --blocked-url-patterns='.*/api/visits.*' --blocked-url-patterns='.*/cdn-cgi/rum.*' \
+STAGING_ORIGIN="${STAGING_FRONTEND_URL%/}"
+npx --yes lighthouse@13.6.0 "$STAGING_ORIGIN/" \
+  --blocked-url-patterns="$STAGING_ORIGIN/api/visits*" \
+  --blocked-url-patterns="$STAGING_ORIGIN/cdn-cgi/rum*" \
   --no-enable-error-reporting --output=json --output-path=reports/lighthouse-mobile-01.json --quiet
-npx --yes lighthouse@13.6.0 "$STAGING_FRONTEND_URL/" \
-  --preset=desktop --blocked-url-patterns='.*/api/visits.*' --blocked-url-patterns='.*/cdn-cgi/rum.*' \
+npx --yes lighthouse@13.6.0 "$STAGING_ORIGIN/" \
+  --preset=desktop \
+  --blocked-url-patterns="$STAGING_ORIGIN/api/visits*" \
+  --blocked-url-patterns="$STAGING_ORIGIN/cdn-cgi/rum*" \
   --no-enable-error-reporting --output=json --output-path=reports/lighthouse-desktop-01.json --quiet
 ```
 
-Repite con nombres `-02` y `-03`. Compara las categorías y las métricas del informe, explica variación o causa antes de proponer una corrección y evalúa la superficie permitida por el MVP. Confirma que la landing de Staging responde con `X-Robots-Tag: noindex` y que la ruta de cuenta conserva `noindex`. Revisa `robots.txt` y verifica que no bloquee `/`, pues el crawler debe poder leer la cabecera; los comentarios genéricos de Content Signals de Cloudflare no son una regla de no indexación. No agregues URLs de cuenta/checkout al objetivo SEO ni publiques informes con sesiones.
+Repite con nombres `-02` y `-03`. Antes de comparar un informe, confirma que las solicitudes a `/api/visits` y `/cdn-cgi/rum` aparecen bloqueadas (código `-1` y transferencia `0`); así la medición no registra visitas de prueba ni telemetría. Compara las categorías y las métricas del informe, explica variación o causa antes de proponer una corrección y evalúa la superficie permitida por el MVP. Confirma que la landing de Staging responde con `X-Robots-Tag: noindex` y que la ruta de cuenta conserva `noindex`. Revisa `robots.txt` y verifica que no bloquee `/`, pues el crawler debe poder leer la cabecera; los comentarios genéricos de Content Signals de Cloudflare no son una regla de no indexación. No agregues URLs de cuenta/checkout al objetivo SEO ni publiques informes con sesiones.
 
 Compara contra los objetivos de aceptación móvil establecidos aquí. Si no se alcanzan, revisa la oportunidad de mayor impacto y perfila el LCP antes de elegir otra optimización; vuelve a medir con los mismos perfiles. El resultado de escritorio y la categoría SEO son informativos. Lighthouse por sí solo no certifica rendimiento de usuarios reales ni SEO.
 

@@ -83,6 +83,14 @@ test('landing preloads the age-gate LCP image before rendering page content', ()
   assert.match(component, /AGE_GATE_EMBLEM_SIZES/);
 });
 
+test('landing preloads the mobile showcase WebP only at mobile widths', () => {
+  const page = readFileSync(landingPage, 'utf8');
+  const showcase = readFileSync(mezcalShowcase, 'utf8');
+
+  assert.match(page, /<link\s+rel="preload"\s+as="image"\s+href=\{mediaObjectUrl\(mediaBaseUrl, MOBILE_SHOWCASE_BACKGROUND_PATH\)\}\s+type="image\/webp"\s+media="\(max-width: 640px\)"\s+fetchPriority="high"\s*\/>/);
+  assert.match(showcase, /MOBILE_SHOWCASE_BACKGROUND_PATH/);
+});
+
 test('account session starts before hydration using the configured API URL and is reused', () => {
   const layout = readFileSync(rootLayout, 'utf8');
   const bootstrap = readFileSync(sessionBootstrap, 'utf8');
