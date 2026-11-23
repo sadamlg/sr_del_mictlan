@@ -7,9 +7,8 @@ import test from 'node:test';
 const repositoryRoot = dirname(fileURLToPath(import.meta.url));
 const mobileShowcaseImage = join(
   repositoryRoot,
-  '../public/images/mezcal-showcase-background-mobile.webp',
+  '../public/images/mezcal-showcase-background-mobile-compact.webp',
 );
-const mobileShowcaseAvif = join(repositoryRoot, '../public/images/mezcal-showcase-background-mobile.avif');
 const favicon = join(repositoryRoot, '../src/app/favicon.ico');
 const optimizedAgeGateImage = join(repositoryRoot, '../public/images/age-gate/skull-optimized.webp');
 const landingPage = join(repositoryRoot, '../src/app/page.js');
@@ -23,17 +22,16 @@ const sessionBootstrap = join(repositoryRoot, '../public/account-session-bootstr
 const mezcalShowcase = join(repositoryRoot, '../src/components/landing/mezcal-showcase/mezcal-showcase.js');
 const nextConfig = join(repositoryRoot, '../next.config.mjs');
 
-test('mobile showcase WebP stays within the 50 KiB transfer budget', () => {
+test('mobile showcase WebP stays within the 30 KiB transfer budget', () => {
   const sizeInBytes = statSync(mobileShowcaseImage).size;
 
   assert.ok(
-    sizeInBytes <= 50 * 1024,
-    `Expected mobile showcase WebP to stay under 50 KiB; received ${Math.ceil(sizeInBytes / 1024)} KiB`,
+    sizeInBytes <= 30 * 1024,
+    `Expected mobile showcase WebP to stay under 30 KiB; received ${Math.ceil(sizeInBytes / 1024)} KiB`,
   );
 });
 
-test('mobile showcase AVIF and favicon stay within transfer budgets', () => {
-  assert.ok(statSync(mobileShowcaseAvif).size <= 25 * 1024);
+test('favicon stays within its 20 KiB transfer budget', () => {
   assert.ok(statSync(favicon).size <= 20 * 1024);
 });
 
@@ -87,7 +85,7 @@ test('landing preloads the mobile age-gate emblem and showcase background', () =
   const component = readFileSync(ageGate, 'utf8');
   const imageConstants = readFileSync(ageGateImage, 'utf8');
   assert.match(page, /href=\{AGE_GATE_EMBLEM_PATH\}/);
-  assert.match(page, /MOBILE_SHOWCASE_BACKGROUND_AVIF_PATH/);
+  assert.match(page, /MOBILE_SHOWCASE_BACKGROUND_PATH/);
   assert.match(component, /AGE_GATE_EMBLEM_PATH/);
   assert.match(component, /AGE_GATE_EMBLEM_SIZES/);
   assert.match(component, /unoptimized/);
@@ -100,13 +98,13 @@ test('Next image optimizer uses its default quality', () => {
   assert.doesNotMatch(config, /AGE_GATE_EMBLEM_QUALITY/);
 });
 
-test('landing preloads the mobile AVIF and retains a WebP fallback', () => {
+test('landing preloads the mobile WebP and retains a PNG fallback', () => {
   const page = readFileSync(landingPage, 'utf8');
   const showcase = readFileSync(mezcalShowcase, 'utf8');
 
-  assert.match(page, /href=\{mediaObjectUrl\(mediaBaseUrl, MOBILE_SHOWCASE_BACKGROUND_AVIF_PATH\)\}/);
-  assert.match(page, /type="image\/avif"[\s\S]*?media="\(max-width: 640px\)"[\s\S]*?fetchPriority="high"/);
-  assert.match(showcase, /type="image\/avif"[\s\S]*?type="image\/webp"/);
+  assert.match(page, /href=\{mediaObjectUrl\(mediaBaseUrl, MOBILE_SHOWCASE_BACKGROUND_PATH\)\}/);
+  assert.match(page, /type="image\/webp"[\s\S]*?media="\(max-width: 640px\)"[\s\S]*?fetchPriority="high"/);
+  assert.match(showcase, /type="image\/webp"[\s\S]*?mezcal-showcase-background-mobile\.png/);
 });
 
 test('landing gives non-LCP hero and header images low fetch priority', () => {

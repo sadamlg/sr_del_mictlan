@@ -6,7 +6,7 @@ import AgeGate from '../components/age-gate/age-gate';
 import { AGE_GATE_EMBLEM_PATH } from '../components/age-gate/age-gate-image.js';
 import LandingHero from '../components/landing/landing-hero';
 import MezcalShowcase, {
-  MOBILE_SHOWCASE_BACKGROUND_AVIF_PATH,
+  MOBILE_SHOWCASE_BACKGROUND_PATH,
   MezcalShowcaseSection,
   MezcalShowcaseSkeleton,
 } from '../components/landing/mezcal-showcase/mezcal-showcase';
@@ -50,8 +50,8 @@ export default function Home() {
       <link
         rel="preload"
         as="image"
-        href={mediaObjectUrl(mediaBaseUrl, MOBILE_SHOWCASE_BACKGROUND_AVIF_PATH)}
-        type="image/avif"
+        href={mediaObjectUrl(mediaBaseUrl, MOBILE_SHOWCASE_BACKGROUND_PATH)}
+        type="image/webp"
         media="(max-width: 640px)"
         fetchPriority="high"
       />
