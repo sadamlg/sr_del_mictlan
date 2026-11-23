@@ -126,7 +126,7 @@ export default function AgeGate({ children, mediaBaseUrl }) {
                 sizes={AGE_GATE_EMBLEM_SIZES}
                 quality={AGE_GATE_EMBLEM_QUALITY}
                 loading="eager"
-                fetchPriority="high"
+                fetchPriority="low"
                 className="age-gate-emblem translate-y-[1%] scale-[1.12] object-contain opacity-[0.11] grayscale contrast-125 mix-blend-screen"
               />
             </div>

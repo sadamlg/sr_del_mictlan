@@ -1,15 +1,8 @@
 import { Suspense } from 'react';
-import { preload } from 'react-dom';
-import { getImageProps } from 'next/image';
 import { cacheLife, io } from 'next/cache';
 import { mediaObjectUrl } from '../lib/media-url';
 import SiteHeader from '../components/header/header';
 import AgeGate from '../components/age-gate/age-gate';
-import {
-  AGE_GATE_EMBLEM_PATH,
-  AGE_GATE_EMBLEM_QUALITY,
-  AGE_GATE_EMBLEM_SIZES,
-} from '../components/age-gate/age-gate-image.js';
 import LandingHero from '../components/landing/landing-hero';
 import MezcalShowcase, {
   MOBILE_SHOWCASE_BACKGROUND_PATH,
@@ -50,20 +43,6 @@ async function CurrentYear() {
 
 export default function Home() {
   const mediaBaseUrl = process.env.MEDIA_BASE_URL || '';
-  const { props: ageGateEmblem } = getImageProps({
-    src: mediaObjectUrl(mediaBaseUrl, AGE_GATE_EMBLEM_PATH),
-    alt: '',
-    fill: true,
-    sizes: AGE_GATE_EMBLEM_SIZES,
-    quality: AGE_GATE_EMBLEM_QUALITY,
-  });
-  preload(ageGateEmblem.src, {
-    as: 'image',
-    imageSrcSet: ageGateEmblem.srcSet,
-    imageSizes: ageGateEmblem.sizes,
-    fetchPriority: 'high',
-  });
-
   return (
     <>
       <link
