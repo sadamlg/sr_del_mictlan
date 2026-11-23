@@ -3,10 +3,8 @@
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
-import { mediaObjectUrl } from '../../lib/media-url';
 import {
   AGE_GATE_EMBLEM_PATH,
-  AGE_GATE_EMBLEM_QUALITY,
   AGE_GATE_EMBLEM_SIZES,
 } from './age-gate-image.js';
 import { useAccountSession } from '../account/account-session.js';
@@ -28,7 +26,7 @@ function readAgeConfirmation() {
   }
 }
 
-export default function AgeGate({ children, mediaBaseUrl }) {
+export default function AgeGate({ children }) {
   const session = useAccountSession();
   const [hasConfirmedAge, setHasConfirmedAge] = useState(readAgeConfirmation);
   const [showcaseEntered, setShowcaseEntered] = useState(false);
@@ -120,13 +118,13 @@ export default function AgeGate({ children, mediaBaseUrl }) {
           >
             <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-full">
               <Image
-                src={mediaObjectUrl(mediaBaseUrl, AGE_GATE_EMBLEM_PATH)}
+                src={AGE_GATE_EMBLEM_PATH}
                 alt=""
                 fill
                 sizes={AGE_GATE_EMBLEM_SIZES}
-                quality={AGE_GATE_EMBLEM_QUALITY}
+                unoptimized
                 loading="eager"
-                fetchPriority="low"
+                fetchPriority="high"
                 className="age-gate-emblem translate-y-[1%] scale-[1.12] object-contain opacity-[0.11] grayscale contrast-125 mix-blend-screen"
               />
             </div>

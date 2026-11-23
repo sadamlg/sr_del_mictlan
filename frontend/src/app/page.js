@@ -3,6 +3,7 @@ import { cacheLife, io } from 'next/cache';
 import { mediaObjectUrl } from '../lib/media-url';
 import SiteHeader from '../components/header/header';
 import AgeGate from '../components/age-gate/age-gate';
+import { AGE_GATE_EMBLEM_PATH } from '../components/age-gate/age-gate-image.js';
 import LandingHero from '../components/landing/landing-hero';
 import MezcalShowcase, {
   MOBILE_SHOWCASE_BACKGROUND_PATH,
@@ -45,6 +46,7 @@ export default function Home() {
   const mediaBaseUrl = process.env.MEDIA_BASE_URL || '';
   return (
     <>
+      <link rel="preload" as="image" href={AGE_GATE_EMBLEM_PATH} type="image/webp" media="(max-width: 640px)" fetchPriority="high" />
       <link
         rel="preload"
         as="image"
@@ -53,7 +55,7 @@ export default function Home() {
         media="(max-width: 640px)"
         fetchPriority="high"
       />
-      <AgeGate mediaBaseUrl={mediaBaseUrl}>
+      <AgeGate>
         <div className="bg-mictlan-background text-mictlan-ivory">
           <SiteHeader mediaBaseUrl={mediaBaseUrl} />
           <main>

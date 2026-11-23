@@ -1,5 +1,4 @@
 import { shouldBypassNextImageOptimization } from './src/lib/media-url.js';
-import { AGE_GATE_EMBLEM_QUALITY } from './src/components/age-gate/age-gate-image.js';
 
 const mediaBaseUrl = new URL(process.env.MEDIA_BASE_URL || 'http://localhost:3000');
 const mediaBasePath = mediaBaseUrl.pathname.replace(/\/+$/, '');
@@ -20,7 +19,6 @@ const nextConfig = {
   },
   images: {
     unoptimized: shouldBypassNextImageOptimization(mediaBaseUrl.href),
-    qualities: [AGE_GATE_EMBLEM_QUALITY, 75],
     remotePatterns: [new URL(`${mediaBaseUrl.origin}${mediaBasePath}/**`)],
   },
   allowedDevOrigins: process.env.NEXT_ALLOWED_DEV_ORIGIN ? [process.env.NEXT_ALLOWED_DEV_ORIGIN] : [],

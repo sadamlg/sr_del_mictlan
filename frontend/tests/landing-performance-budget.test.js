@@ -9,6 +9,7 @@ const mobileShowcaseImage = join(
   repositoryRoot,
   '../public/images/mezcal-showcase-background-mobile.webp',
 );
+const optimizedAgeGateImage = join(repositoryRoot, '../public/images/age-gate/skull-optimized.webp');
 const landingPage = join(repositoryRoot, '../src/app/page.js');
 const landingStylesheet = join(repositoryRoot, '../src/app/globals.css');
 const siteHeader = join(repositoryRoot, '../src/components/header/header.js');
@@ -27,6 +28,10 @@ test('mobile showcase WebP stays within the 50 KiB transfer budget', () => {
     sizeInBytes <= 50 * 1024,
     `Expected mobile showcase WebP to stay under 50 KiB; received ${Math.ceil(sizeInBytes / 1024)} KiB`,
   );
+});
+
+test('age-gate emblem stays within the 25 KiB transfer budget', () => {
+  assert.ok(statSync(optimizedAgeGateImage).size <= 25 * 1024);
 });
 
 test('showcase backdrop renders outside the deferred catalog boundary', () => {
@@ -60,32 +65,32 @@ test('first-visit entrance animations avoid non-composited filter effects', () =
   assert.doesNotMatch(header, /blurredFadeIn/);
 });
 
-test('age-gate decorative emblem loads eagerly without competing with the showcase LCP', () => {
+test('age-gate decorative emblem loads eagerly with high priority', () => {
   const component = readFileSync(ageGate, 'utf8');
   const emblem = component.match(/<Image\b[\s\S]*?className="age-gate-emblem[\s\S]*?\/>/)?.[0];
 
   assert.ok(emblem, 'Expected the age-gate emblem image to exist');
   assert.match(emblem, /loading="eager"/);
-  assert.match(emblem, /fetchPriority="low"/);
+  assert.match(emblem, /fetchPriority="high"/);
   assert.doesNotMatch(emblem, /\bpreload=/);
 });
 
-test('landing reserves preload for the mobile showcase background', () => {
+test('landing preloads the mobile age-gate emblem and showcase background', () => {
   const page = readFileSync(landingPage, 'utf8');
   const component = readFileSync(ageGate, 'utf8');
   const imageConstants = readFileSync(ageGateImage, 'utf8');
-  assert.doesNotMatch(page, /preload\(ageGateEmblem\.src/);
+  assert.match(page, /href=\{AGE_GATE_EMBLEM_PATH\}/);
   assert.match(page, /MOBILE_SHOWCASE_BACKGROUND_PATH/);
   assert.match(component, /AGE_GATE_EMBLEM_PATH/);
   assert.match(component, /AGE_GATE_EMBLEM_SIZES/);
-  assert.match(component, /quality=\{AGE_GATE_EMBLEM_QUALITY\}/);
-  assert.match(imageConstants, /AGE_GATE_EMBLEM_QUALITY\s*=\s*50/);
+  assert.match(component, /unoptimized/);
+  assert.match(imageConstants, /AGE_GATE_EMBLEM_PATH\s*=\s*'\/images\/age-gate\/skull-optimized\.webp'/);
 });
 
-test('Next image optimizer allowlists the age-gate quality alongside the default', () => {
+test('Next image optimizer uses its default quality', () => {
   const config = readFileSync(nextConfig, 'utf8');
 
-  assert.match(config, /qualities:\s*\[AGE_GATE_EMBLEM_QUALITY,\s*75\]/);
+  assert.doesNotMatch(config, /AGE_GATE_EMBLEM_QUALITY/);
 });
 
 test('landing preloads the mobile showcase WebP only at mobile widths', () => {
