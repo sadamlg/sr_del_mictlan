@@ -180,6 +180,14 @@ body.mobile-menu-open {
   touch-action: none;
 }
 
+/* El diálogo ocupa la primera vista móvil; las fotos se pintan al verificar la edad. */
+@media (max-width: 640px) and (orientation: portrait) {
+  [data-age-gate-phase]:not([data-age-gate-phase='verified']) #inicio picture img,
+  [data-age-gate-phase]:not([data-age-gate-phase='verified']) #coleccion picture img {
+    visibility: hidden;
+  }
+}
+
 .money-detail {
   font-family: var(--mictlan-font-ui);
   font-size: 0.875rem;

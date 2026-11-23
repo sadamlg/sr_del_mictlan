@@ -105,7 +105,7 @@ export default function AgeGate({ children }) {
 
   return (
     <>
-      <div inert={isVisible} aria-hidden={isVisible}>
+      <div inert={isVisible} aria-hidden={isVisible} data-age-gate-phase={phase}>
         {children}
       </div>
       {isVisible && (
