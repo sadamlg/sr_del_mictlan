@@ -62,4 +62,6 @@ generate_renditions 'mezcal-showcase-background.png' 86 640 1024 1440 1672
 generate_renditions 'mezcal-showcase-background-mobile.png' 60 320 480
 generate_renditions 'mezcal-showcase-background-mobile.png' 35 640
 
-printf 'Se generaron %s variantes WebP para R2 en %s\n' "${rendition_count}" "${output_root}"
+node "${repository_root}/scripts/generate-mobile-showcase-avif.mjs"
+
+printf 'Se generaron %s variantes WebP y 1 AVIF para R2 en %s\n' "${rendition_count}" "${output_root}"

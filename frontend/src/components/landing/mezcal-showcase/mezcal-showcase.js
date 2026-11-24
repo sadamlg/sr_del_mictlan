@@ -5,6 +5,8 @@ import AddToCartButton from '../../cart/add-to-cart-button.js';
 import ResponsiveMediaImage from '../../media/responsive-media-image.js';
 
 export const MOBILE_SHOWCASE_BACKGROUND_PATH = 'images/mezcal-showcase-background-mobile.webp';
+export const MOBILE_SHOWCASE_BACKGROUND_AVIF_PATH = 'images/mezcal-showcase-background-mobile-640.avif';
+export const MOBILE_SHOWCASE_BACKGROUND_AVIF_WIDTH = 640;
 export const MOBILE_SHOWCASE_BACKGROUND_FALLBACK_PATH = 'images/mezcal-showcase-background-mobile.png';
 export const MOBILE_SHOWCASE_BACKGROUND_WIDTHS = [320, 480, 640];
 const PRODUCT_CARD_IMAGE_WIDTHS = [360, 720, 1080];
@@ -73,10 +75,19 @@ function MezcalCard({ product, className = '' }) {
 export function MezcalShowcaseSection({ children, mediaBaseUrl }) {
   const hasRemoteMedia = Boolean(mediaOrigin(mediaBaseUrl));
   const mobileShowcaseUrl = mediaObjectUrl(mediaBaseUrl, MOBILE_SHOWCASE_BACKGROUND_PATH);
+  const mobileShowcaseAvifUrl = mediaObjectUrl(mediaBaseUrl, MOBILE_SHOWCASE_BACKGROUND_AVIF_PATH);
 
   return (
     <section id="coleccion" className="relative isolate scroll-mt-24 overflow-hidden bg-mictlan-night px-6 pb-20 pt-24 text-mictlan-bone sm:px-10 lg:min-h-dvh lg:px-14 lg:py-5 [@media(min-width:80rem)_and_(min-height:54rem)]:h-dvh [@media(min-width:80rem)_and_(min-height:54rem)]:py-12" aria-labelledby="mezcal-showcase-title">
       <picture className="absolute inset-0 -z-20">
+        {hasRemoteMedia && (
+          <source
+            media="(max-width: 640px)"
+            type="image/avif"
+            srcSet={`${mobileShowcaseAvifUrl} ${MOBILE_SHOWCASE_BACKGROUND_AVIF_WIDTH}w`}
+            sizes="100vw"
+          />
+        )}
         {hasRemoteMedia && (
           <source
             media="(max-width: 640px)"

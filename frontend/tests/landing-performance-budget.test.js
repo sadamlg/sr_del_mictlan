@@ -20,6 +20,7 @@ const rootLayout = join(repositoryRoot, '../src/app/layout.js');
 const sessionBootstrap = join(repositoryRoot, '../public/account-session-bootstrap.js');
 const mezcalShowcase = join(repositoryRoot, '../src/components/landing/mezcal-showcase/mezcal-showcase.js');
 const mediaGenerator = join(repositoryRoot, '../../scripts/generate-r2-media-renditions.sh');
+const mobileAvifGenerator = join(repositoryRoot, '../../scripts/generate-mobile-showcase-avif.mjs');
 const responsiveMediaImage = join(repositoryRoot, '../src/components/media/responsive-media-image.js');
 const developmentDockerIgnore = join(repositoryRoot, '../.dockerignore');
 const productionDockerIgnore = join(repositoryRoot, '../Dockerfile.production.dockerignore');
@@ -102,8 +103,9 @@ test('landing preloads the age-gate LCP image and the mobile showcase image', ()
   assert.match(page, /imageSrcSet=\{mediaRenditionSrcSet\(ageGateEmblemUrl, AGE_GATE_EMBLEM_WIDTHS, AGE_GATE_EMBLEM_SOURCE_WIDTH\)\}/);
   assert.match(page, /imageSizes=\{AGE_GATE_EMBLEM_SIZES\}/);
   assert.match(page, /type="image\/webp"[\s\S]*?fetchPriority="high"/);
-  assert.match(page, /href=\{mobileShowcaseUrl\}/);
-  assert.match(page, /imageSrcSet=\{mediaRenditionSrcSet\(mobileShowcaseUrl, MOBILE_SHOWCASE_BACKGROUND_WIDTHS\)\}/);
+  assert.match(page, /href=\{mobileShowcaseAvifUrl\}/);
+  assert.match(page, /imageSrcSet=\{`\$\{mobileShowcaseAvifUrl\} \$\{MOBILE_SHOWCASE_BACKGROUND_AVIF_WIDTH\}w`\}/);
+  assert.match(page, /type="image\/avif"[\s\S]*?fetchPriority="high"/);
   assert.match(component, /AGE_GATE_EMBLEM_PATH/);
   assert.match(component, /fetchPriority="high"/);
 });
@@ -117,15 +119,18 @@ test('responsive WebP generation uses its configured quality', () => {
   assert.doesNotMatch(script, /frontend\/public\/images\/\$\{relative_source\}/);
 });
 
-test('landing preloads the mobile WebP and retains a PNG fallback', () => {
+test('landing prefers the mobile AVIF while retaining responsive WebP and PNG fallbacks', () => {
   const page = readFileSync(landingPage, 'utf8');
   const showcase = readFileSync(mezcalShowcase, 'utf8');
 
-  assert.match(page, /imageSrcSet=\{mediaRenditionSrcSet\(mobileShowcaseUrl, MOBILE_SHOWCASE_BACKGROUND_WIDTHS\)\}/);
+  assert.match(page, /imageSrcSet=\{`\$\{mobileShowcaseAvifUrl\} \$\{MOBILE_SHOWCASE_BACKGROUND_AVIF_WIDTH\}w`\}/);
   assert.match(page, /imageSizes="100vw"[\s\S]*?media="\(max-width: 640px\)"[\s\S]*?fetchPriority="high"/);
+  assert.match(showcase, /MOBILE_SHOWCASE_BACKGROUND_AVIF_PATH\s*=\s*'images\/mezcal-showcase-background-mobile-640\.avif'/);
+  assert.match(showcase, /MOBILE_SHOWCASE_BACKGROUND_AVIF_WIDTH\s*=\s*640/);
   assert.match(showcase, /MOBILE_SHOWCASE_BACKGROUND_PATH\s*=\s*'images\/mezcal-showcase-background-mobile\.webp'/);
   assert.match(showcase, /MOBILE_SHOWCASE_BACKGROUND_FALLBACK_PATH\s*=\s*'images\/mezcal-showcase-background-mobile\.png'/);
   assert.match(showcase, /MOBILE_SHOWCASE_BACKGROUND_WIDTHS\s*=\s*\[320,\s*480,\s*640\]/);
+  assert.ok(showcase.indexOf('type="image/avif"') < showcase.indexOf('type="image/webp"'));
   assert.match(showcase, /media="\(max-width: 640px\)"[\s\S]*?type="image\/webp"[\s\S]*?MOBILE_SHOWCASE_BACKGROUND_FALLBACK_PATH/);
 });
 
@@ -145,6 +150,15 @@ test('mobile showcase offers optimized 480 px and 640 px renditions for phone wi
   assert.match(showcase, /MOBILE_SHOWCASE_BACKGROUND_WIDTHS\s*=\s*\[320,\s*480,\s*640\]/);
   assert.match(generator, /generate_renditions 'mezcal-showcase-background-mobile\.png' 60 320 480/);
   assert.match(generator, /generate_renditions 'mezcal-showcase-background-mobile\.png' 35 640/);
+});
+
+test('mobile AVIF generation preserves 640 px framing within its transfer budget', () => {
+  const generator = readFileSync(mobileAvifGenerator, 'utf8');
+
+  assert.match(generator, /const outputWidth = 640/);
+  assert.match(generator, /resize\(\{ width: outputWidth \}\)/);
+  assert.match(generator, /avif\(\{ quality: 32, effort: 6 \}\)/);
+  assert.match(generator, /25 \* 1024/);
 });
 
 test('R2 renditions stay out of Railway production image but remain available to local development', () => {

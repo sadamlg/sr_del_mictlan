@@ -285,15 +285,17 @@ test('landing: tamaños aprobados sin desbordamiento horizontal', async ({ safeP
   }
 });
 
-test('landing móvil: fondo principal usa WebP y prioridad alta', async ({ safePage }) => {
+test('landing móvil: fondo principal prefiere AVIF y conserva WebP responsivo con prioridad alta', async ({ safePage }) => {
   const { page } = safePage;
   await page.setViewportSize({ width: 390, height: 844 });
   await openAsGuest(page, '/');
 
   const collection = page.locator('#coleccion');
+  const mobileAvif = collection.locator('picture source[type="image/avif"]');
   const mobileWebp = collection.locator('picture source[type="image/webp"]').first();
   const background = collection.locator('picture img').first();
 
+  await expect(mobileAvif).toHaveAttribute('srcset', /mezcal-showcase-background-mobile-640\.avif 640w/);
   await expect(mobileWebp).toHaveAttribute('srcset', /mezcal-showcase-background-mobile-320\.webp 320w, .*mezcal-showcase-background-mobile-480\.webp 480w, .*mezcal-showcase-background-mobile-640\.webp 640w/);
   await expect(background).toHaveAttribute('fetchpriority', 'high');
 });
