@@ -14,7 +14,6 @@ import LandingHero from '../components/landing/landing-hero';
 import MezcalShowcase, {
   MOBILE_SHOWCASE_BACKGROUND_PATH,
   MOBILE_SHOWCASE_BACKGROUND_FALLBACK_PATH,
-  MOBILE_SHOWCASE_BACKGROUND_SOURCE_WIDTH,
   MOBILE_SHOWCASE_BACKGROUND_WIDTHS,
   MezcalShowcaseSection,
   MezcalShowcaseSkeleton,
@@ -84,7 +83,7 @@ export default function Home() {
           rel="preload"
           as="image"
           href={mobileShowcaseUrl}
-          imageSrcSet={mediaRenditionSrcSet(mobileShowcaseUrl, MOBILE_SHOWCASE_BACKGROUND_WIDTHS, MOBILE_SHOWCASE_BACKGROUND_SOURCE_WIDTH)}
+          imageSrcSet={mediaRenditionSrcSet(mobileShowcaseUrl, MOBILE_SHOWCASE_BACKGROUND_WIDTHS)}
           imageSizes="100vw"
           type="image/webp"
           media="(max-width: 640px)"

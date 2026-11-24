@@ -103,7 +103,7 @@ test('landing preloads the age-gate LCP image and the mobile showcase image', ()
   assert.match(page, /imageSizes=\{AGE_GATE_EMBLEM_SIZES\}/);
   assert.match(page, /type="image\/webp"[\s\S]*?fetchPriority="high"/);
   assert.match(page, /href=\{mobileShowcaseUrl\}/);
-  assert.match(page, /imageSrcSet=\{mediaRenditionSrcSet\(mobileShowcaseUrl, MOBILE_SHOWCASE_BACKGROUND_WIDTHS, MOBILE_SHOWCASE_BACKGROUND_SOURCE_WIDTH\)\}/);
+  assert.match(page, /imageSrcSet=\{mediaRenditionSrcSet\(mobileShowcaseUrl, MOBILE_SHOWCASE_BACKGROUND_WIDTHS\)\}/);
   assert.match(component, /AGE_GATE_EMBLEM_PATH/);
   assert.match(component, /fetchPriority="high"/);
 });
@@ -121,11 +121,11 @@ test('landing preloads the mobile WebP and retains a PNG fallback', () => {
   const page = readFileSync(landingPage, 'utf8');
   const showcase = readFileSync(mezcalShowcase, 'utf8');
 
-  assert.doesNotMatch(page, /mediaRenditionUrl\(mobileShowcaseUrl, 480\)/, 'The LCP preload must not point to a non-candidate width');
+  assert.match(page, /imageSrcSet=\{mediaRenditionSrcSet\(mobileShowcaseUrl, MOBILE_SHOWCASE_BACKGROUND_WIDTHS\)\}/);
   assert.match(page, /imageSizes="100vw"[\s\S]*?media="\(max-width: 640px\)"[\s\S]*?fetchPriority="high"/);
   assert.match(showcase, /MOBILE_SHOWCASE_BACKGROUND_PATH\s*=\s*'images\/mezcal-showcase-background-mobile\.webp'/);
   assert.match(showcase, /MOBILE_SHOWCASE_BACKGROUND_FALLBACK_PATH\s*=\s*'images\/mezcal-showcase-background-mobile\.png'/);
-  assert.match(showcase, /MOBILE_SHOWCASE_BACKGROUND_WIDTHS\s*=\s*\[320,\s*480\]/);
+  assert.match(showcase, /MOBILE_SHOWCASE_BACKGROUND_WIDTHS\s*=\s*\[320,\s*480,\s*640\]/);
   assert.match(showcase, /media="\(max-width: 640px\)"[\s\S]*?type="image\/webp"[\s\S]*?MOBILE_SHOWCASE_BACKGROUND_FALLBACK_PATH/);
 });
 
@@ -138,12 +138,13 @@ test('showcase LCP image is prioritized and decoded synchronously', () => {
   assert.match(background, /decoding="sync"/);
 });
 
-test('mobile showcase offers a same-composition 480 px rendition for common phone widths', () => {
+test('mobile showcase offers optimized 480 px and 640 px renditions for phone widths and DPR', () => {
   const showcase = readFileSync(mezcalShowcase, 'utf8');
   const generator = readFileSync(mediaGenerator, 'utf8');
 
-  assert.match(showcase, /MOBILE_SHOWCASE_BACKGROUND_WIDTHS\s*=\s*\[320,\s*480\]/);
+  assert.match(showcase, /MOBILE_SHOWCASE_BACKGROUND_WIDTHS\s*=\s*\[320,\s*480,\s*640\]/);
   assert.match(generator, /generate_renditions 'mezcal-showcase-background-mobile\.png' 60 320 480/);
+  assert.match(generator, /generate_renditions 'mezcal-showcase-background-mobile\.png' 35 640/);
 });
 
 test('R2 renditions stay out of Railway production image but remain available to local development', () => {

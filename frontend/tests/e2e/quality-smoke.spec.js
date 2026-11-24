@@ -294,7 +294,7 @@ test('landing móvil: fondo principal usa WebP y prioridad alta', async ({ safeP
   const mobileWebp = collection.locator('picture source[type="image/webp"]').first();
   const background = collection.locator('picture img').first();
 
-  await expect(mobileWebp).toHaveAttribute('srcset', /mezcal-showcase-background-mobile-320\.webp 320w, .*mezcal-showcase-background-mobile\.webp 640w/);
+  await expect(mobileWebp).toHaveAttribute('srcset', /mezcal-showcase-background-mobile-320\.webp 320w, .*mezcal-showcase-background-mobile-480\.webp 480w, .*mezcal-showcase-background-mobile-640\.webp 640w/);
   await expect(background).toHaveAttribute('fetchpriority', 'high');
 });
 
