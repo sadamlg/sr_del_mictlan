@@ -6,7 +6,7 @@ import ResponsiveMediaImage from '../../media/responsive-media-image.js';
 
 export const MOBILE_SHOWCASE_BACKGROUND_PATH = 'images/mezcal-showcase-background-mobile.webp';
 export const MOBILE_SHOWCASE_BACKGROUND_FALLBACK_PATH = 'images/mezcal-showcase-background-mobile.png';
-export const MOBILE_SHOWCASE_BACKGROUND_WIDTHS = [320];
+export const MOBILE_SHOWCASE_BACKGROUND_WIDTHS = [320, 480];
 export const MOBILE_SHOWCASE_BACKGROUND_SOURCE_WIDTH = 640;
 const PRODUCT_CARD_IMAGE_WIDTHS = [360, 720, 1080];
 const BACKGROUND_IMAGE_WIDTHS = [640, 1024, 1440, 1672];
