@@ -18,7 +18,7 @@ El dominio público de Production no debe apuntar a Staging. Confirma proveedor 
 
 ## Por qué existen Dockerfiles de producción
 
-Los Dockerfiles normales y Compose ejecutan servidores de desarrollo con observación de cambios. `frontend/Dockerfile.production` construye Next.js con `npm run build` y arranca `next start`; `backend/Dockerfile.production` instala Prisma CLI, genera Prisma Client y arranca la API. El worker comparte la imagen del backend, pero usa `node src/worker.js` como comando de inicio. Los Dockerfiles fijan la versión de Node.js y ejecutan como usuario `node`; consulta esos archivos para conocer la versión del commit que se va a desplegar. Railway debe usar `Dockerfile.production` mediante `RAILWAY_DOCKERFILE_PATH`; los argumentos Docker `MEDIA_BASE_URL` y `NEXT_PUBLIC_TURNSTILE_SITE_KEY` se requieren al construir el frontend. El primero configura la lista de imágenes remotas y el segundo se incorpora al bundle público, así que el frontend se reconstruye cuando cambien. [Dockerfiles de Railway](https://docs.railway.com/builds/dockerfiles), [variables de entorno de Next.js](https://nextjs.org/docs/app/guides/environment-variables).
+Los Dockerfiles normales y Compose ejecutan servidores de desarrollo con observación de cambios. `frontend/Dockerfile.production` construye Next.js con `npm run build` y arranca `next start`; su archivo `Dockerfile.production.dockerignore` excluye los originales gráficos porque el runtime entrega esos medios desde R2. El `.dockerignore` normal conserva los originales para el servidor local. `backend/Dockerfile.production` instala Prisma CLI, genera Prisma Client y arranca la API. El worker comparte la imagen del backend, pero usa `node src/worker.js` como comando de inicio. Los Dockerfiles fijan la versión de Node.js y ejecutan como usuario `node`; consulta esos archivos para conocer la versión del commit que se va a desplegar. Railway debe usar `Dockerfile.production` mediante `RAILWAY_DOCKERFILE_PATH`; los argumentos Docker `MEDIA_BASE_URL` y `NEXT_PUBLIC_TURNSTILE_SITE_KEY` se requieren al construir el frontend. El Frontend incorpora `MEDIA_BASE_URL` en las URL públicas generadas para los medios y `NEXT_PUBLIC_TURNSTILE_SITE_KEY` en el bundle; reconstruye el frontend si cambia cualquiera. El navegador descarga los archivos directamente del origen de medios y el optimizador de `next/image` no se usa para las imágenes públicas. [Dockerfiles de Railway](https://docs.railway.com/builds/dockerfiles), [variables de entorno de Next.js](https://nextjs.org/docs/app/guides/environment-variables).
 
 ## Servicios
 
@@ -81,14 +81,14 @@ La red privada sólo conecta servicios del mismo proyecto y entorno. Esta aplica
 
 | Preparación | Acción y resultado que debes tener |
 |---|---|
-| R2 | Crea un bucket exclusivo de Staging y carga manualmente todos los archivos del [inventario R2](R2.md#inventario-de-medios), con las carpetas y claves exactas. Habilita una URL pública HTTPS y abre una imagen concreta del hero y una de catálogo. Copia sólo el origen, sin `/images`, query ni barra final. `r2.dev` sirve para pruebas limitadas; producción requiere dominio personalizado. La app sólo lee medios públicos: no necesita tokens R2 ni credenciales S3 en Railway. |
+| R2 | Crea un bucket exclusivo de Staging y carga manualmente los originales y variantes WebP generadas para el [inventario R2](R2.md#inventario-de-medios), con las carpetas y claves exactas. Conecta un dominio personalizado al bucket para servir imágenes mediante el CDN; usa `r2.dev` sólo para desarrollo local. Configura `MEDIA_BASE_URL` y `STRIPE_MEDIA_BASE_URL` con el origen del entorno, sin `/images`, query ni barra final. Abre imágenes concretas del hero y del catálogo. La app sólo lee medios públicos: no necesita tokens R2 ni credenciales S3 en Railway. |
 | Resend | Sigue [Resend](RESEND.md) para verificar el dominio/subdominio de envío y sus registros en el DNS autoritativo, conservando MX y registros existentes. Prepara dos remitentes autorizados (`MAIL_FROM` y `RESEND_FROM`) y una clave exclusiva de Staging con permiso de envío, restringida al dominio cuando sea posible. Sólo el Worker recibe esa clave. Verifica cuotas y usa destinatarios de prueba autorizados. |
 | Turnstile | Crea el widget de Staging y autoriza el hostname del frontend, sin protocolo ni ruta. Obtén site key y secret key; la primera va en frontend, la segunda sólo en API. Consulta [Turnstile de staging](#turnstile-de-staging). |
 | Stripe test | Obtén `sk_test_…` del sandbox. Crea el destino HTTPS en `https://<dominio-api>/api/webhooks/stripe` para los cuatro eventos de la sección 5 y copia su `whsec_…`. Puede registrarse antes de que la API esté activa; comprueba las entregas después. No reutilices el secreto de `stripe listen`. |
 
 ### 1.3 Pegar las plantillas del Raw Editor
 
-En **cada servicio → Variables → Raw Editor**, pega su bloque completo. Usa formato `.env`, una línea `CLAVE=VALOR`, y conserva literalmente `${{…}}`, la sintaxis de referencias de Railway. Los valores que incluyen `EJEMPLO_NO_VALIDO` y el identificador R2 `pub-47df7d3a7dd94d268c1661b2c36e0ae5` son artificiales: ilustran el formato y el tipo de variable, pero no son claves ni un origen utilizable. Sustituye todos los ejemplos por valores generados para el entorno seleccionado; no despliegues mientras quede alguno. Conserva las comillas de los remitentes. No pegues variables de distintos servicios en un bloque compartido.
+En **cada servicio → Variables → Raw Editor**, pega su bloque completo. Usa formato `.env`, una línea `CLAVE=VALOR`, y conserva literalmente `${{…}}`, la sintaxis de referencias de Railway. Los valores que incluyen `EJEMPLO_NO_VALIDO` y el dominio R2 `media.example.invalid` son artificiales: ilustran el formato y el tipo de variable, pero no son claves ni un origen utilizable. Sustituye todos los ejemplos por valores generados para el entorno seleccionado; no despliegues mientras quede alguno. Conserva las comillas de los remitentes. No pegues variables de distintos servicios en un bloque compartido.
 
 No despliegues una plantilla parcial. Antes de pulsar **Update Variables**, confirma que no quede ningún valor `EJEMPLO_NO_VALIDO` y que los nombres, el modo y las referencias estén completos. No compartas capturas del Raw Editor con claves o secretos legibles.
 
@@ -135,8 +135,8 @@ RAILWAY_DOCKERFILE_PATH=Dockerfile.production
 RAILWAY_DEPLOYMENT_DRAINING_SECONDS=30
 DATABASE_URL=postgresql://${{postgres.PGUSER}}:${{postgres.POSTGRES_PASSWORD}}@${{postgres.RAILWAY_PRIVATE_DOMAIN}}:5432/${{postgres.PGDATABASE}}
 FRONTEND_ORIGIN=https://${{Frontend.RAILWAY_PUBLIC_DOMAIN}}
-MEDIA_BASE_URL=https://pub-47df7d3a7dd94d268c1661b2c36e0ae5.r2.dev
-STRIPE_MEDIA_BASE_URL=https://pub-47df7d3a7dd94d268c1661b2c36e0ae5.r2.dev
+MEDIA_BASE_URL=https://media.example.invalid
+STRIPE_MEDIA_BASE_URL=https://media.example.invalid
 CHECKOUT_ENABLED=true
 STRIPE_MODE=test
 STRIPE_SECRET_KEY=sk_test_EJEMPLO_NO_VALIDO
@@ -144,7 +144,7 @@ STRIPE_WEBHOOK_SECRET=whsec_EJEMPLO_NO_VALIDO
 TURNSTILE_SECRET_KEY=0x4AAAAA_SECRET_EJEMPLO_NO_VALIDO
 ```
 
-`pub-47df7d3a7dd94d268c1661b2c36e0ae5.r2.dev` es un identificador artificial que ilustra el formato de una URL pública de desarrollo; no corresponde a un bucket utilizable. Sustitúyelo por el origen aprobado para el entorno. Ambas URL de medios deben coincidir. La API no necesita clave de Resend, site key pública de Turnstile ni credenciales de escritura R2.
+`media.example.invalid` es un dominio artificial que ilustra la estructura de un hostname CDN; no corresponde a un bucket utilizable. Sustitúyelo por el dominio personalizado del bucket del entorno. `MEDIA_BASE_URL` y `STRIPE_MEDIA_BASE_URL` deben coincidir. La API no necesita clave de Resend, site key pública de Turnstile ni credenciales de escritura R2.
 
 ### Cómo se construye `DATABASE_URL`
 
@@ -258,14 +258,14 @@ NODE_ENV=production
 PORT=3000
 RAILWAY_DOCKERFILE_PATH=Dockerfile.production
 INTERNAL_API_URL=http://${{Backend.RAILWAY_PRIVATE_DOMAIN}}:${{Backend.PORT}}
-MEDIA_BASE_URL=https://pub-47df7d3a7dd94d268c1661b2c36e0ae5.r2.dev
+MEDIA_BASE_URL=https://media.example.invalid
 NEXT_PUBLIC_TURNSTILE_SITE_KEY=0x4AAAAA_SITE_EJEMPLO_NO_VALIDO
 ROBOTS_INDEXABLE=false
 ```
 
 No definas `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_API_PROXY_PATH`, `NEXT_ALLOWED_DEV_ORIGIN` ni valores LAN para este despliegue: producción usa el proxy del mismo origen automáticamente. Nunca pegues secretos de Stripe, Resend o Turnstile en frontend.
 
-Define `MEDIA_BASE_URL` y `NEXT_PUBLIC_TURNSTILE_SITE_KEY` antes del build: el Dockerfile las exige como argumentos Docker.
+Define `MEDIA_BASE_URL` y `NEXT_PUBLIC_TURNSTILE_SITE_KEY` antes del build: el Dockerfile las exige como argumentos Docker. `MEDIA_BASE_URL` también debe coincidir con el origen de medios del entorno cuando la aplicación se ejecuta; si cambia, reconstruye y despliega el frontend para actualizar las URL incluidas en el HTML generado.
 
 `ROBOTS_INDEXABLE` es una variable de runtime: mantenla en `false` en Staging para enviar `X-Robots-Tag: noindex, nofollow`. Sólo la landing puede indexarse si se establece en `true` para Producción tras aprobar la indexación del dominio público; las rutas de cuenta y cualquier otra ruta conservan `noindex`.
 
@@ -273,7 +273,7 @@ Define `MEDIA_BASE_URL` y `NEXT_PUBLIC_TURNSTILE_SITE_KEY` antes del build: el D
 
 Las cookies de sesión de producción usan `SameSite=Lax; Secure`. Verifica cómo se conserva la IP de origen a través de cada proxy antes de depender de `request.ip` para limitar intentos por cliente. No confíes en un encabezado reenviado por el cliente sin configurar explícitamente la cadena de proxies de confianza; si todas las solicitudes llegan con la dirección del mismo proxy, el límite puede agrupar a todos los visitantes.
 
-Configura `MEDIA_BASE_URL` del frontend y backend, más `STRIPE_MEDIA_BASE_URL` de la API, para que apunten a un bucket exclusivo de staging. No compartas objetos ni credenciales con producción. El bucket y hostname de producción se preparan por separado; para producción se requiere un dominio personalizado de R2, no la URL de desarrollo `r2.dev`.
+Configura `MEDIA_BASE_URL` del frontend y backend, más `STRIPE_MEDIA_BASE_URL` de la API, para que apunten al dominio CDN de un bucket exclusivo de Staging. No compartas objetos ni credenciales con Production. El bucket y dominio CDN de Production se preparan por separado; `r2.dev` queda para desarrollo local.
 
 ## Turnstile de staging
 
@@ -293,7 +293,7 @@ Después de guardar variables, reconstruye y despliega `Backend` y `Frontend`. D
 
 ### Diagnosticar y corregir consumo de memoria
 
-Frontend ejecuta `next start` en producción; el build ocurre antes y no comparte el proceso de runtime. Antes de comparar métricas, identifica las versiones de Next.js del lockfile y de Node.js de los Dockerfiles correspondientes al commit desplegado. La configuración de Next.js activa `cacheComponents` y `partialPrefetching`. `next/image` permite el origen definido por `MEDIA_BASE_URL` y se optimiza cuando el origen de medios usa HTTPS; sólo se omite esa optimización en desarrollo para medios HTTP de localhost o de una IPv4 privada. La optimización transforma imágenes solicitadas y puede explicar actividad asociada a solicitudes de imágenes, pero por sí sola no demuestra el origen de un consumo alto en reposo. El Dockerfile instala dependencias de desarrollo para compilar y arranca `next start`; reducir el tamaño de la imagen no prueba que baje la memoria de runtime.
+Frontend ejecuta `next start` en producción; el build ocurre antes y no comparte el proceso de runtime. Antes de comparar métricas, identifica las versiones de Next.js del lockfile y de Node.js de los Dockerfiles correspondientes al commit desplegado. La configuración de Next.js activa `cacheComponents` y `partialPrefetching`. Las imágenes públicas se entregan desde el CDN de R2 con `srcset` WebP; no usan `next/image` ni el optimizador de imágenes del Frontend. Por ello, las solicitudes a las imágenes no son solicitudes de `/_next/image` en Railway. El Dockerfile instala dependencias de desarrollo para compilar y arranca `next start`; reducir el tamaño de la imagen no prueba que baje la memoria de runtime.
 
 Para separar heap, resto del proceso y contenedor, usa estas métricas técnicas. Sus valores se solapan: **no sumes** `heapUsed`, `external`, `arrayBuffers` y RSS como si fueran partes independientes.
 

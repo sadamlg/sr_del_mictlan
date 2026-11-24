@@ -1,10 +1,15 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import ProductInsights from './product-insights';
-import { mediaObjectUrl } from '../../../lib/media-url';
+import { mediaObjectUrl, mediaOrigin, mediaRenditionSrcSet } from '../../../lib/media-url';
 import AddToCartButton from '../../cart/add-to-cart-button.js';
+import ResponsiveMediaImage from '../../media/responsive-media-image.js';
 
-export const MOBILE_SHOWCASE_BACKGROUND_PATH = 'images/mezcal-showcase-background-mobile-compact.webp';
+export const MOBILE_SHOWCASE_BACKGROUND_PATH = 'images/mezcal-showcase-background-mobile.webp';
+export const MOBILE_SHOWCASE_BACKGROUND_FALLBACK_PATH = 'images/mezcal-showcase-background-mobile.png';
+export const MOBILE_SHOWCASE_BACKGROUND_WIDTHS = [320];
+export const MOBILE_SHOWCASE_BACKGROUND_SOURCE_WIDTH = 640;
+const PRODUCT_CARD_IMAGE_WIDTHS = [360, 720, 1080];
+const BACKGROUND_IMAGE_WIDTHS = [640, 1024, 1440, 1672];
 
 const priceFormatter = new Intl.NumberFormat('es-MX', {
   style: 'currency',
@@ -21,27 +26,31 @@ function MezcalCard({ product, className = '' }) {
   return (
     <article className={`relative mx-auto flex w-full max-w-[340px] flex-col items-center text-center text-mictlan-bone lg:max-w-[360px] ${className}`}>
       <div className="group/visual relative aspect-[4/5] w-full overflow-hidden outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-mictlan-teal lg:w-[min(100%,clamp(15rem,calc(90dvh_-_23rem),20.4rem))]" tabIndex={0} aria-label={`${product.name}. Enfoca para ver una segunda fotografía`}>
-        <Image
+        <ResponsiveMediaImage
+          pictureClassName="absolute inset-0"
           src={product.image.url}
           alt={product.image.alt}
+          widths={PRODUCT_CARD_IMAGE_WIDTHS}
+          sizes="(min-width: 1024px) 360px, (min-width: 640px) 45vw, min(100vw, 340px)"
           width={1122}
           height={1402}
           loading="lazy"
           decoding="async"
           referrerPolicy="no-referrer"
-          sizes="(min-width: 1024px) 360px, (min-width: 640px) 45vw, min(100vw, 340px)"
           className="absolute inset-0 h-full w-full object-contain"
         />
-        <Image
+        <ResponsiveMediaImage
+          pictureClassName="absolute inset-0"
           src={product.lifestyleImage.url}
           alt=""
           aria-hidden="true"
+          widths={PRODUCT_CARD_IMAGE_WIDTHS}
+          sizes="(min-width: 1024px) 360px, (min-width: 640px) 45vw, min(100vw, 340px)"
           width={1122}
           height={1402}
           loading="lazy"
           decoding="async"
           referrerPolicy="no-referrer"
-          sizes="(min-width: 1024px) 360px, (min-width: 640px) 45vw, min(100vw, 340px)"
           className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none group-hover/visual:opacity-100 group-focus/visual:opacity-100"
         />
       </div>
@@ -61,12 +70,32 @@ function MezcalCard({ product, className = '' }) {
 }
 
 export function MezcalShowcaseSection({ children, mediaBaseUrl }) {
+  const hasRemoteMedia = Boolean(mediaOrigin(mediaBaseUrl));
+  const mobileShowcaseUrl = mediaObjectUrl(mediaBaseUrl, MOBILE_SHOWCASE_BACKGROUND_PATH);
+
   return (
     <section id="coleccion" className="relative isolate scroll-mt-24 overflow-hidden bg-mictlan-night px-6 pb-20 pt-24 text-mictlan-bone sm:px-10 lg:min-h-dvh lg:px-14 lg:py-5 [@media(min-width:80rem)_and_(min-height:54rem)]:h-dvh [@media(min-width:80rem)_and_(min-height:54rem)]:py-12" aria-labelledby="mezcal-showcase-title">
       <picture className="absolute inset-0 -z-20">
-        <source media="(max-width: 640px)" type="image/webp" srcSet={mediaObjectUrl(mediaBaseUrl, MOBILE_SHOWCASE_BACKGROUND_PATH)} />
-        <source media="(max-width: 640px)" srcSet={mediaObjectUrl(mediaBaseUrl, 'images/mezcal-showcase-background-mobile.png')} />
-        <img src={mediaObjectUrl(mediaBaseUrl, 'images/mezcal-showcase-background.png')} alt="" width="1672" height="941" decoding="async" fetchPriority="high" className="absolute inset-0 h-full w-full object-cover" />
+        {hasRemoteMedia && (
+          <source
+            media="(max-width: 640px)"
+            type="image/webp"
+            srcSet={mediaRenditionSrcSet(mobileShowcaseUrl, MOBILE_SHOWCASE_BACKGROUND_WIDTHS, MOBILE_SHOWCASE_BACKGROUND_SOURCE_WIDTH)}
+            sizes="100vw"
+          />
+        )}
+        <source
+          media="(max-width: 640px)"
+          srcSet={mediaObjectUrl(mediaBaseUrl, MOBILE_SHOWCASE_BACKGROUND_FALLBACK_PATH)}
+        />
+        {hasRemoteMedia && (
+          <source
+            type="image/webp"
+            srcSet={mediaRenditionSrcSet(mediaObjectUrl(mediaBaseUrl, 'images/mezcal-showcase-background.png'), BACKGROUND_IMAGE_WIDTHS)}
+            sizes="100vw"
+          />
+        )}
+        <img src={mediaObjectUrl(mediaBaseUrl, 'images/mezcal-showcase-background.png')} alt="" width="1672" height="941" decoding="sync" fetchPriority="high" className="absolute inset-0 h-full w-full object-cover" />
       </picture>
       <div className="absolute inset-0 -z-10 bg-mictlan-ink/80 max-sm:bg-mictlan-ink/55" aria-hidden="true" />
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-[5] h-32 bg-[linear-gradient(to_bottom,var(--mictlan-night),transparent)] sm:h-48 lg:h-56" aria-hidden="true" />

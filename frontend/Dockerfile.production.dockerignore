@@ -1,0 +1,16 @@
+node_modules
+.next
+out
+coverage
+npm-debug.log
+.env*
+.aws
+.secrets
+secrets
+*.pem
+*.key
+*.p12
+*.pfx
+*.log
+public/images/
+.generated/

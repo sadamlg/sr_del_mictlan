@@ -1,4 +1,3 @@
-const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
 const SAFE_KEY_SEGMENT = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
 export function mediaOrigin(mediaBaseUrl) {
@@ -29,20 +28,6 @@ function isPrivateIpv4(hostname) {
   return first === 10 ||
     (first === 172 && second >= 16 && second <= 31) ||
     (first === 192 && second === 168);
-}
-
-export function shouldBypassNextImageOptimization(mediaBaseUrl, { nodeEnv = process.env.NODE_ENV } = {}) {
-  if (nodeEnv !== 'development' || typeof mediaBaseUrl !== 'string') return false;
-
-  let url;
-  try {
-    url = new URL(mediaBaseUrl);
-  } catch {
-    return false;
-  }
-
-  return url.protocol === 'http:' &&
-    (LOCAL_HOSTS.has(url.hostname) || isPrivateIpv4(url.hostname));
 }
 
 function validateKey(key) {
@@ -81,7 +66,7 @@ export function mediaObjectUrl(mediaBaseUrl, key, { allowInsecureDevHttp = proce
   }
 
   const isInsecureDevOrigin = allowInsecureDevHttp && parsedBaseUrl.protocol === 'http:' &&
-    (LOCAL_HOSTS.has(parsedBaseUrl.hostname) || isPrivateIpv4(parsedBaseUrl.hostname));
+    (parsedBaseUrl.hostname === 'localhost' || parsedBaseUrl.hostname === '127.0.0.1' || parsedBaseUrl.hostname === '[::1]' || isPrivateIpv4(parsedBaseUrl.hostname));
   if (parsedBaseUrl.protocol !== 'https:' && !isInsecureDevOrigin) {
     throw new Error('MEDIA_BASE_URL debe usar HTTPS, excepto para localhost o una IPv4 privada en desarrollo.');
   }
@@ -93,4 +78,54 @@ export function mediaObjectUrl(mediaBaseUrl, key, { allowInsecureDevHttp = proce
   }
 
   return `${parsedBaseUrl.origin}${objectPath}`;
+}
+
+export function mediaRenditionUrl(sourceUrl, width) {
+  if (typeof sourceUrl !== 'string' || !sourceUrl || !Number.isSafeInteger(width) || width <= 0) {
+    throw new Error('La URL o el ancho de la variante de imagen no son válidos.');
+  }
+
+  const isAbsoluteUrl = /^https?:\/\//i.test(sourceUrl);
+  let url;
+  try {
+    url = new URL(sourceUrl, 'https://relative-media.invalid');
+  } catch {
+    throw new Error('La URL de la imagen no es válida.');
+  }
+
+  const pathWithRendition = url.pathname.replace(/\.([A-Za-z0-9]+)$/, `-${width}.webp`);
+  if (pathWithRendition === url.pathname) {
+    throw new Error('La imagen debe tener una extensión reconocida para crear una variante.');
+  }
+
+  if (isAbsoluteUrl) {
+    url.pathname = pathWithRendition;
+    return url.toString();
+  }
+
+  return `${pathWithRendition}${url.search}${url.hash}`;
+}
+
+export function mediaRenditionSrcSet(sourceUrl, widths, sourceWidth) {
+  if (!Array.isArray(widths) || widths.length === 0 || widths.some((width) => !Number.isSafeInteger(width) || width <= 0)) {
+    throw new Error('La lista de anchos de variantes de imagen no es válida.');
+  }
+
+  if (sourceWidth !== undefined && (!Number.isSafeInteger(sourceWidth) || sourceWidth <= 0)) {
+    throw new Error('El ancho de la imagen original no es válido.');
+  }
+
+  const candidates = [...new Set(widths)].map((width) => ({
+    width,
+    url: mediaRenditionUrl(sourceUrl, width),
+  }));
+
+  if (sourceWidth && !candidates.some(({ width }) => width === sourceWidth)) {
+    candidates.push({ width: sourceWidth, url: sourceUrl });
+  }
+
+  return candidates
+    .sort((first, second) => first.width - second.width)
+    .map(({ width, url }) => `${url} ${width}w`)
+    .join(', ');
 }

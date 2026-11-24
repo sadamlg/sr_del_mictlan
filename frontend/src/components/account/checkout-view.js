@@ -2,7 +2,6 @@
 
 import { MAX_CART_QUANTITY } from '../../lib/guest-cart.js';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { CreditCard, Minus, Pencil, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -16,6 +15,7 @@ import {
 } from '../../lib/checkout.js';
 import { AccountButton, AccountCard, AccountField, AccountFormError, AccountLink, AccountNotice } from './account-ui.js';
 import { useCart } from '../cart/cart-provider.js';
+import ResponsiveMediaImage from '../media/responsive-media-image.js';
 
 const money = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
 const ADDRESS_FIELDS = [
@@ -53,7 +53,7 @@ function CheckoutItem({ item, disabled, onQuantity, onRemove }) {
   const price = item.unitPrice?.amount;
   return <li className="grid grid-cols-[4.5rem_minmax(0,1fr)] items-start gap-4 border-b border-mictlan-sand/10 py-4 sm:grid-cols-[5.5rem_minmax(0,1fr)_auto]">
     <div className="relative aspect-[3/4] overflow-hidden border border-mictlan-sand/15 bg-mictlan-carbon">
-      {item.imageUrl ? <Image src={item.imageUrl} alt={item.imageAlt || ''} width={160} height={200} unoptimized className="absolute inset-0 size-full object-contain p-1" />
+      {item.imageUrl ? <ResponsiveMediaImage pictureClassName="absolute inset-0 block" src={item.imageUrl} alt={item.imageAlt || ''} widths={[160, 360]} sizes="(max-width: 640px) 4.5rem, 5.5rem" width={160} height={200} loading="lazy" decoding="async" className="absolute inset-0 size-full object-contain p-1" />
         : <span className="absolute inset-0 flex items-center justify-center font-display text-2xl text-mictlan-sage/50" aria-hidden="true">{item.name.slice(0, 1)}</span>}
     </div>
     <div className="min-w-0">

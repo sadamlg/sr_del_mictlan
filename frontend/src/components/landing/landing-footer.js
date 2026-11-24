@@ -1,6 +1,6 @@
-import Image from 'next/image';
 import { ArrowUp, ArrowUpRight, Heart } from 'lucide-react';
 import { mediaObjectUrl } from '../../lib/media-url';
+import ResponsiveMediaImage from '../media/responsive-media-image.js';
 
 const footerLinks = [
   { href: '#inicio', label: 'Inicio' },
@@ -30,13 +30,17 @@ export default function LandingFooter({ mediaBaseUrl, year }) {
               className="text-mictlan-bone/80 transition-[transform,color] duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-mictlan-teal"
             />
           </a>
-          <Image
+          <ResponsiveMediaImage
+            pictureClassName="block w-full"
             src={mediaObjectUrl(mediaBaseUrl, 'images/brand/senor-del-mictlan-brand.png')}
             alt=""
             aria-hidden="true"
+            widths={[320, 640, 1280]}
             width={1774}
             height={887}
             sizes="(max-width: 640px) calc(100vw - 48px), (max-width: 1024px) 85vw, 1280px"
+            loading="lazy"
+            decoding="async"
             className="h-auto max-h-[460px] w-full max-w-[1280px] object-contain opacity-30"
           />
         </div>

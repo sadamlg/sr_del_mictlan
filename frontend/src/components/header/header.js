@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -13,6 +12,7 @@ import {
   navigationItems,
 } from './navigation';
 import { mediaObjectUrl } from '../../lib/media-url';
+import ResponsiveMediaImage from '../media/responsive-media-image.js';
 import {
   lockBodyScroll,
   shouldDisplayHeader,
@@ -304,16 +304,17 @@ export default function SiteHeader({ mediaBaseUrl }) {
             onClick={closeMenu}
             aria-label="Señor del Mictlán, inicio"
           >
-            <Image
+            <ResponsiveMediaImage
               ref={brandImageRef}
+              pictureClassName="inline-block align-middle"
               src={mediaObjectUrl(mediaBaseUrl, 'images/brand/senor-del-mictlan-brand.png')}
               alt="Señor del Mictlán"
+              widths={[160, 320, 480]}
               className="block h-20 w-auto max-w-full lg:h-auto lg:w-[140px]"
               width={1774}
               height={887}
               sizes="(min-width: 1024px) 140px, 160px"
-              priority={!isLandingPage}
-              loading={isLandingPage ? 'eager' : undefined}
+              loading="eager"
               fetchPriority={isLandingPage ? 'low' : 'high'}
               onLoad={() => setBrandImageReady(true)}
               onError={() => setBrandImageReady(true)}

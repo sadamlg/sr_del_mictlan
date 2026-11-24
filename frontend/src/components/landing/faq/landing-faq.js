@@ -1,7 +1,7 @@
-import Image from 'next/image';
 import { ExternalLink } from 'lucide-react';
 import questions from './landing-faq-content';
 import { mediaObjectUrl } from '../../../lib/media-url';
+import ResponsiveMediaImage from '../../media/responsive-media-image.js';
 
 export default function LandingFaq({ mediaBaseUrl }) {
   return (
@@ -11,13 +11,17 @@ export default function LandingFaq({ mediaBaseUrl }) {
       aria-labelledby="faq-title"
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 mx-auto max-w-[1512px] px-6 sm:px-10 lg:px-14">
-        <Image
+        <ResponsiveMediaImage
+          pictureClassName="block"
           className="h-auto w-[min(31.25rem,calc(100vw-48px))] -translate-y-1/2"
           src={mediaObjectUrl(mediaBaseUrl, 'images/landing/cupreata-label.png')}
+          widths={[320, 640, 1024]}
           width={2172}
           height={724}
           sizes="(max-width: 548px) calc(100vw - 48px), 500px"
           alt="Mezcal 100% agave cupreata, hecho en México, Etúcuaro, Michoacán"
+          loading="lazy"
+          decoding="async"
         />
       </div>
       <div className="mx-auto grid grid-cols-1 max-w-[1400px] gap-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start lg:gap-16">

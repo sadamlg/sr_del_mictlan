@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { getImageProps } from 'next/image';
 import { mediaObjectUrl } from '../../lib/media-url';
+import ResponsiveMediaImage from '../media/responsive-media-image.js';
 
 export default function LandingHero({ mediaBaseUrl }) {
   const [heroImageReady, setHeroImageReady] = useState(false);
@@ -18,31 +18,29 @@ export default function LandingHero({ mediaBaseUrl }) {
     return () => { active = false; };
   }, []);
 
-  const { props: heroImageProps } = getImageProps({
-    alt: '',
-    src: mediaObjectUrl(mediaBaseUrl, 'images/hero-background.png'),
-    width: 1672,
-    height: 941,
-    sizes: '100vw',
-    loading: 'eager',
-    fetchPriority: 'low',
-  });
-
   return (
     <section
       id="inicio"
       className="relative isolate aspect-[1672/941] w-full overflow-hidden bg-mictlan-background max-lg:aspect-auto max-lg:pt-32 lg:h-dvh"
       aria-labelledby="hero-title"
     >
-      <picture className="absolute inset-0 block max-lg:relative max-lg:inset-auto max-lg:aspect-[1672/941] max-[40rem]:aspect-[3/2]" aria-hidden="true">
-        <img
-          {...heroImageProps}
-          ref={heroImageRef}
-          className="h-full w-full object-cover max-[40rem]:object-[-6vw_center]"
-          onLoad={() => setHeroImageReady(true)}
-          onError={() => setHeroImageReady(true)}
-        />
-      </picture>
+      <ResponsiveMediaImage
+        pictureClassName="absolute inset-0 block max-lg:relative max-lg:inset-auto max-lg:aspect-[1672/941] max-[40rem]:aspect-[3/2]"
+        src={mediaObjectUrl(mediaBaseUrl, 'images/hero-background.png')}
+        alt=""
+        aria-hidden="true"
+        widths={[640, 1024, 1440, 1672]}
+        sizes="100vw"
+        width={1672}
+        height={941}
+        ref={heroImageRef}
+        className="h-full w-full object-cover max-[40rem]:object-[-6vw_center]"
+        loading="eager"
+        decoding="async"
+        fetchPriority="low"
+        onLoad={() => setHeroImageReady(true)}
+        onError={() => setHeroImageReady(true)}
+      />
       <div
         className="absolute inset-0 bg-[linear-gradient(90deg,transparent_35%,rgb(0_0_0_/_38%)_100%)] max-lg:top-32 max-[40rem]:bg-[linear-gradient(180deg,transparent_8%,rgb(0_0_0_/_55%)_38%,rgb(0_0_0_/_82%)_70%,rgb(0_0_0_/_90%)_100%)]"
         aria-hidden="true"

@@ -2,13 +2,13 @@
 
 import { MAX_CART_QUANTITY } from '../../lib/guest-cart.js';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { Minus, Plus, ShoppingBasket, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useRef } from 'react';
 import { useDesktopViewport } from '../../hooks/use-desktop-viewport.js';
 import { lockBodyScroll } from '../header/behavior.js';
 import { useCart } from './cart-provider.js';
+import ResponsiveMediaImage from '../media/responsive-media-image.js';
 
 const money = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
 
@@ -21,13 +21,17 @@ function CartLine({ item, disabled, onChange, onRemove }) {
       <div className="flex items-stretch gap-[clamp(0.375rem,1.8vw,0.75rem)]">
         <div className="relative min-h-[clamp(5rem,20vw,6rem)] w-[clamp(3rem,12vw,5rem)] shrink-0 self-stretch overflow-hidden border border-mictlan-sand/15 bg-mictlan-carbon/70">
           {item.imageUrl ? (
-            <Image
+            <ResponsiveMediaImage
+              pictureClassName="absolute inset-0 block"
               src={item.imageUrl}
               alt={item.imageAlt || ''}
+              widths={[160, 360]}
+              sizes="(max-width: 640px) 20vw, 80px"
               width={140}
               height={160}
-              unoptimized
               className="absolute inset-0 size-full object-contain p-1"
+              loading="lazy"
+              decoding="async"
             />
           ) : (
             <span className="absolute inset-0 flex items-center justify-center font-display text-3xl text-mictlan-sage/50" aria-hidden="true">

@@ -1,7 +1,7 @@
 'use client';
 
-import Image from 'next/image';
 import { CalendarDays, ChevronDown, Repeat2, Wine } from 'lucide-react';
+import ResponsiveMediaImage from '../media/responsive-media-image.js';
 
 function formatMoney(value) {
   if (!value || !Number.isSafeInteger(value.amount) || typeof value.currency !== 'string') return '—';
@@ -43,7 +43,7 @@ export default function OrderSummary({ order, images, busy, active, onReorder })
     <div className="border-t border-mictlan-sand/10">
       <ul className="m-0 list-none divide-y divide-mictlan-sand/10 px-4 sm:px-5">
         {order.items.map((item, index) => <li key={`${item.slug}-${index}`} className="flex items-center gap-3 py-4 sm:gap-4">
-          <span className="relative flex h-20 w-15 shrink-0 items-center justify-center overflow-hidden border border-mictlan-sand/10 bg-mictlan-carbon/50 text-mictlan-sage-muted">{images[item.slug]?.url ? <Image src={images[item.slug].url} alt="" width={60} height={80} unoptimized className="absolute inset-0 size-full object-contain p-1" /> : <Wine className="size-5" aria-hidden="true" />}</span>
+          <span className="relative flex h-20 w-15 shrink-0 items-center justify-center overflow-hidden border border-mictlan-sand/10 bg-mictlan-carbon/50 text-mictlan-sage-muted">{images[item.slug]?.url ? <ResponsiveMediaImage pictureClassName="absolute inset-0 block" src={images[item.slug].url} alt="" widths={[160, 360]} sizes="60px" width={60} height={80} loading="lazy" decoding="async" className="absolute inset-0 size-full object-contain p-1" /> : <Wine className="size-5" aria-hidden="true" />}</span>
           <div className="min-w-0 flex-1"><p className="break-words font-display text-base leading-snug text-mictlan-ivory">{item.name}</p><p className="money-detail mt-1 text-mictlan-sage-muted">{item.quantity} × {formatMoney(item.unitPrice)}</p></div>
           <span className="money-line shrink-0 text-right">{formatMoney(item.lineTotal)}</span>
         </li>)}

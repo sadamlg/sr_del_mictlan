@@ -1,11 +1,15 @@
 'use client';
 
-import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
+import { mediaObjectUrl } from '../../lib/media-url.js';
+import ResponsiveMediaImage from '../media/responsive-media-image.js';
 import {
   AGE_GATE_EMBLEM_PATH,
+  AGE_GATE_EMBLEM_FALLBACK_PATH,
   AGE_GATE_EMBLEM_SIZES,
+  AGE_GATE_EMBLEM_SOURCE_WIDTH,
+  AGE_GATE_EMBLEM_WIDTHS,
 } from './age-gate-image.js';
 import { useAccountSession } from '../account/account-session.js';
 import {
@@ -26,7 +30,7 @@ function readAgeConfirmation() {
   }
 }
 
-export default function AgeGate({ children }) {
+export default function AgeGate({ children, mediaBaseUrl }) {
   const session = useAccountSession();
   const [hasConfirmedAge, setHasConfirmedAge] = useState(readAgeConfirmation);
   const [showcaseEntered, setShowcaseEntered] = useState(false);
@@ -109,7 +113,7 @@ export default function AgeGate({ children }) {
         {children}
       </div>
       {isVisible && (
-        <div className="age-gate-overlay fixed inset-0 z-[70] flex min-h-[100svh] items-center justify-center overflow-y-auto bg-mictlan-ink/80 px-4 py-5 text-mictlan-bone backdrop-blur-md sm:px-6" onKeyDown={keepFocusInside}>
+        <div className="age-gate-overlay fixed inset-0 z-[70] flex min-h-[100svh] items-center justify-center overflow-y-auto bg-mictlan-ink/80 px-4 py-5 text-mictlan-bone sm:px-6" onKeyDown={keepFocusInside}>
           <section
             role="dialog"
             aria-modal="true"
@@ -117,15 +121,19 @@ export default function AgeGate({ children }) {
             className="age-gate-dialog relative isolate flex aspect-square w-[min(100%,calc(100svh-2.5rem))] max-w-[34rem] flex-col items-center justify-center overflow-y-auto overscroll-contain rounded-full border border-mictlan-bone/15 bg-[radial-gradient(circle_at_50%_100%,color-mix(in_srgb,var(--mictlan-blood-shadow)_72%,transparent)_0%,rgba(20,8,10,0.96)_50%,var(--mictlan-ink)_100%)] p-4 text-center shadow-[0_28px_90px_rgba(0,0,0,0.78)] min-[375px]:p-6 sm:p-12"
           >
             <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-full">
-              <Image
-                src={AGE_GATE_EMBLEM_PATH}
+              <ResponsiveMediaImage
+                pictureClassName="absolute inset-0"
+                src={mediaObjectUrl(mediaBaseUrl, AGE_GATE_EMBLEM_PATH)}
+                fallbackSrc={mediaObjectUrl(mediaBaseUrl, AGE_GATE_EMBLEM_FALLBACK_PATH)}
                 alt=""
-                fill
+                width={600}
+                height={600}
+                widths={AGE_GATE_EMBLEM_WIDTHS}
+                sourceWidth={AGE_GATE_EMBLEM_SOURCE_WIDTH}
                 sizes={AGE_GATE_EMBLEM_SIZES}
-                unoptimized
                 loading="eager"
-                fetchPriority="high"
-                className="age-gate-emblem translate-y-[1%] scale-[1.12] object-contain opacity-[0.11] grayscale contrast-125 mix-blend-screen"
+                fetchPriority="low"
+                className="absolute inset-0 h-full w-full age-gate-emblem translate-y-[1%] scale-[1.12] object-contain opacity-[0.11] grayscale contrast-125 mix-blend-screen"
               />
             </div>
             <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(circle_at_50%_52%,rgba(20,8,10,0.54)_0%,rgba(20,8,10,0.3)_46%,color-mix(in_srgb,var(--mictlan-ink)_18%,transparent)_100%)]" />
@@ -157,7 +165,7 @@ export default function AgeGate({ children }) {
             <div className="age-gate-actions relative z-10 mt-4 flex w-[78%] max-w-[18rem] flex-col gap-2 sm:mt-7 sm:w-full sm:max-w-[21rem] sm:gap-3">
               <button
                 ref={yesButtonRef}
-                className="age-gate-primary group flex min-h-10 w-full items-center justify-center gap-1.5 border border-mictlan-teal/35 bg-mictlan-teal-deep px-3 py-2.5 font-ui text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-mictlan-bone shadow-[0_8px_24px_color-mix(in_srgb,var(--mictlan-teal-deep)_30%,transparent)] transition-colors hover:bg-mictlan-teal-hover focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-mictlan-teal min-[375px]:text-[0.675rem] min-[375px]:tracking-[0.14em] sm:min-h-12 sm:gap-2 sm:px-5 sm:py-3.5 sm:text-xs sm:tracking-[0.16em]"
+                className="age-gate-primary group flex min-h-10 w-full items-center justify-center gap-1.5 border border-mictlan-teal/35 bg-mictlan-teal-deep px-3 py-2.5 font-ui text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-mictlan-bone shadow-[0_8px_24px_color-mix(in_srgb,var(--mictlan-teal-deep)_30%,transparent)] transition-[background-color] hover:bg-mictlan-teal-hover focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-mictlan-teal min-[375px]:text-[0.675rem] min-[375px]:tracking-[0.14em] sm:min-h-12 sm:gap-2 sm:px-5 sm:py-3.5 sm:text-xs sm:tracking-[0.16em]"
                 type="button"
                 onClick={confirmAge}
               >

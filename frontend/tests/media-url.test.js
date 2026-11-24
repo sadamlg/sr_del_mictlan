@@ -3,7 +3,7 @@ const require = createRequire(import.meta.url);
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-test('local and private LAN media use relative paths for next/image', async () => {
+test('local and private LAN media use relative paths for local file fallback', async () => {
   const { mediaObjectUrl } = await import('../src/lib/media-url.js');
 
   for (const base of ['', 'http://localhost:3000', 'http://192.168.100.11:3000/']) {
@@ -37,16 +37,6 @@ test('media preconnect skips empty, insecure, malformed, or credential-bearing U
   }
 });
 
-test('bypasses server-side image optimization for private HTTP media only in development', async () => {
-  const { shouldBypassNextImageOptimization } = await import('../src/lib/media-url.js');
-
-  assert.equal(shouldBypassNextImageOptimization('http://192.168.100.11:3001', { nodeEnv: 'development' }), true);
-  assert.equal(shouldBypassNextImageOptimization('http://localhost:3001', { nodeEnv: 'development' }), true);
-  assert.equal(shouldBypassNextImageOptimization('https://media.example.test', { nodeEnv: 'development' }), false);
-  assert.equal(shouldBypassNextImageOptimization('http://192.168.100.11:3001', { nodeEnv: 'production' }), false);
-  assert.equal(shouldBypassNextImageOptimization('http://8.8.8.8:3001', { nodeEnv: 'development' }), false);
-});
-
 test('media base URLs cannot include credentials or query parameters', async () => {
   const { mediaObjectUrl } = await import('../src/lib/media-url.js');
 
@@ -55,4 +45,17 @@ test('media base URLs cannot include credentials or query parameters', async () 
   assert.throws(() => mediaObjectUrl('http://localhost:3000', 'images/hero-background.png', { allowInsecureDevHttp: false }));
   assert.throws(() => mediaObjectUrl('ftp://media.example.test', 'images/hero-background.png'));
   assert.throws(() => mediaObjectUrl('https://media.example.test', '../private.png'));
+});
+
+test('responsive candidates keep the R2 origin and include the original full-size WebP', async () => {
+  const { mediaRenditionSrcSet } = await import('../src/lib/media-url.js');
+
+  assert.equal(
+    mediaRenditionSrcSet(
+      'https://media.example.test/images/mezcal-showcase-background-mobile.webp',
+      [320],
+      640,
+    ),
+    'https://media.example.test/images/mezcal-showcase-background-mobile-320.webp 320w, https://media.example.test/images/mezcal-showcase-background-mobile.webp 640w',
+  );
 });
