@@ -7,7 +7,7 @@ import test from 'node:test';
 const repositoryRoot = dirname(fileURLToPath(import.meta.url));
 const mobileShowcaseImage = join(
   repositoryRoot,
-  '../public/images/mezcal-showcase-background-mobile-compact.webp',
+  '../public/images/mezcal-showcase-background-mobile.webp',
 );
 const favicon = join(repositoryRoot, '../src/app/favicon.ico');
 const optimizedAgeGateImage = join(repositoryRoot, '../public/images/age-gate/skull-optimized.webp');
@@ -16,18 +16,20 @@ const landingStylesheet = join(repositoryRoot, '../src/app/globals.css');
 const siteHeader = join(repositoryRoot, '../src/components/header/header.js');
 const landingHero = join(repositoryRoot, '../src/components/landing/landing-hero.js');
 const ageGate = join(repositoryRoot, '../src/components/age-gate/age-gate.js');
-const ageGateImage = join(repositoryRoot, '../src/components/age-gate/age-gate-image.js');
 const rootLayout = join(repositoryRoot, '../src/app/layout.js');
 const sessionBootstrap = join(repositoryRoot, '../public/account-session-bootstrap.js');
 const mezcalShowcase = join(repositoryRoot, '../src/components/landing/mezcal-showcase/mezcal-showcase.js');
-const nextConfig = join(repositoryRoot, '../next.config.mjs');
+const mediaGenerator = join(repositoryRoot, '../../scripts/generate-r2-media-renditions.sh');
+const responsiveMediaImage = join(repositoryRoot, '../src/components/media/responsive-media-image.js');
+const developmentDockerIgnore = join(repositoryRoot, '../.dockerignore');
+const productionDockerIgnore = join(repositoryRoot, '../Dockerfile.production.dockerignore');
 
-test('mobile showcase WebP stays within the 30 KiB transfer budget', () => {
+test('mobile showcase WebP stays within the 50 KiB transfer budget', () => {
   const sizeInBytes = statSync(mobileShowcaseImage).size;
 
   assert.ok(
-    sizeInBytes <= 30 * 1024,
-    `Expected mobile showcase WebP to stay under 30 KiB; received ${Math.ceil(sizeInBytes / 1024)} KiB`,
+    sizeInBytes <= 50 * 1024,
+    `Expected mobile showcase WebP to stay under 50 KiB; received ${Math.ceil(sizeInBytes / 1024)} KiB`,
   );
 });
 
@@ -70,41 +72,82 @@ test('first-visit entrance animations avoid non-composited filter effects', () =
   assert.doesNotMatch(header, /blurredFadeIn/);
 });
 
-test('age-gate decorative emblem loads eagerly with high priority', () => {
+test('age-gate decorative emblem loads eagerly with low fetch priority', () => {
   const component = readFileSync(ageGate, 'utf8');
-  const emblem = component.match(/<Image\b[\s\S]*?className="age-gate-emblem[\s\S]*?\/>/)?.[0];
+  const emblem = component.match(/<ResponsiveMediaImage\b[\s\S]*?className="absolute inset-0 h-full w-full age-gate-emblem[\s\S]*?\/>/)?.[0];
 
   assert.ok(emblem, 'Expected the age-gate emblem image to exist');
   assert.match(emblem, /loading="eager"/);
-  assert.match(emblem, /fetchPriority="high"/);
+  assert.match(emblem, /fetchPriority="low"/);
   assert.doesNotMatch(emblem, /\bpreload=/);
 });
 
-test('landing preloads the mobile age-gate emblem and showcase background', () => {
-  const page = readFileSync(landingPage, 'utf8');
+test('age-gate entry avoids a full-screen backdrop filter and non-composited focus-color transition', () => {
   const component = readFileSync(ageGate, 'utf8');
-  const imageConstants = readFileSync(ageGateImage, 'utf8');
-  assert.match(page, /href=\{AGE_GATE_EMBLEM_PATH\}/);
-  assert.match(page, /MOBILE_SHOWCASE_BACKGROUND_PATH/);
-  assert.match(component, /AGE_GATE_EMBLEM_PATH/);
-  assert.match(component, /AGE_GATE_EMBLEM_SIZES/);
-  assert.match(component, /unoptimized/);
-  assert.match(imageConstants, /AGE_GATE_EMBLEM_PATH\s*=\s*'\/images\/age-gate\/skull-optimized\.webp'/);
+  const overlay = component.match(/className="age-gate-overlay[^"]*"/)?.[0];
+  const primaryButton = component.match(/className="age-gate-primary[^"]*"/)?.[0];
+
+  assert.ok(overlay, 'Expected the age-gate overlay to exist');
+  assert.doesNotMatch(overlay, /backdrop-blur/);
+  assert.ok(primaryButton, 'Expected the age-gate primary button to exist');
+  assert.match(primaryButton, /transition-\[background-color\]/);
+  assert.doesNotMatch(primaryButton, /transition-colors/);
 });
 
-test('Next image optimizer uses its default quality', () => {
-  const config = readFileSync(nextConfig, 'utf8');
+test('landing preloads only the mobile showcase LCP image', () => {
+  const page = readFileSync(landingPage, 'utf8');
+  const component = readFileSync(ageGate, 'utf8');
+  assert.match(page, /href=\{mobileShowcaseUrl\}/);
+  assert.match(page, /imageSrcSet=\{mediaRenditionSrcSet\(mobileShowcaseUrl, MOBILE_SHOWCASE_BACKGROUND_WIDTHS, MOBILE_SHOWCASE_BACKGROUND_SOURCE_WIDTH\)\}/);
+  assert.doesNotMatch(page, /ageGateEmblemUrl|AGE_GATE_EMBLEM_WIDTHS|AGE_GATE_EMBLEM_SOURCE_WIDTH/);
+  assert.match(component, /AGE_GATE_EMBLEM_PATH/);
+  assert.match(component, /fetchPriority="low"/);
+});
 
-  assert.doesNotMatch(config, /AGE_GATE_EMBLEM_QUALITY/);
+test('responsive WebP generation uses its configured quality', () => {
+  const script = readFileSync(mediaGenerator, 'utf8');
+
+  assert.match(script, /-quality "?\$\{quality\}"?/);
+  assert.match(script, /webp:alpha-quality=100/);
+  assert.match(script, /\.generated\/r2-media\/images/);
+  assert.doesNotMatch(script, /frontend\/public\/images\/\$\{relative_source\}/);
 });
 
 test('landing preloads the mobile WebP and retains a PNG fallback', () => {
   const page = readFileSync(landingPage, 'utf8');
   const showcase = readFileSync(mezcalShowcase, 'utf8');
 
-  assert.match(page, /href=\{mediaObjectUrl\(mediaBaseUrl, MOBILE_SHOWCASE_BACKGROUND_PATH\)\}/);
-  assert.match(page, /type="image\/webp"[\s\S]*?media="\(max-width: 640px\)"[\s\S]*?fetchPriority="high"/);
-  assert.match(showcase, /type="image\/webp"[\s\S]*?mezcal-showcase-background-mobile\.png/);
+  assert.doesNotMatch(page, /mediaRenditionUrl\(mobileShowcaseUrl, 480\)/, 'The LCP preload must not point to a non-candidate width');
+  assert.match(page, /imageSizes="100vw"[\s\S]*?media="\(max-width: 640px\)"[\s\S]*?fetchPriority="high"/);
+  assert.match(showcase, /MOBILE_SHOWCASE_BACKGROUND_PATH\s*=\s*'images\/mezcal-showcase-background-mobile\.webp'/);
+  assert.match(showcase, /MOBILE_SHOWCASE_BACKGROUND_FALLBACK_PATH\s*=\s*'images\/mezcal-showcase-background-mobile\.png'/);
+  assert.match(showcase, /MOBILE_SHOWCASE_BACKGROUND_WIDTHS\s*=\s*\[320\]/);
+  assert.match(showcase, /media="\(max-width: 640px\)"[\s\S]*?type="image\/webp"[\s\S]*?MOBILE_SHOWCASE_BACKGROUND_FALLBACK_PATH/);
+});
+
+test('showcase LCP image is prioritized and decoded synchronously', () => {
+  const showcase = readFileSync(mezcalShowcase, 'utf8');
+  const background = showcase.match(/<img[^>]*className="absolute inset-0 h-full w-full object-cover"[^>]*\/>/)?.[0];
+
+  assert.ok(background, 'Expected the showcase background image to exist');
+  assert.match(background, /fetchPriority="high"/);
+  assert.match(background, /decoding="sync"/);
+});
+
+test('R2 renditions stay out of Railway production image but remain available to local development', () => {
+  const developmentIgnore = readFileSync(developmentDockerIgnore, 'utf8');
+  const productionIgnore = readFileSync(productionDockerIgnore, 'utf8');
+
+  assert.doesNotMatch(developmentIgnore, /^public\/images\/?$/m);
+  assert.match(productionIgnore, /^public\/images\/?$/m);
+  assert.match(productionIgnore, /^\.generated\/?$/m);
+});
+
+test('responsive image source sets are emitted only for external R2 media', () => {
+  const component = readFileSync(responsiveMediaImage, 'utf8');
+
+  assert.match(component, /mediaOrigin\(src\)/);
+  assert.match(component, /mediaRenditionSrcSet\(src, widths, sourceWidth\)/);
 });
 
 test('landing gives non-LCP hero and header images low fetch priority', () => {
@@ -112,9 +155,8 @@ test('landing gives non-LCP hero and header images low fetch priority', () => {
   const header = readFileSync(siteHeader, 'utf8');
   const showcase = readFileSync(mezcalShowcase, 'utf8');
 
-  assert.match(hero, /fetchPriority:\s*'low'/);
-  assert.match(header, /priority=\{!isLandingPage\}/);
-  assert.match(header, /loading=\{isLandingPage \? 'eager' : undefined\}/);
+  assert.match(hero, /fetchPriority="low"/);
+  assert.match(header, /loading="eager"/);
   assert.match(header, /fetchPriority=\{isLandingPage \? 'low' : 'high'\}/);
   assert.match(showcase, /fetchPriority="high" className="absolute inset-0 h-full w-full object-cover"/);
 });

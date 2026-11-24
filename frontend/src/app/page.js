@@ -1,12 +1,14 @@
 import { Suspense } from 'react';
 import { cacheLife, io } from 'next/cache';
-import { mediaObjectUrl } from '../lib/media-url';
+import { mediaObjectUrl, mediaOrigin, mediaRenditionSrcSet } from '../lib/media-url.js';
 import SiteHeader from '../components/header/header';
 import AgeGate from '../components/age-gate/age-gate';
-import { AGE_GATE_EMBLEM_PATH } from '../components/age-gate/age-gate-image.js';
 import LandingHero from '../components/landing/landing-hero';
 import MezcalShowcase, {
   MOBILE_SHOWCASE_BACKGROUND_PATH,
+  MOBILE_SHOWCASE_BACKGROUND_FALLBACK_PATH,
+  MOBILE_SHOWCASE_BACKGROUND_SOURCE_WIDTH,
+  MOBILE_SHOWCASE_BACKGROUND_WIDTHS,
   MezcalShowcaseSection,
   MezcalShowcaseSkeleton,
 } from '../components/landing/mezcal-showcase/mezcal-showcase';
@@ -44,18 +46,33 @@ async function CurrentYear() {
 
 export default function Home() {
   const mediaBaseUrl = process.env.MEDIA_BASE_URL || '';
+  const hasRemoteMedia = Boolean(mediaOrigin(mediaBaseUrl));
+  const mobileShowcaseUrl = mediaObjectUrl(mediaBaseUrl, MOBILE_SHOWCASE_BACKGROUND_PATH);
+  const mobileShowcaseFallbackUrl = mediaObjectUrl(mediaBaseUrl, MOBILE_SHOWCASE_BACKGROUND_FALLBACK_PATH);
   return (
     <>
-      <link rel="preload" as="image" href={AGE_GATE_EMBLEM_PATH} type="image/webp" media="(max-width: 640px)" fetchPriority="high" />
-      <link
-        rel="preload"
-        as="image"
-        href={mediaObjectUrl(mediaBaseUrl, MOBILE_SHOWCASE_BACKGROUND_PATH)}
-        type="image/webp"
-        media="(max-width: 640px)"
-        fetchPriority="high"
-      />
-      <AgeGate>
+      {hasRemoteMedia ? (
+        <link
+          rel="preload"
+          as="image"
+          href={mobileShowcaseUrl}
+          imageSrcSet={mediaRenditionSrcSet(mobileShowcaseUrl, MOBILE_SHOWCASE_BACKGROUND_WIDTHS, MOBILE_SHOWCASE_BACKGROUND_SOURCE_WIDTH)}
+          imageSizes="100vw"
+          type="image/webp"
+          media="(max-width: 640px)"
+          fetchPriority="high"
+        />
+      ) : (
+        <link
+          rel="preload"
+          as="image"
+          href={mobileShowcaseFallbackUrl}
+          type="image/png"
+          media="(max-width: 640px)"
+          fetchPriority="high"
+        />
+      )}
+      <AgeGate mediaBaseUrl={mediaBaseUrl}>
         <div className="bg-mictlan-background text-mictlan-ivory">
           <SiteHeader mediaBaseUrl={mediaBaseUrl} />
           <main>
