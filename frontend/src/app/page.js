@@ -12,9 +12,9 @@ import {
 } from '../components/age-gate/age-gate-image.js';
 import LandingHero from '../components/landing/landing-hero';
 import MezcalShowcase, {
-  MOBILE_SHOWCASE_BACKGROUND_PATH,
+  MOBILE_SHOWCASE_BACKGROUND_AVIF_PATH,
+  MOBILE_SHOWCASE_BACKGROUND_AVIF_WIDTH,
   MOBILE_SHOWCASE_BACKGROUND_FALLBACK_PATH,
-  MOBILE_SHOWCASE_BACKGROUND_WIDTHS,
   MezcalShowcaseSection,
   MezcalShowcaseSkeleton,
 } from '../components/landing/mezcal-showcase/mezcal-showcase';
@@ -55,7 +55,7 @@ export default function Home() {
   const hasRemoteMedia = Boolean(mediaOrigin(mediaBaseUrl));
   const ageGateEmblemUrl = mediaObjectUrl(mediaBaseUrl, AGE_GATE_EMBLEM_PATH);
   const ageGateEmblemFallbackUrl = mediaObjectUrl(mediaBaseUrl, AGE_GATE_EMBLEM_FALLBACK_PATH);
-  const mobileShowcaseUrl = mediaObjectUrl(mediaBaseUrl, MOBILE_SHOWCASE_BACKGROUND_PATH);
+  const mobileShowcaseAvifUrl = mediaObjectUrl(mediaBaseUrl, MOBILE_SHOWCASE_BACKGROUND_AVIF_PATH);
   const mobileShowcaseFallbackUrl = mediaObjectUrl(mediaBaseUrl, MOBILE_SHOWCASE_BACKGROUND_FALLBACK_PATH);
   return (
     <>
@@ -82,10 +82,10 @@ export default function Home() {
         <link
           rel="preload"
           as="image"
-          href={mobileShowcaseUrl}
-          imageSrcSet={mediaRenditionSrcSet(mobileShowcaseUrl, MOBILE_SHOWCASE_BACKGROUND_WIDTHS)}
+          href={mobileShowcaseAvifUrl}
+          imageSrcSet={`${mobileShowcaseAvifUrl} ${MOBILE_SHOWCASE_BACKGROUND_AVIF_WIDTH}w`}
           imageSizes="100vw"
-          type="image/webp"
+          type="image/avif"
           media="(max-width: 640px)"
           fetchPriority="high"
         />
