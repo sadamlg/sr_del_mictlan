@@ -58,7 +58,7 @@ generate_renditions 'hero-background.png' 86 640 1024 1440 1672
 generate_renditions 'landing/cupreata-label.png' 86 320 640 1024
 generate_renditions 'mezcal-showcase-background.png' 86 640 1024 1440 1672
 
-# The existing 640 px WebP remains the R2 source candidate; only the small-screen rendition is generated here.
-generate_renditions 'mezcal-showcase-background-mobile.png' 60 320
+# Keep the full mobile framing while offering suitable candidates for narrow and common phone widths.
+generate_renditions 'mezcal-showcase-background-mobile.png' 60 320 480
 
 printf 'Se generaron %s variantes WebP para R2 en %s\n' "${rendition_count}" "${output_root}"
