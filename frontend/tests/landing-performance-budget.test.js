@@ -195,3 +195,15 @@ test('product-card secondary photos reveal with opacity while remaining lazy-loa
   assert.match(showcase, /loading="lazy"[\s\S]*?className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity/);
   assert.doesNotMatch(showcase, /clip-path/);
 });
+
+test('product-card photos remain lazy and use low fetch priority', () => {
+  const showcase = readFileSync(mezcalShowcase, 'utf8');
+  const card = showcase.match(/function MezcalCard\([\s\S]*?(?=export function MezcalShowcaseSection)/)?.[0];
+  const images = card?.match(/<ResponsiveMediaImage\b[\s\S]*?\/>/g) ?? [];
+
+  assert.equal(images.length, 2, 'Expected one product photo and one lifestyle photo per card');
+  for (const image of images) {
+    assert.match(image, /loading="lazy"/);
+    assert.match(image, /fetchPriority="low"/);
+  }
+});
