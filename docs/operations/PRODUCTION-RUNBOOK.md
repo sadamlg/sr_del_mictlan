@@ -4,6 +4,22 @@
 
 Esta guía ordena el paso a Producción y enlaza las instrucciones detalladas de cada servicio. Cada guía de servicio es la fuente de verdad de sus variables y pasos; este documento coordina dependencias, separa entornos y registra las puertas de salida.
 
+## Alcance de la primera salida y tareas iniciales
+
+La primera salida publica el catálogo con compras deshabilitadas mientras se define la paquetería. Configuramos `CHECKOUT_ENABLED=false` en Backend: `/api/public-config` comunica ese estado al Frontend, el botón de producto muestra “Próximamente” y no permite agregar a la canasta; Backend rechaza crear sesiones de Checkout y reintentar compras aunque la petición se envíe directamente a la API. La bandera no elimina carritos ni cancela sesiones de Stripe ya creadas. Verificamos su estado antes de la salida; no configuramos claves ni webhooks live para este lanzamiento.
+
+Al iniciar el chat de fase 10, seguimos esta lista con el responsable:
+
+1. Confirmar candidato, estado de los entornos, dominios y presupuesto. Revisar los PR abiertos y el cierre de fase 09; conservar la excepción de LCP en su alcance de Staging.
+2. Revisar el panel de Railway: memoria, CPU, tráfico, despliegues, logs y diagnóstico de fallos. Elegir responsables y destinatarios de alertas sin contratar Pro para monitoreo.
+3. Definir los controles de Healthchecks.io para Worker, respaldo y comprobador externo de Frontend/API; sus intervalos, márgenes y prueba de aviso por fallo u omisión. Healthchecks.io recibe señales; el comprobador externo debe consultar las URLs.
+4. Acordar el cron de `pg_dump` cada 24 horas, cifrado, bucket R2 privado, retención, custodia de la clave, restauración aislada y RTO. El límite autorizado de gasto adicional es $0: estimar costos antes de activar recursos y solicitar un nuevo presupuesto si no cabe en ese límite. La activación y el simulacro se completan cuando existe la base productiva, antes de aceptar datos reales.
+5. Preparar R2 de Production con medios y variantes verificadas, dominio de medios y caché; preparar Resend con remitente y clave exclusivos; crear Railway Production con base y servicios independientes. Coordinar los registros DNS que requieren estos proveedores sin mover todavía el dominio público al nuevo frontend.
+6. Configurar con el responsable la capa pública de Cloudflare y Turnstile, verificar Neubox y completar DNS/TLS. Documentar los pasos reproducibles y decisiones comprobadas en las guías correspondientes conforme se implementan.
+7. Completar respaldo, restauración, alertas y rollback; verificar catálogo, correo, cuentas si se habilitan, accesibilidad manual, rendimiento y bloqueo de Checkout mediante peticiones directas y desde la interfaz. Autorizar después el cambio del dominio público y la indexación.
+
+La configuración y aceptación de Stripe productivo quedan pendientes para una habilitación comercial posterior, después de resolver envíos y autorizar ventas. Los procedimientos siguientes se conservan para esa activación; sus pasos de pagos no bloquean la publicación inicial del catálogo con Checkout deshabilitado.
+
 ## Perfiles y separación de entornos
 
 Nuestro proyecto mantiene Local, Railway Staging y Production como entornos separados. El DNS público de `srmictlan.com` está delegado a Cloudflare y conecta el dominio al Frontend de Staging; este hostname no representa Production. Antes de publicar Production, conectamos el dominio sólo a los servicios productivos aprobados y verificamos el cambio de DNS.
@@ -77,7 +93,9 @@ Avanza en orden y registra el resultado de cada puerta antes de seguir. Los coma
 
 **Puerta:** los recorridos transaccionales llegan a bandejas de control y regresan a la URL de Production; el API no contiene `RESEND_API_KEY`.
 
-### 5. Preparar pagos sin activar ventas
+### 5. Preparar pagos sin activar ventas — salida comercial posterior
+
+Omitir este paso en la primera publicación del catálogo. Mantener `CHECKOUT_ENABLED=false` y comprobar el rechazo de creación/reintento de Checkout en Backend. Retomar la preparación siguiente cuando se defina la paquetería y se autorice la integración productiva de pagos.
 
 - Crear/confirmar el webhook de Production con su dominio de Backend y eventos exactos, pero mantener Checkout deshabilitado.
 - Primero comprobar el flujo con Stripe en modo test y claves test independientes. Una prueba de Staging anterior no acredita el endpoint de Production.
@@ -101,7 +119,7 @@ Repetir Lighthouse móvil con el dominio final y condiciones comparables. La exc
 
 ### 8. Abrir al público
 
-Sólo tras aceptar las puertas anteriores y autorizar la salida: habilitar la indexación pública, cambiar los controles SEO, activar Stripe live/Checkout si la autorización comercial lo permite y comunicar el dominio canónico. Conservar fecha, SHA, configuración aprobada y plan de reversión en el registro de salida; resumir en el roadmap el resultado de la fase y los bloqueos importantes.
+Sólo tras aceptar las puertas aplicables a la salida autorizada: habilitar la indexación pública, cambiar los controles SEO y comunicar el dominio canónico. La publicación inicial conserva `CHECKOUT_ENABLED=false`; no activa Stripe live. La habilitación comercial posterior exige completar el paso 5 y autorizar explícitamente pagos reales y Checkout. Conservar fecha, SHA, configuración aprobada y plan de reversión en el registro de salida; resumir en el roadmap el resultado de la fase y los bloqueos importantes.
 
 ## Reglas de operación
 
