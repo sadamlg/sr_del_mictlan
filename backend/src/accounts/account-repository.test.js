@@ -84,6 +84,39 @@ test('email confirmation claims the token once before changing the account email
   } });
 });
 
+test('confirming an email change consumes outstanding password-reset tokens in the same transaction', async () => {
+  const tokenUpdates = [];
+  const transaction = {
+    accountToken: {
+      findUnique: async () => ({
+        id: 'email-change-token', accountId: 'account-1', purpose: 'EMAIL_CHANGE', consumedAt: null,
+        expiresAt: new Date(now.getTime() + 1000), account: { id: 'account-1', pendingEmail: 'new@example.mx' },
+      }),
+      updateMany: async (input) => { tokenUpdates.push(input); return { count: 1 }; },
+    },
+    account: { update: async () => undefined },
+  };
+  const repository = createAccountRepository({ $transaction: async (work) => work(transaction) });
+
+  const result = await repository.confirmEmail('email-change-token-hash', now);
+
+  assert.deepEqual(result, { purpose: 'EMAIL_CHANGE', accountId: 'account-1' });
+  assert.deepEqual(tokenUpdates, [
+    {
+      where: { id: 'email-change-token', consumedAt: null, expiresAt: { gt: now } },
+      data: { consumedAt: now },
+    },
+    {
+      where: { accountId: 'account-1', purpose: 'EMAIL_CHANGE', consumedAt: null },
+      data: { consumedAt: now },
+    },
+    {
+      where: { accountId: 'account-1', purpose: 'PASSWORD_RESET', consumedAt: null },
+      data: { consumedAt: now },
+    },
+  ]);
+});
+
 test('worker email job query omits password hashes and account addresses', async () => {
   let query;
   const repository = createAccountRepository({

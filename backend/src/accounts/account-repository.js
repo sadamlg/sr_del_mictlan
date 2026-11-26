@@ -142,6 +142,12 @@ export function createAccountRepository(database) {
           where: { accountId: token.accountId, purpose: token.purpose, consumedAt: null },
           data: { consumedAt: now },
         });
+        if (token.purpose === 'EMAIL_CHANGE') {
+          await transaction.accountToken.updateMany({
+            where: { accountId: token.accountId, purpose: 'PASSWORD_RESET', consumedAt: null },
+            data: { consumedAt: now },
+          });
+        }
         return { purpose: token.purpose, accountId: token.accountId };
       });
     },

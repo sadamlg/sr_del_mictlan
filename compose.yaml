@@ -117,6 +117,7 @@ services:
       - ./frontend/src:/app/src
       - ./frontend/tests:/app/tests
       - ./frontend/public:/app/public
+      - ./scripts:/scripts:ro
     depends_on:
       backend:
         condition: service_healthy
