@@ -75,16 +75,29 @@ test('does not use client supplied forwarding headers as an identity', () => {
   assert.equal(spoofed.response.statusCode, 429);
 });
 
-test('evicts the oldest bucket at capacity instead of blocking every new identity', () => {
+test('preserves active exact buckets at capacity and enforces overflow identity quotas', () => {
   let now = 1;
-  const rateLimit = createAccountRateLimit({ limit: 1, windowMs: 60_000, maxEntries: 1, now: () => now });
-  const first = run(rateLimit, makeRequest({ body: { email: 'ana@example.mx' } }));
-  const second = run(rateLimit, makeRequest({ body: { email: 'luis@example.mx' } }));
-  const secondAgain = run(rateLimit, makeRequest({ body: { email: 'luis@example.mx' } }));
+  const rateLimit = createAccountRateLimit({ limit: 2, windowMs: 60_000, maxEntries: 1, now: () => now });
+  const request = (email) => run(rateLimit, makeRequest({ body: { email } }));
 
-  assert.equal(first.nextCalled, true);
-  assert.equal(second.nextCalled, true);
-  assert.equal(secondAgain.response.statusCode, 429);
+  assert.equal(request('ana@example.mx').nextCalled, true);
+  assert.equal(request('luis@example.mx').nextCalled, true);
+  assert.equal(request('ana@example.mx').nextCalled, true);
+  assert.equal(request('ana@example.mx').response.statusCode, 429);
+  assert.equal(request('luis@example.mx').nextCalled, true);
+  assert.equal(request('luis@example.mx').response.statusCode, 429);
+});
+
+test('releases an overflow quota after its conservative time buckets expire', () => {
+  let now = 1;
+  const rateLimit = createAccountRateLimit({ limit: 1, windowMs: 15_000, maxEntries: 1, now: () => now });
+  const request = (email) => run(rateLimit, makeRequest({ body: { email } }));
+
+  assert.equal(request('ana@example.mx').nextCalled, true);
+  assert.equal(request('luis@example.mx').nextCalled, true);
+  assert.equal(request('luis@example.mx').response.statusCode, 429);
+  now = 16_001;
+  assert.equal(request('luis@example.mx').nextCalled, true);
 });
 
 test('releases an account bucket when the fixed window expires', () => {
